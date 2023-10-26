@@ -1,0 +1,24 @@
+Name: Verified Polyhedra Library
+Version: 0.2.0
+Authors: Sylvain Boulmé <Sylvain.Boulme@univ-grenoble-alpes.fr>, Alexis Fouilhé <a@Alexis-Fouilhe.fr>, Alexandre Maréchal <Alex.Marechal@univ-grenoble-alpes.fr>, David Monniaux <David.Monniaux@univ-grenoble-alpes.fr>, Michaël Périn <Michael.Perin@univ-grenoble-alpes.fr>, Hang Yu <Hang.Yu@univ-grenoble-alpes.fr>
+Maintainers: Alexandre Maréchal <Alex.Marechal@univ-grenoble-alpes.fr>
+License: LGPL
+Synopsis: Coq certified abstract domain of convex polyhedra.
+Description: Coq certified abstract domain of convex polyhedra.
+Homepage: https://github.com/VERIMAG-Polyhedra/VPL
+OASISFormat: 0.4
+BuildTools: ocamlbuild
+Plugins: META (0.4), DevFiles (0.4)
+
+Library vpl
+  Path: src
+  Pack: true
+  CompiledObject: best
+  InternalModules: datatypes/Scalar, datatypes/Var, datatypes/Rtree, datatypes/VarMap, datatypes/Vector, datatypes/Cstr, misc/Misc, misc/DebugTypes, misc/Debug, misc/Heuristic, core/Cert, core/Cons, core/Splx, core/Opt, core/EqSet, core/IneqSet, lin/poly/PolyLexer, lin/poly/PolyParser, lin/poly/PolyParserBuild, lin/poly/Poly, lin/poly/CstrPoly, plp/Naming, plp/Objective, plp/ParamCoeff, plp/Tableau, plp/PSplx, plp/PLPBuild, plp/PLPCore, plp/PLPDistrib, plp/PLPPlot, plp/PLPLexer, plp/PLPParser, plp/PLP, core/Proj, core/Join, core/Join_RR, core/MinLP, core/Min, core/Pol, Flags, Config, lin/handelman/oracle/HOtypes, lin/handelman/Index, lin/handelman/IndexBuild, lin/handelman/Hi, lin/handelman/HPol, lin/handelman/oracle/HOracle, lin/handelman/oracle/HHeuristic, lin/handelman/oracle/HLP, lin/handelman/oracle/HPattern, lin/intervalization/IOracle, lin/intervalization/IHeuristic, lin/intervalization/IOtypes, lin/intervalization/IPattern, interface/CWrappers, interface/NCInterface, interface/NCDomain, interface/CDomain, interface/UserInterface, interface/Symbols, coq_ml/CoqPr, Calculator, core/ASTCert, interface/ASTDomain, plp/PoltoPLP, lin/handelman/Handelman, lin/handelman/HOracle_backend, lin/Lin, interface/Factory, smt/Smtlib_build, smt/Smtlib_lex, smt/Smtlib_parse, smt/Smtlib_syntax, smt/Smtlib_util, extracted/LinearizeBackend, extracted/PedraQ, extracted/ASAtomicCond, extracted/ConsSet, extracted/DomainFunctors, extracted/PedraQBackend, coq_ml/PedraQOracles, extracted/PedraZ, extracted/ASCond, extracted/ASTerm, extracted/Itv, extracted/NumC, extracted/CstrC, extracted/LinTerm, extracted/CstrLCF, extracted/ZNoneItv, extracted/ProgVar, extracted/Ascii, extracted/BinInt, extracted/BinNat, extracted/BinNums, extracted/BinPos, extracted/BinPosDef, extracted/CoqAddOn, extracted/Datatypes, extracted/Debugging, extracted/DomainGCL, extracted/DomainInterfaces, extracted/Equalities, extracted/FMapPositive, extracted/Impure, extracted/ImpureConfig, extracted/List0, extracted/MSetPositive, extracted/Nat0, extracted/PositiveMapAddOn, extracted/PredTrans, extracted/QArith_base, extracted/Qcanon, extracted/Qreduction, extracted/Qround, extracted/Ring_polynom, extracted/Ring_polynom_AddOn, extracted/Ring_polynom_AddOnQ, extracted/FMapAVL, extracted/FMapList, extracted/Int, extracted/Specif, extracted/String0, extracted/ZArith_dec, extracted/Zbool, extracted/ZNone, coq_ml/CertcheckerConfig, extracted/PeanoNat, extracted/CIndex, extracted/Map_poly, extracted/OrderedType, extracted/OrdersTac, extracted/Compare_dec, extracted/DemoPLVerifier, Wrapper, misc/Profile
+  BuildDepends:  zarith, unix
+
+SourceRepository vpl
+  Type:  git
+  Location: https://github.com/VERIMAG-Polyhedra/VPL
+  Branch:  master
+  Subdir:  ocaml/

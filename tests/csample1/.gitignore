@@ -1,0 +1,9 @@
+.depend.extr.test
+*.cpol
+*.scop
+.beforescheduling
+.afterscheduling
+*.pluto.*
+.outfilename
+.regtile
+.srcfilename

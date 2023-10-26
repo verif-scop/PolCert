@@ -1,0 +1,81 @@
+# Second-stage Makefile, after Coq extraction
+# Purpose: tests
+
+include Makefile.config
+
+TESTS=tests/readscop tests/writescop
+
+#
+# Variables from Makefile.config:
+# -OCAML_NATIVE_COMP: native-code compilation is supported
+# -OCAML_OPT_COMP: can we use the natively-compiled compilers
+# -COMPFLAGS: compile options
+# -LINK_OPT: additional linker flags for the native binary
+#
+
+# Menhir configuration.
+
+include Makefile.menhir
+
+test: scopreader-test cpol2copenscop-test pluto-test csample1-test csample2-test csample3-test pluto-all-test
+	@echo "All tests finished."
+
+# clean: scopreader-clean
+clean: scopreader-clean cpol2copenscop-clean pluto-clean csample1-clean csample2-clean csample3-clean pluto-all-clean
+	@echo "All tests cleaned."
+
+scopreader-test: 
+	@echo "@@@@Testing scopreader."
+	@cd tests/readscop/ && $(MAKE) -f Makefile clean all
+	@echo "@@@@Testing scopreader finished."
+
+scopreader-clean:
+	cd tests/readscop/ && $(MAKE) -f Makefile clean
+
+cpol2copenscop-test: 
+	@echo "@@@@Testing cpol2openscop."
+	@cd tests/cpol2copenscop/ && $(MAKE) -f Makefile clean && $(MAKE) -f Makefile depend && $(MAKE) -f Makefile test
+	@echo "@@@@Testing cpol2openscop finished."
+
+cpol2copenscop-clean:
+	cd tests/cpol2copenscop/ && $(MAKE) -f Makefile clean
+
+pluto-test: 
+	@echo "@@@@Testing pluto."
+	@cd tests/pluto/ && $(MAKE) -f Makefile clean && $(MAKE) -f Makefile depend && $(MAKE) -f Makefile test
+	@echo "@@@@Testing pluto finished."
+
+pluto-clean: 
+	cd tests/cpol2copenscop/ && $(MAKE) -f Makefile clean
+
+csample1-test: 
+	@echo "@@@@Csample-1."
+	@cd tests/csample1/ && $(MAKE) -f Makefile clean && $(MAKE) -f Makefile depend && $(MAKE) -f Makefile test
+	@echo "@@@@Csample-1 finished."
+
+csample1-clean:
+	@cd tests/csample1/ && $(MAKE) -f Makefile clean
+
+csample2-test: 
+	@echo "@@@@Csample-2."
+	@cd tests/csample2/ && $(MAKE) -f Makefile clean && $(MAKE) -f Makefile depend && $(MAKE) -f Makefile test
+	@echo "@@@@Csample-2 finished."
+
+csample2-clean:
+	cd tests/csample2/ && $(MAKE) -f Makefile clean
+
+csample3-test: 
+	@echo "@@@@Csample-3."
+	@cd tests/csample3/ && $(MAKE) -f Makefile clean && $(MAKE) -f Makefile depend && $(MAKE) -f Makefile test
+	@echo "@@@@Csample-3 finished."
+
+csample3-clean:
+	cd tests/csample3/ && $(MAKE) -f Makefile clean
+
+pluto-all-test: 
+	@echo "@@@@Testing Pluto all examples."
+	@cd tests/pluto-all/ && $(MAKE) -f Makefile clean && $(MAKE) -f Makefile depend && $(MAKE) -f Makefile test
+	@echo "@@@@Testing Pluto finished."
+
+pluto-all-clean:
+	cd tests/pluto-all/ && $(MAKE) -f Makefile clean

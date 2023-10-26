@@ -1,0 +1,7 @@
+.outfilename
+.regtile
+.srcfilename
+*.pluto.c
+*.pluto.cloog
+*.beforescheduling.scop
+*.afterscheduling.scop
