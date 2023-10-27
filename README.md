@@ -6,9 +6,17 @@ Paper of this machanization will come out soon.
 
 **Acknowledgement**: This project bases on [Verified Polyhedra Library (VPL)](https://github.com/VERIMAG-Polyhedra/VPL) and [PolyGen](https://github.com/Ekdohibs/PolyGen), and similar idea can be found at [s2sloop](https://github.com/pilki/s2sLoop).
 
+## Overview
+
+The validator takes two polyhedral models (before and after auto-transformation like pluto's core algorithm), and output their equivalence (equal or unknown). It can only deal with two polyhedron models with strictly equal instructions, differing only in schedule (scattering) functions (then only supports reordering of instances, not supporting tiling etc). The validation algorithm just constructs test polyhedrons for all WAW/WAR/RAW dependences (write/read access functions should be given) for their violation.
+
+Users should instantiate their own [Instr](./polygen/InstrTy.v), which merely demands the language's semantics implies permutability under [Bernstein’s Conditions](https://link.springer.com/referenceworkentry/10.1007/978-0-387-09766-4_521); this needs users to provide a verified checker function (like, basing on symbolic execution) for validity of read and write access functions regarding to the semantics. As an example, we provide CompCert's instruction (called [CInstr](./src/CInstr.v)) as its instantiation and parameterize the validator (see [CPolOpt.v](./driver/CPolOpt.v)). Note that, we wrap the Pluto compiler with the validator to achieve verified compilation. Nevertheless, there's still several challenges to (seamlessly) integrate polyhedral compilation into CompCert as an extension, like machanizing a verified extractor, dealing with assumptions (heavy static reasoning) of polyhedal compilation ([optimistic approach](https://dl.acm.org/doi/10.5555/3049832.3049864) seems possible, but at least need to change CompCert's semantics for overflow flag (see [this report](https://inria.hal.science/hal-00655485/file/polyproofs.pdf))), more complete scheduling supports, vectorization and parallemism... Also, we find a semantics fault in PolyGen (see [this issue](https://github.com/Ekdohibs/PolyGen/issues/1)), which also need fix. 
+
+An executable `polcert` can be extracted and runs on two polyhedron models in [OpenScop format](https://github.com/periscop/openscop) (of course, there's conversion between OpenScop and our inner representation). Though, as Openscop format does not contain information like typing and can be complex eough, we can not give it valid semantics (like [CInstr](./src/CInstr.v)). Only the algorithms are reused. Access function's consistency to instruction's semantics is then lifted as assumption. With these in mind, the algorithm is tested on pluto's 62 test cases. See [TInstr](./src/TInstr.v) and [TPolValidator](./driver/TPolValidator.v) for this trivial instantiation. 
+
 ## Structure
 
-Main proofs can be found in [`./src`](./src) folder. Unit tests are in `./tests` folder; `tests/pluto-all` includes all 62 test cases evaluated with Pluto. 
+Main proofs can be found in [`./src`](./src) folder. Unit tests are in [`./tests`](./tests) folder; [`./tests/pluto-all`](./tests/pluto-all) includes all 62 test cases evaluated with Pluto. 
 
 For more complete project information, see [documentation](#documentation).
 
@@ -57,7 +65,7 @@ docker pull hughshine/polcert:latest
 Then you can run the project inside the docker:
 
 ```
-sudo docker run -p 80:80 -ti [--rm] polcert:latest
+sudo docker run -p 80:80 -ti [--rm] [hughshine/]polcert:latest
 ```
 
 Inside the docker container, try the following command to build the project:
@@ -88,8 +96,8 @@ If your build and installation succeeds, there should be executable `polcert` in
 
 ```
 #pragma scop
-// You loop should be surrounded with pragma
-// You don't need write complete c program, as pluto intercepts the fragment
+// Your loop should be surrounded with pragma
+// You don't need to write complete c program, as pluto intercepts the fragment
 #pragma endscop
 ```
 
