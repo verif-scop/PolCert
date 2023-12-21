@@ -8,7 +8,6 @@ Require Import BinPos.
 
 Require Import Misc.
 Require Import Linalg.
-Require Import SelectionSort.
 Require Import LibTactics.
 Import List.ListNotations.
 
