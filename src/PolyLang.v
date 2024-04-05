@@ -2574,6 +2574,7 @@ Inductive poly_instance_list_semantics: list Z -> PolyLang.t -> State.t -> State
 Inductive instance_list_semantics: t -> State.t -> State.t -> Prop :=
 | PIPSemaIntro: forall pprog pis varctxt vars envv st1 st2,
     pprog = (pis, varctxt, vars) -> 
+    Instr.Compat vars st1 ->
     Instr.NonAlias st1 -> 
     Instr.InitEnv varctxt envv st1 ->
     poly_instance_list_semantics envv pprog st1 st2 ->

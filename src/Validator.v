@@ -3044,7 +3044,13 @@ Proof.
   assert (env1 = env2). {
     eapply validate_implies_correspondence in Hval.
     firstorder.
-    eapply H3 with (varctxt1:=env1) (varctxt2:=env2) (vars3:=vars1) (vars4:=vars2); eauto.
+    eapply H4 with (varctxt1:=env1) (varctxt2:=env2) (vars3:=vars1) (vars4:=vars2); eauto.
+  }
+
+  assert (vars1 = vars2) as VARS. {
+    eapply validate_implies_correspondence in Hval.
+    firstorder.
+    eapply H5 with (varctxt1:=env1) (varctxt2:=env2) (vars3:=vars1) (vars4:=vars2); eauto.
   }
 
   assert (PolIRs.Instr.InitEnv env1 envv st1). {
@@ -3054,9 +3060,9 @@ Proof.
   assert (length env1 = length envv) as Henvlen. {
     eapply PolIRs.Instr.init_env_samelen; eauto.
   }
-  eapply validate_correct' with (env1:=env1) (poly_instrs1:=poly_instr1) in H2; eauto. 
-  destruct H2 as (st2' & Hsem & EQ). exists st2'.
-  split; trivial. econs; eauto.
+  eapply validate_correct' with (env1:=env1) (poly_instrs1:=poly_instr1) in H3; eauto.
+  destruct H3 as (st2' & Hsem & EQ). exists st2'.
+  split; trivial. econs; eauto. subst; eauto.
   Unshelve.
 Qed.
 
