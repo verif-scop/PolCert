@@ -3,7 +3,7 @@
 This repository contains mechanized proof of "Verified Validation for Affine Polyhedral Scheduling" in the Coq proof assistent. It contains a general verified validation framework (PolCert), and its verified instantiation of a [CompCert](https://github.com/AbsInt/CompCert) instruction's variant (CInstr). The algorithm's completeness is evaluated with [the Pluto compiler](https://github.com/bondhugula/pluto).
 
 
-<details><summary>(click to expand) <strong>The paper of this mechanization is published at [springer](https://link.springer.com/chapter/10.1007/978-3-031-64626-3_17). If you find this project useful, please consider cite us! :D </strong></summary>
+<details><summary>(click to expand) <strong>The paper of this mechanization is published at <a href='https://link.springer.com/chapter/10.1007/978-3-031-64626-3_17'>springer</a>. If you find this project useful, please consider cite us! :D </strong></summary>
 
 
 ```
