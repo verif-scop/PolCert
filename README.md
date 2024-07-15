@@ -2,7 +2,31 @@
 
 This repository contains mechanized proof of "Verified Validation for Affine Polyhedral Scheduling" in the Coq proof assistent. It contains a general verified validation framework (PolCert), and its verified instantiation of a [CompCert](https://github.com/AbsInt/CompCert) instruction's variant (CInstr). The algorithm's completeness is evaluated with [the Pluto compiler](https://github.com/bondhugula/pluto).
 
-Paper of this machanization will come out soon.
+
+<details><summary>(click to expand) <strong>The paper of this mechanization is published at [springer](https://link.springer.com/chapter/10.1007/978-3-031-64626-3_17). If you find this project useful, please consider cite us! :D </strong></summary>
+
+
+```
+@InProceedings{10.1007/978-3-031-64626-3_17,
+author="Li, Xuyang
+and Liang, Hongjin
+and Feng, Xinyu",
+editor="Chin, Wei-Ngan
+and Xu, Zhiwu",
+title="Verified Validation for Affine Scheduling in Polyhedral Compilation",
+booktitle="Theoretical Aspects of Software Engineering",
+year="2024",
+publisher="Springer Nature Switzerland",
+address="Cham",
+pages="287--305",
+abstract="Structural nested loops can be abstracted into polyhedral models, based on which one can perform aggressive loop optimizations; however, the optimizations are often heuristic and complex, and therefore error-prone. Meanwhile, verified compilers, though rigorously correct, still miss powerful optimizing transformations and therefore produce less efficient code than industrial ones. To bridge this gap, this work provides a general verified validation framework based on Bernstein's conditions for affine scheduling, the core component of polyhedral optimization techniques. It is parameterized over the concrete definitions and proofs of the instruction language to be reusable. As shown in our evaluation, the framework is flexible enough to support both existing verified compilers like CompCert and existing polyhedral compilers like Pluto. The result is fully mechanized in the Coq proof assistant.",
+isbn="978-3-031-64626-3"
+}
+```
+
+
+</details>
+
 
 **Acknowledgement**: This project bases on [Verified Polyhedra Library (VPL)](https://github.com/VERIMAG-Polyhedra/VPL) and [PolyGen](https://github.com/Ekdohibs/PolyGen), and similar idea can be found at [s2sloop](https://github.com/pilki/s2sLoop).
 
