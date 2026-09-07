@@ -7,13 +7,13 @@ Rocq documentation with `make proof-documentation`, then open
 
 ## Choosing a Compiler Theorem
 
-Start with `VerifiedParallelCompilerConfig.compile_correct` for the
+Start with [`VerifiedParallelCompilerConfig.compile_correct`](../driver/VerifiedParallelCompilerConfig.v#L536) for the
 compiler with sequential, parallel, and vector output. Its concrete counterpart
-is `ExtractedPipelineCorrect.extracted_parallel_compile_correct`.
+is [`ExtractedPipelineCorrect.extracted_parallel_compile_correct`](../driver/ExtractedPipelineCorrect.v#L363).
 
 The `Verified*` modules are functors over `POLIRS`; `SVerified*` modules
 instantiate the executable definitions. The theorems in
-`driver/ExtractedPipelineCorrect.v` connect these concrete definitions to
+[`driver/ExtractedPipelineCorrect.v`](../driver/ExtractedPipelineCorrect.v) connect these concrete definitions to
 the generic proofs.
 
 | Compiler | Generic correctness theorem | Concrete correctness theorem in `ExtractedPipelineCorrect` |
@@ -48,7 +48,7 @@ canonical padded schedule coordinate used by raw code generation.
 
 The final theorem is
 `VerifiedParallelCompilerConfig.compile_correct` in
-`driver/VerifiedParallelCompilerConfig.v`. Its semantic direction is:
+[`driver/VerifiedParallelCompilerConfig.v`](../driver/VerifiedParallelCompilerConfig.v). Its semantic direction is:
 
 ```text
 compile cfg source may return target
@@ -114,14 +114,34 @@ Affine scheduling changes only the second item. ISS and tiling also change how
 statement instances are represented, so they need an additional
 correspondence proof.
 
+
+### Instruction Models
+
+[`INSTR`](../polygen/InstrTy.v) specifies execution, access summaries, and
+the commutation law used by the validators. The repository supplies these
+instances:
+
+| Model | State and execution | Instantiation |
+| --- | --- | --- |
+| [`SInstr`](../syntax/SInstr.v) | Named memory cells with symbolic arithmetic values; used by the `.loop` frontend | [`SPolIRs`](../syntax/SPolIRs.v) |
+| [`CInstr`](../src/CInstr.v#L408) | Typed assignments using CompCert operations and [`CState`](../src/CState.v) memory | [`CPolIRs`](../src/CPolIRs.v), [`CPolOpt`](../driver/CPolOpt.v) |
+| [`TInstr`](../src/TInstr.v) | Access-summary model with no instruction execution rules; used by standalone OpenScop checks | [`TPolIRs`](../src/TPolIRs.v), [`Entry.ml`](../driver/Entry.ml) |
+
+For `CInstr`, read `eval_expr` and `semantics`, then the access-summary
+soundness and commutation proofs. `CState.non_alias` requires distinct named
+variables to occupy distinct blocks. Its state relation keeps environments
+equal and relates memories by mutual `Mem.extends`. This instantiation gives
+instruction-level CompCert semantics; a complete C frontend and backend
+require separate verified translations.
+
 ## 3. Extraction: Loops to Polyhedral Instances
 
 Primary files:
 
-- `src/ExtractorFrontend.v`: executable translation and local affine facts;
-- `src/ExtractorFacts.v`: flattening, prefix slices, ordering, and partitions;
-- `src/ExtractorCorrect.v`: semantic reconstruction and the public theorem;
-- `src/Extractor.v`: compatibility facade only.
+- [`src/ExtractorFrontend.v`](../src/ExtractorFrontend.v): executable translation and local affine facts;
+- [`src/ExtractorFacts.v`](../src/ExtractorFacts.v): flattening, prefix slices, ordering, and partitions;
+- [`src/ExtractorCorrect.v`](../src/ExtractorCorrect.v): semantic reconstruction and the public theorem;
+- [`src/Extractor.v`](../src/Extractor.v): compatibility facade only.
 
 The extractor accepts the bounded affine fragment of the structured loop
 language. It converts expressions to affine rows, accumulates loop and guard
@@ -134,9 +154,9 @@ The proof has four layers:
    to evaluation in a concrete iterator environment.
 2. `extract_stmt` and its success-inversion lemmas expose the generated
    statements for instructions, sequences, loops, and guards.
-3. The flattening and splitting lemmas in `ExtractorFacts.v` relate a sorted list of polyhedral
+3. The flattening and splitting lemmas in [`ExtractorFacts.v`](../src/ExtractorFacts.v) relate a sorted list of polyhedral
    instances to the syntax-directed execution of each source construct.
-4. `core_sched_stmt_stmts_constrs_prefix_mutual` in `ExtractorCorrect.v` performs the structural
+4. `core_sched_stmt_stmts_constrs_prefix_mutual` in [`ExtractorCorrect.v`](../src/ExtractorCorrect.v) performs the structural
    induction. `extract_stmt_to_loop_semantics_core_sched_constrs` specializes
    it to the top-level empty iterator prefix, and `extractor_correct` packages
    it at the program level.
@@ -166,17 +186,17 @@ Read them on demand from the main structural proof.
 
 Primary files:
 
-- `src/ISSRefinement.v`
-- `src/ISSBoolChecker.v`
-- `src/ISSCutSemantics.v`
-- `src/ISSValidatorCorrect.v`
+- [`src/ISSRefinement.v`](../src/ISSRefinement.v)
+- [`src/ISSBoolChecker.v`](../src/ISSBoolChecker.v)
+- [`src/ISSCutSemantics.v`](../src/ISSCutSemantics.v)
+- [`src/ISSValidatorCorrect.v`](../src/ISSValidatorCorrect.v)
 
 Index-set splitting (ISS) replaces a source statement with children whose
 domains partition the source domain. The children keep the source statement's
 instruction, schedule, point witness, transformations, and accesses. Only the
 domain and the statement identity change.
 
-`ISSRefinement.v` defines the declarative certificate. For each child, a
+[`ISSRefinement.v`](../src/ISSRefinement.v) defines the declarative certificate. For each child, a
 witness identifies its parent and assigns one side of every affine cut. The
 central obligations establish:
 
@@ -185,10 +205,10 @@ central obligations establish:
 - each expected sign vector occurs exactly once for its parent;
 - child domains cover the parent domain and are pairwise disjoint.
 
-`ISSBoolChecker.v` turns those obligations into booleans and proves soundness.
+[`ISSBoolChecker.v`](../src/ISSBoolChecker.v) turns those obligations into booleans and proves soundness.
 `check_domain_partition_complete_cut_shapeb_sound` is the main checker theorem.
 
-`ISSCutSemantics.v` supplies the semantic step. It maps every child instance to
+[`ISSCutSemantics.v`](../src/ISSCutSemantics.v) supplies the semantic step. It maps every child instance to
 the corresponding parent instance. Coverage supplies a parent for every
 source point; disjointness prevents duplicate children for the same source
 point; payload equality preserves instruction semantics and timestamps. The
@@ -209,7 +229,7 @@ than as the definition of ISS correctness.
 
 ## 5. Affine Scheduling: Reordering Fixed Instances
 
-Primary file: `src/AffineValidator.v`.
+Primary file: [`src/AffineValidator.v`](../src/AffineValidator.v).
 
 The affine validator compares programs with the same statement domains and
 instance coordinates but different schedules. `EqDom` records that fixed-space
@@ -255,7 +275,7 @@ validators.
 
 ### 6.1 General tiling semantics
 
-Primary file: `src/TilingRelation.v`.
+Primary file: [`src/TilingRelation.v`](../src/TilingRelation.v).
 
 A tiling witness says how added tile coordinates relate to the original point
 coordinates. Because the target has a different point space, schedule
@@ -300,10 +320,10 @@ TilingValidator.tiling_validate_correct
 
 Primary files:
 
-- `src/TilingBandScheduleValidator.v`
-- `src/TilingBandMixedSecondValidator.v`
-- `src/TilingBandPhaseScalarValidator.v`
-- `src/TilingBandDirectRuntime.v`
+- [`src/TilingBandScheduleValidator.v`](../src/TilingBandScheduleValidator.v)
+- [`src/TilingBandMixedSecondValidator.v`](../src/TilingBandMixedSecondValidator.v)
+- [`src/TilingBandPhaseScalarValidator.v`](../src/TilingBandPhaseScalarValidator.v)
+- [`src/TilingBandDirectRuntime.v`](../src/TilingBandDirectRuntime.v)
 
 The direct validator proves the reordering-safety premise through a semantic
 permutable-band property. For each selected band component and each ordered
@@ -340,8 +360,8 @@ The layout proof is where the tiling variants differ:
 - `ScalarAwareBands` admits fixed scalar schedule rows around loop components.
 - `PhaseAwareSemanticBands` separates statements by constant phase prefixes
   and covers phase-separated ordinary and mixed second-level layouts.
-- `TilingBandMixedSecondValidator.v` and
-  `TilingBandPhaseScalarValidator.v` package the specialized bridges used by
+- [`TilingBandMixedSecondValidator.v`](../src/TilingBandMixedSecondValidator.v) and
+  [`TilingBandPhaseScalarValidator.v`](../src/TilingBandPhaseScalarValidator.v) package the specialized bridges used by
   the runtime dispatcher.
 
 For each bridge, read the proof in five stages: invert the recognized shape;
@@ -351,7 +371,7 @@ by the band property. The long bridge proofs are mostly list-position and
 padding arithmetic supporting those five steps.
 
 `checked_tiling_sourceb_complete_direct_band_check_correct` in
-`TilingBandDirectRuntime.v` is the runtime-facing theorem. It dispatches among
+[`TilingBandDirectRuntime.v`](../src/TilingBandDirectRuntime.v) is the runtime-facing theorem. It dispatches among
 the proved layout classes. A failed recognizer or failed band check rejects the
 candidate; there is no affine-validation fallback for the tiling boundary.
 
@@ -359,17 +379,17 @@ candidate; there is no affine-validation fallback for the tiling boundary.
 
 Primary files:
 
-- `polygen/ParallelLoop.v`
-- `src/ParallelValidator.v`
-- `src/RawCodegenOrigin.v`
-- `src/ParallelCodegenCore.v`: executable tagging, cleanup checks, and
+- [`polygen/ParallelLoop.v`](../polygen/ParallelLoop.v)
+- [`src/ParallelValidator.v`](../src/ParallelValidator.v)
+- [`src/RawCodegenOrigin.v`](../src/RawCodegenOrigin.v)
+- [`src/ParallelCodegenCore.v`](../src/ParallelCodegenCore.v): executable tagging, cleanup checks, and
   generated/source point correspondence;
-- `src/ParallelCodegenCompatibility.v`: legacy global-order wrappers plus the
+- [`src/ParallelCodegenCompatibility.v`](../src/ParallelCodegenCompatibility.v): legacy global-order wrappers plus the
   support interface used by the checked proof;
-- `src/ParallelCodegenCorrect.v`: certificate ownership, actual-trace
+- [`src/ParallelCodegenCorrect.v`](../src/ParallelCodegenCorrect.v): certificate ownership, actual-trace
   ordering, refinement, and checked endpoints;
-- `src/ParallelCodegen.v`: compatibility facade only;
-- `driver/ParallelPolOptCorrect.v`
+- [`src/ParallelCodegen.v`](../src/ParallelCodegen.v): compatibility facade only;
+- [`driver/ParallelPolOptCorrect.v`](../driver/ParallelPolOptCorrect.v)
 
 `parallel_safe_dim_pointwise pp d` states the doall property for one padded
 schedule coordinate. Two instances are in the same parallel slice when they
@@ -395,14 +415,14 @@ loops use the same raw trace relation recursively. The separate
 `ordered_par_trace` and `ordered_semantics` relations are proof companions that
 carry the pairwise commutativity needed to serialize one actual execution.
 
-`RawCodegenOrigin.v` avoids putting origin metadata in the executable target.
+[`RawCodegenOrigin.v`](../src/RawCodegenOrigin.v) avoids putting origin metadata in the executable target.
 It reflects a sequential cover of a generated trace through LoopGen,
 PolyLoopSimplifier, ASTGen, schedule elimination, and PrepareCodegen. The final
 event-source theorem recovers the exact source statement, domain membership,
 observable instruction effect, parameter prefix, and padded schedule
 coordinates for each generated instruction point.
 
-`ParallelCodegen.v` attaches sequential, parallel, or vector modes to generated
+[`ParallelCodegen.v`](../src/ParallelCodegen.v) attaches sequential, parallel, or vector modes to generated
 loops. Its central mutual proof traverses the actual raw target trace. At each
 `ParMode` node it finds the owning certificate, maps two sibling-family points
 back to source instances, applies pointwise certificate soundness, and transports
@@ -429,7 +449,7 @@ the emitted vector annotation to be structurally innermost. `VecMode` traces
 remain in sequential order, so this theorem does not model SIMD lanes or a
 vector backend execution model.
 
-`ParallelPolOptCorrect.v` composes preprocessing routes with these annotation
+[`ParallelPolOptCorrect.v`](../driver/ParallelPolOptCorrect.v) composes preprocessing routes with these annotation
 and codegen theorems. The typed local lemmas
 `checked_annotation_after_preparation_correct` and
 `extracted_result_from_prepared_correct` expose the two repeated compositions:
@@ -462,10 +482,10 @@ loop that executes `body1; body2` at each iteration. The relevant proof files ar
 
 | File | Role |
 | --- | --- |
-| `src/LoopJamValidator.v` | Build and check cross-body independence queries within the same enclosing environment |
-| `src/LoopJamBridge.v` | Translate the extracted certificate into the native loop-trace reordering premise |
-| `src/LoopJamContext.v` | Lift accepted local fusions through surrounding syntax and the selected unroll plan |
-| `src/LoopJamLower.v` | Executable block/remainder construction and checked fusion attempts |
+| [`src/LoopJamValidator.v`](../src/LoopJamValidator.v) | Build and check cross-body independence queries within the same enclosing environment |
+| [`src/LoopJamBridge.v`](../src/LoopJamBridge.v) | Translate the extracted certificate into the native loop-trace reordering premise |
+| [`src/LoopJamContext.v`](../src/LoopJamContext.v) | Lift accepted local fusions through surrounding syntax and the selected unroll plan |
+| [`src/LoopJamLower.v`](../src/LoopJamLower.v) | Executable block/remainder construction and checked fusion attempts |
 
 `checked_loop_jam_pair_at_depth_pointwise_sound` retains parameter and
 enclosing-iterator prefixes and uses the candidate's actual bounds.
@@ -497,20 +517,18 @@ executable checks for these distinctions.
 
 For a first complete pass, read these declarations in order:
 
-```text
-Extractor.extractor_correct
-ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct
-AffineValidator.validate_correct
-TilingRelation.tiling_after_to_before_poly_correct_via_retiled_old
-TilingBandScheduleValidator.semantic_componentwise_permutable_implies_reordering_safe
-TilingBandDirectRuntime.checked_tiling_sourceb_complete_direct_band_check_correct
-ParallelValidator.checked_parallelize_current_pointwise_sound
-RawCodegenOrigin.complete_generate_many_event_source
-ParallelCodegen.actual_multi_ordered_mutual
-ParallelCodegen.checked_annotated_codegen_correct_general
-ParallelPolOptCorrect.Opt_parallel_current_correct
-VerifiedParallelCompilerConfig.compile_correct
-```
+1. [`Extractor.extractor_correct`](../src/ExtractorCorrect.v#L2099)
+2. [`ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct`](../src/ISSValidatorCorrect.v#L18)
+3. [`AffineValidator.validate_correct`](../src/AffineValidator.v#L4422)
+4. [`TilingRelation.tiling_after_to_before_poly_correct_via_retiled_old`](../src/TilingRelation.v#L4970)
+5. [`TilingBandScheduleValidator.semantic_componentwise_permutable_implies_reordering_safe`](../src/TilingBandScheduleValidator.v#L10610)
+6. [`TilingBandDirectRuntime.checked_tiling_sourceb_complete_direct_band_check_correct`](../src/TilingBandDirectRuntime.v#L413)
+7. [`ParallelValidator.checked_parallelize_current_pointwise_sound`](../src/ParallelValidator.v#L967)
+8. [`RawCodegenOrigin.complete_generate_many_event_source`](../src/RawCodegenOrigin.v#L1354)
+9. [`ParallelCodegen.actual_multi_ordered_mutual`](../src/ParallelCodegenCorrect.v#L387)
+10. [`ParallelCodegen.checked_annotated_codegen_correct_general`](../src/ParallelCodegenCorrect.v#L995)
+11. [`ParallelPolOptCorrect.Opt_parallel_current_correct`](../driver/ParallelPolOptCorrect.v#L2008)
+12. [`VerifiedParallelCompilerConfig.compile_correct`](../driver/VerifiedParallelCompilerConfig.v#L536)
 
 Then descend into the component whose premise is least clear. In particular:
 

@@ -65,6 +65,10 @@ test and Evaluation runners have their own producer options, including
 Historical bug tests additionally need
 the pinned `buggy` checkout and `POLCERT_BUGGY_ROOT`.
 
+`make documentation` also requires the Python Markdown package
+(`python3-markdown` on Ubuntu). It generates browsable guides and Rocq source
+pages under `doc/proof-html/`; open `index.html` in a browser.
+
 Use the same configure and build commands as above. A successful native build
 does not establish that it used the pinned CI dependencies; retain the
 toolchain and compiler revisions with any reported measurements.

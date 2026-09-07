@@ -46,8 +46,9 @@ code generation then constructs the target loop nest.
 
 Successful compilation guarantees semantic refinement from source loop IR to
 target loop IR. The formalization is parameterized by the instruction language
-and its semantics; the executable frontend uses `SInstr` for scalar and array
-computations. Parsing, printing, and full C integration are outside the proof
+and its semantics. The `.loop` frontend uses [`SInstr`](syntax/SInstr.v);
+[`CInstr`](src/CInstr.v) provides a CompCert-based instruction model.
+Parsing, printing, and full C integration are outside the proof
 boundary. The [pipeline guide](doc/VERIFIED_PIPELINE.md) explains the stages
 and semantic scope.
 

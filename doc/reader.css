@@ -1,0 +1,15 @@
+body { max-width: 72rem; margin: 2rem auto; padding: 0 1rem; color: #202124; background: white; font: 16px/1.5 system-ui, sans-serif; }
+nav { padding-bottom: .75rem; margin-bottom: 1.5rem; border-bottom: 1px solid #ddd; }
+a { color: #1457a6; }
+code, .code { font-family: ui-monospace, monospace; font-size: .9em; }
+pre { padding: .8rem; overflow-x: auto; background: #f5f6f7; }
+.guide { max-width: 62rem; }
+.guide table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.guide th, .guide td { padding: .45rem .6rem; text-align: left; vertical-align: top; border: 1px solid #ddd; overflow-wrap: anywhere; }
+.guide th { background: #f5f6f7; overflow-wrap: normal; }
+.guide li { margin: .3rem 0; }
+#main { padding: 0; line-height: 1.5; }
+#main .doc { width: auto; max-width: 62rem; background: transparent; line-height: 1.5; }
+#main .section { background: #f0f3f6; padding: .4rem .6rem; line-height: 1.3; }
+#main .code, #main .libtitle { overflow-wrap: anywhere; }
+:target { scroll-margin-top: 1rem; background-color: #fff5cc; }

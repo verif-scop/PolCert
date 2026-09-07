@@ -100,6 +100,10 @@ ENV PLUTO_GIT_COMMIT="${PLUTO_GIT_COMMIT}" \
 
 SHELL ["/bin/bash", "-c"]
 
+# Render the Markdown guides alongside coqdoc output.
+RUN apt-get update && apt-get install -y python3-markdown \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY . /polcert/
 
 WORKDIR /polcert/

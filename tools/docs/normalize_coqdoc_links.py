@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import html
+import json
 import posixpath
 import re
 from collections import defaultdict
@@ -17,6 +18,28 @@ from urllib.parse import quote, unquote
 HREF_RE = re.compile(r'(?P<prefix><a\b[^>]*?\s)href="(?P<href>[^"]*)"')
 LOCAL_LINE_SUFFIX_RE = re.compile(r":\d+$")
 EXTERNAL_PREFIXES = ("http://", "https://", "mailto:", "javascript:", "data:")
+STDLIB = "https://rocq-prover.org/doc/V8.13.2/stdlib/"
+
+
+def normalize_stdlib_reexports(text: str) -> str:
+    # These re-exports have no declaration anchor in the published 8.13.2
+    # coqdoc pages (checked 2026-09-07). Keep their module links instead of
+    # claiming an exact declaration target. This requires no build-time network.
+    aliases = json.loads(Path(__file__).with_name(
+        "stdlib-8.13.2-reexports.json").read_text())
+
+    def replace(match):
+        href = html.unescape(match.group("href"))
+        if not href.startswith(STDLIB):
+            return match.group(0)
+        page, separator, fragment = href[len(STDLIB):].partition("#")
+        if separator and unquote(fragment) in aliases.get(page, []):
+            return (match.group("prefix") + 'href="' + STDLIB + page + '"'
+                    + ' title="Re-exported declaration; module documentation"')
+        return match.group(0)
+
+    return HREF_RE.sub(replace, text).replace(
+        'href="http://coq.inria.fr/"', 'href="https://rocq-prover.org/"')
 
 
 class PageParser(HTMLParser):
@@ -64,7 +87,7 @@ def local_target(source: str, href: str) -> tuple[str, str | None] | None:
     )
     if not normalized.endswith(".html"):
         return None
-    return normalized, unquote(fragment) if separator else None
+    return normalized, unquote(fragment) if separator and fragment else None
 
 
 def unique(items: set[tuple[str, str]]) -> tuple[str, str] | None:
@@ -180,7 +203,7 @@ def normalize(root: Path) -> tuple[int, int, int]:
                 + '"'
             )
 
-        rewritten = HREF_RE.sub(replace, page.text)
+        rewritten = normalize_stdlib_reexports(HREF_RE.sub(replace, page.text))
         if rewritten != page.text:
             page.path.write_text(rewritten, encoding="utf-8")
 

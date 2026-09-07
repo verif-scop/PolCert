@@ -23,7 +23,7 @@ If you find a bug or have any comment, feel free to contact us at verimag-polyhe
         * [glpk](https://www.gnu.org/software/glpk/)
             __required version >= 4.61__
 
-        * [eigen](http://eigen.tuxfamily.org/)
+        * [eigen](https://libeigen.gitlab.io/)
            (automatically installed by depexts on debian or ubuntu)
            _debian package libeigen3-dev_
            __tested with version 3.3.3__
@@ -32,7 +32,7 @@ If you find a bug or have any comment, feel free to contact us at verimag-polyhe
   
         First, add the following repository in your opam system:
 
-            opam repo add vpl http://www-verimag.imag.fr/~boulme/opam-vpl
+            opam repo add vpl https://raw.githubusercontent.com/VERIMAG-Polyhedra/opam-vpl/master
 
         Then, install the following packages (depending on your needs):
 
@@ -62,21 +62,21 @@ If you find a bug or have any comment, feel free to contact us at verimag-polyhe
 
        The VPL requires the following packages:
 	
-       * [ocaml](http://caml.inria.fr/ocaml/index.en.html)
+       * [ocaml](https://ocaml.org/)
           __required version >= 4.02.3__
 	
-       * [zarith](https://forge.ocamlcore.org/projects/zarith)
+       * [zarith](https://github.com/ocaml/Zarith)
           _available in OPAM_
           __tested with version 1.4.1__
           
        * [glpk](https://www.gnu.org/software/glpk/)
           __required version >= 4.61__
 
-       * [eigen](http://eigen.tuxfamily.org/)
+       * [eigen](https://libeigen.gitlab.io/)
           _debian package libeigen3-dev_
           __tested with version 3.3.3__
 	
-       * [coq](https://coq.inria.fr/)
+       * [coq](https://rocq-prover.org/)
           (mandatory only if you want to re-extract files from Coq)
           _available in OPAM_
           __required version 8.7__ (use coq-vpl.0.2 for coq 8.6)

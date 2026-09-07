@@ -12,12 +12,13 @@
 </head>
 <body>
   <h1>PolCert proof documentation</h1>
-  <p>Start with the <a href="../PROOF_READING_GUIDE.md">proof reading guide</a>
+  <p>Start with the <a href="guides/doc/PROOF_READING_GUIDE.html">proof reading guide</a>
   or browse the <a href="declarations.html">declaration index</a>.</p>
   <h2>Component entry points</h2>
   <ul>
     <li><a href="polcert.polygen.InstrTy.html">Instruction interface and required semantic laws</a></li>
-    <li><a href="polcert.syntax.SInstr.html">Executable instruction-model instantiation</a></li>
+    <li><a href="polcert.syntax.SInstr.html">Symbolic instruction model used by polopt</a></li>
+    <li><a href="polcert.src.CInstr.html">CompCert-based instructions</a> and <a href="polcert.src.CState.html">memory state</a></li>
     <li><a href="polcert.src.PolyLang.html">Polyhedral programs and semantics</a></li>
     <li><a href="polcert.src.ExtractorCorrect.html">Loop extraction</a></li>
     <li><a href="polcert.src.AffineValidator.html">Affine validation</a></li>
@@ -33,7 +34,7 @@
   </ul>
   <p>The main contract is semantic refinement for successful compilation in
   the formal loop language. Parsing, printing, and optimizer search are
-  outside the verified core. See the <a href="../VERIFIED_PIPELINE.md">pipeline guide</a>
+  outside the verified core. See the <a href="guides/doc/VERIFIED_PIPELINE.html">pipeline guide</a>
   for the semantic boundary.</p>
 </body>
 </html>

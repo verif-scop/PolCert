@@ -611,6 +611,7 @@ documentation: proof-documentation
 PROOF_DOC_FILES = \
   polygen/StateTy.v polygen/InstrTy.v polygen/PolIRs.v polygen/Loop.v syntax/SInstr.v \
   src/CState.v src/CInstr.v polygen/InstanceListSema.v src/PolyLang.v \
+  src/CPolIRs.v src/TInstr.v src/TPolIRs.v syntax/SPolIRs.v driver/CPolOpt.v \
   src/ExtractorFrontend.v src/ExtractorFacts.v src/ExtractorCorrect.v \
   src/ISSRefinement.v src/ISSBoolChecker.v src/ISSCutSemantics.v src/ISSValidatorCorrect.v \
   src/AffineValidator.v \
@@ -632,14 +633,17 @@ PROOF_DOC_OBJECTS = $(notdir $(PROOF_DOC_FILES:.v=.vo))
 PROOF_DOC_GLOBS = $(addprefix doc/,$(notdir $(PROOF_DOC_FILES:.v=.glob)))
 
 proof-documentation: $(PROOF_DOC_OBJECTS) doc/proof-index.html
+	python3 -c 'import markdown' || { echo 'Documentation requires python3-markdown (see ENVIRONMENT.md).'; exit 1; }
 	mkdir -p doc/proof-html
 	rm -f doc/proof-html/*.html doc/proof-html/*.css
 	cat $(PROOF_DOC_GLOBS) > doc/proof-html/proof.glob
 	$(COQDOC) --html --toc --toc-depth 3 --index declarations \
+	  --coqlib https://rocq-prover.org/doc/V8.13.2/stdlib \
 	  --interpolate --utf8 --no-lib-name \
 	  -t "PolCert proof reader" $(COQINCLUDES) \
 	  -d doc/proof-html --glob-from doc/proof-html/proof.glob $(PROOF_DOC_FILES)
 	cp doc/proof-index.html doc/proof-html/index.html
+	python3 tools/docs/render_guides.py doc/proof-html
 	python3 tools/docs/normalize_coqdoc_links.py doc/proof-html
 
 .PHONY: proof-documentation
