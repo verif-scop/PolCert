@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -20,6 +21,8 @@ def input_path(package, relative, digest=None):
         raise ValueError("Input path must stay inside the evaluation package")
     result = (package / path).resolve()
     result.relative_to(package.resolve())
+    if digest is None and re.fullmatch(r"[0-9a-f]{64}", result.stem):
+        digest = result.stem
     if not result.is_file() or (digest is not None and sha(result) != digest):
         raise ValueError("Missing or changed packaged input: " + relative)
     return result

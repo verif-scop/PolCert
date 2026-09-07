@@ -50,6 +50,14 @@ class ExperimentInputs(unittest.TestCase):
             with self.assertRaises(ValueError):
                 input_path(ROOT, path)
 
+    def test_content_addressed_input(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            name = '0' * 64 + '.c'
+            (root / name).write_text('int main(void) { return 0; }\n')
+            with self.assertRaises(ValueError):
+                input_path(root, name)
+
 
 if __name__ == '__main__':
     unittest.main()
