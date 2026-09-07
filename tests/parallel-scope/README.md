@@ -48,7 +48,7 @@ operators, constants, calls, conditionals, and read/write locations. This is
 a serialization consistency check, not a substitute for semantic validation.
 
 The separate `pluto-fixed-manifest.json` exercises
-point and tile hints at three different depths. It requires the evaluation
+point and tile hints at three different depths. It requires the pinned fixed
 Pluto build, including the wavefront fix: the original producer can emit an
 illegal schedule for these inputs before parallel validation. Run it with
 `tools/parallel_current/run_parallel_current_suite.py --polopt ./polopt

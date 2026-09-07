@@ -5,7 +5,7 @@ generation hotspots.
 
 ## `advect3d`
 
-The main artifact case today is:
+To isolate affine-route code generation on `advect3d`:
 
 ```bash
 python3 tools/perf/run_stage_profile.py \

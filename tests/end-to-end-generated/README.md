@@ -62,12 +62,11 @@ right-hand sides remains ordinary floating-point C division, as required by
 the generated numeric kernels.
 
 The runner rejects `NaN` and infinity even when both output strings match.
-The all-pair artifact audit separately runs every accepted source/optimized
+The all-pair execution check separately runs every accepted source/optimized
 program configuration and requires the results to agree. General parallel
 loops run repeatedly so one coincidental execution cannot hide an unstable
 result.
-It is heavier than the normal regression suite and is meant for local artifact
-evaluation.
+It is a manual check, separate from the normal regression suite.
 
 One-command refresh of the generated `perf` campaign:
 
