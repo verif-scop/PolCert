@@ -49,23 +49,22 @@ Module BandAffine := Base.TilingVal.
     bridges.  The final correctness lemmas merely compose those two halves
     with [TilingValidator]. *)
 
-(** Why the direct checker uses full band permutability.
+(** Band permutability and scalar phases.
 
-    Pluto selects the bands passed to its tiler with its fully-permutable-band
-    detector.  Componentwise nonnegative dependence distances are therefore
-    the producer's exact legality contract for this class of tiling inputs,
-    not an unrelated strengthening imposed only by the validator.  The
-    executable checker re-establishes that untrusted producer claim from the
-    imported program's memory effects.
+    A plain loop band requires nonnegative dependence distances in every
+    component.  Pluto's scalar-aware detector also permits negative distances
+    when an earlier scalar phase already carries the dependence.  The guarded
+    checks below preserve that distinction: they restrict pairs to an equal
+    outer prefix and account for the preceding scalar coordinates.
 
-    For a fixed tile size and a fixed target layout, full permutability is
-    stronger than the minimum result-specific obligation: some source pairs
-    can decrease in a band row without actually being reversed by that one
-    target timestamp.  This causes no loss for a producer-conforming Pluto
-    band under the same dependence semantics, because full permutability
-    already rules out a non-permutable dependence on every such decreasing
-    pair.  The layout lemmas only need the one-way inclusion from actual
-    target reversals to checked component decreases. *)
+    Each layout proof shows that every target reversal activates one of these
+    checked component decreases.  Phase-local composition additionally proves
+    that different phases retain their order and that untiled entries retain
+    their complete schedules.  Dependencies across bands or untiled entries
+    are therefore covered by the proof, rather than silently omitted.
+
+    These are sufficient band conditions, not a completeness theorem for every
+    legal fixed tiling schedule. *)
 
 (** * Reader map
 
@@ -20460,11 +20459,96 @@ Proof.
     exact Hdecrease.
 Qed.
 
+(** A two-level phase-preserving tile prefix can reverse a pair only at an
+    active scalar-aware component.  Both quotient stages retain the scalar
+    slots, so a scalar that already carries the pair protects both stages. *)
+Lemma scalar_aware_two_level_reversal_active :
+  forall mask band1 band2 child_tiles1 child_tiles2 root_tiles1 root_tiles2
+         child1 child2 root1 root2,
+    List.length band1 = List.length mask ->
+    List.length band2 = List.length mask ->
+    scalar_aware_loop_tiles_monotone mask band1 band2 child_tiles1 child_tiles2 ->
+    scalar_aware_loop_tiles_monotone mask band1 band2 root_tiles1 root_tiles2 ->
+    render_scalar_aware_value_prefix mask band1 child_tiles1 = Some child1 ->
+    render_scalar_aware_value_prefix mask band2 child_tiles2 = Some child2 ->
+    render_scalar_aware_value_prefix mask band1 root_tiles1 = Some root1 ->
+    render_scalar_aware_value_prefix mask band2 root_tiles2 = Some root2 ->
+    lex_compare band1 band2 = Lt ->
+    lex_compare ((child1 ++ root1) ++ band1)
+                ((child2 ++ root2) ++ band2) <> Lt ->
+    exists dim x y,
+      (dim < List.length mask)%nat /\
+      nth_error band1 dim = Some x /\
+      nth_error band2 dim = Some y /\
+      (x > y)%Z /\
+      listz_pointwise_le
+        (select_scalar_values (firstn dim mask) (firstn dim band2))
+        (select_scalar_values (firstn dim mask) (firstn dim band1)).
+Proof.
+  intros mask band1 band2 child_tiles1 child_tiles2 root_tiles1 root_tiles2
+         child1 child2 root1 root2 Hlen1 Hlen2 Hchild_mono Hroot_mono
+         Hchild1 Hchild2 Hroot1 Hroot2 Hold Hnew.
+  assert (Hchild_len : List.length child1 = List.length child2).
+  { rewrite (render_scalar_aware_value_prefix_length _ _ _ _ Hlen1 Hchild1).
+    rewrite (render_scalar_aware_value_prefix_length _ _ _ _ Hlen2 Hchild2).
+    reflexivity. }
+  assert (Hroot_len : List.length root1 = List.length root2).
+  { rewrite (render_scalar_aware_value_prefix_length _ _ _ _ Hlen1 Hroot1).
+    rewrite (render_scalar_aware_value_prefix_length _ _ _ _ Hlen2 Hroot2).
+    reflexivity. }
+  assert (Hmixed : lex_compare (child1 ++ root1) (child2 ++ root2) = Gt).
+  { destruct (scalar_aware_reversal_implies_mixed_gt
+                [] [] (child1 ++ root1) (child2 ++ root2)
+                band1 band2 [] [] eq_refl
+                ltac:(rewrite !app_length, Hchild_len, Hroot_len; reflexivity))
+      as [_ Hgt].
+    - cbn. rewrite !app_nil_r. exact Hold.
+    - cbn. rewrite !app_nil_r. exact Hnew.
+    - exact Hgt. }
+  rewrite lex_compare_app in Hmixed by exact Hchild_len.
+  destruct (lex_compare child1 child2) eqn:Hchild_cmp.
+  - exact (scalar_aware_prefix_gt_implies_active_decrease
+             mask band1 band2 root_tiles1 root_tiles2 Hroot_mono
+             root1 root2 Hroot1 Hroot2 Hmixed).
+  - discriminate.
+  - exact (scalar_aware_prefix_gt_implies_active_decrease
+             mask band1 band2 child_tiles1 child_tiles2 Hchild_mono
+             child1 child2 Hchild1 Hchild2 Hchild_cmp).
+Qed.
+
+Definition semantic_scalar_rows_reversal_bridge
+    (mask: list bool) (envv: list Z)
+    (before_pis after_pis: list Tiling.PL.PolyInstr)
+    (ws: list statement_tiling_witness) (rows: list Schedule) : Prop :=
+  let pis := Tiling.compose_tiling_pinstrs_ext_from_after
+               (List.length envv) before_pis after_pis ws in
+  forall flat ip1 ip2,
+    Tiling.PL.flatten_instrs_ext envv pis flat ->
+    In ip1 flat -> In ip2 flat ->
+    Tiling.PL.instr_point_ext_old_sched_lt ip1 ip2 ->
+    Tiling.PL.instr_point_ext_new_sched_ge ip1 ip2 ->
+    exists pi1 pi2 rows1 rows2 dim,
+      nth_error pis (Tiling.PL.ip_nth_ext ip1) = Some pi1 /\
+      nth_error pis (Tiling.PL.ip_nth_ext ip2) = Some pi2 /\
+      nth_error rows (Tiling.PL.ip_nth_ext ip1) = Some rows1 /\
+      nth_error rows (Tiling.PL.ip_nth_ext ip2) = Some rows2 /\
+      (dim < max_schedule_length rows)%nat /\
+      (dim < List.length mask)%nat /\
+      listz_pointwise_le
+        (select_scalar_values (firstn dim mask)
+          (firstn dim (affine_product rows2 (Tiling.PL.ip_index_ext ip2))))
+        (select_scalar_values (firstn dim mask)
+          (firstn dim (affine_product rows1 (Tiling.PL.ip_index_ext ip1)))) /\
+      (semantic_band_value (List.length envv + Tiling.PL.pi_depth_ext pi1)
+         dim rows1 (Tiling.PL.ip_index_ext ip1) >
+       semantic_band_value (List.length envv + Tiling.PL.pi_depth_ext pi2)
+         dim rows2 (Tiling.PL.ip_index_ext ip2))%Z.
+
 (** The phase-aware second-level bridge combines phase-class separation with
     the two-level monotonicity argument.  The proof keeps these obligations
     separate: phase equality identifies the local layout; quotient
     monotonicity then reduces any reversal to a decreasing checked row. *)
-Lemma phase_semantic_second_level_band_shape_reversal_bridge :
+Lemma phase_semantic_second_level_band_shape_scalar_reversal_bridge :
   forall before_pis before_ctxt before_vars after_pis ws shape envv,
     List.length before_ctxt = List.length envv ->
     TilingCheck.check_pprog_tiling_sourceb
@@ -20473,7 +20557,7 @@ Lemma phase_semantic_second_level_band_shape_reversal_bridge :
     phase_semantic_second_level_band_shape_property
       (before_pis, before_ctxt, before_vars)
       (after_pis, before_ctxt, before_vars) ws shape ->
-    semantic_rows_reversal_bridge
+    semantic_scalar_rows_reversal_bridge (pssbs_loop_mask shape)
       envv before_pis after_pis ws (pssbs_full_rows shape).
 Proof.
   (* Stage 1: recover the phase mask and globally aligned root/child layouts. *)
@@ -20584,7 +20668,7 @@ Proof.
     as [Hfull_rows_len _].
   (* Stage 2: recover the two reversal endpoints and their second-level
      statement recipes. *)
-  unfold semantic_rows_reversal_bridge.
+  unfold semantic_scalar_rows_reversal_bridge.
   intros flat ip1 ip2 Hflat Hin1 Hin2 Hold Hnew.
   destruct
     (composed_point_pair_facts_of_members
@@ -21363,19 +21447,16 @@ Proof.
     unfold Tiling.PL.instr_point_ext_new_sched_ge in Hnew.
     destruct Hnew; congruence.
   }
+  rewrite Hold_lex in Hold.
+  rewrite Hnew_lex in Hnew_not_lt.
   destruct
-    (semantic_stripmined_reversal_implies_decreasing_component_lex
-       (Tiling.PL.ip_time_stamp1_ext ip1)
-       (Tiling.PL.ip_time_stamp1_ext ip2)
-       (Tiling.PL.ip_time_stamp2_ext ip1)
-       (Tiling.PL.ip_time_stamp2_ext ip2)
-       band_values1 band_values2
-       (child_values1 ++ root_values1)
-       (child_values2 ++ root_values2)
-       Hold_lex Hnew_lex
-       (eq_trans Hband_len1 (eq_sym Hband_len2))
-       Htiles_eq Htiles_mono Hold Hnew_not_lt)
-    as [dim [x [y [Hvalue1 [Hvalue2 Hdecrease]]]]].
+    (scalar_aware_two_level_reversal_active
+       (pssbs_loop_mask shape) band_values1 band_values2
+       _ _ _ _ child_values1 child_values2 root_values1 root_values2
+       Hband_len1 Hband_len2 Hchild_tile_monotone Hroot_tile_monotone
+       Hchild_render1 Hchild_render2 Hroot_render1 Hroot_render2
+       Hold Hnew_not_lt)
+    as [dim [x [y [Hdim_mask [Hvalue1 [Hvalue2 [Hdecrease Hprior]]]]]]].
   (* Stage 5: transfer that component to the full lifted rows checked by the
      executable direct validator. *)
   assert
@@ -21439,6 +21520,7 @@ Proof.
     + rewrite Hfull_len1.
       eapply max_schedule_length_ge_nth_error.
       exact Hfull_rows1.
+  - rewrite Hfull_eval1, Hfull_eval2. exact Hprior.
   - assert
       (Hsemantic_value1 :
          semantic_band_value
@@ -21467,6 +21549,29 @@ Proof.
     }
     rewrite Hsemantic_value1, Hsemantic_value2.
     exact Hdecrease.
+Qed.
+
+Lemma phase_semantic_second_level_band_shape_reversal_bridge :
+  forall before_pis before_ctxt before_vars after_pis ws shape envv,
+    List.length before_ctxt = List.length envv ->
+    TilingCheck.check_pprog_tiling_sourceb
+      (before_pis, before_ctxt, before_vars)
+      (after_pis, before_ctxt, before_vars) ws = true ->
+    phase_semantic_second_level_band_shape_property
+      (before_pis, before_ctxt, before_vars)
+      (after_pis, before_ctxt, before_vars) ws shape ->
+    semantic_rows_reversal_bridge
+      envv before_pis after_pis ws (pssbs_full_rows shape).
+Proof.
+  intros before_pis before_ctxt before_vars after_pis ws shape envv
+         Hlen Hsource Hshape flat ip1 ip2 Hflat Hin1 Hin2 Hold Hnew.
+  destruct (phase_semantic_second_level_band_shape_scalar_reversal_bridge
+              _ _ _ _ _ _ _ Hlen Hsource Hshape
+              flat ip1 ip2 Hflat Hin1 Hin2 Hold Hnew)
+    as [pi1 [pi2 [rows1 [rows2 [dim
+         [Hp1 [Hp2 [Hr1 [Hr2 [Hd [_ [_ Hdec]]]]]]]]]]]].
+  exists pi1, pi2, rows1, rows2, dim.
+  repeat split; assumption.
 Qed.
 
 Lemma phase_semantic_ordinary_band_direct_reordering_safe :
@@ -21770,6 +21875,1170 @@ Proof.
   - reflexivity.
   - apply mayReturn_pure in Hcheck.
     discriminate.
+Qed.
+
+Fixpoint check_rows_are_source_schedulesb
+    (pis: list Tiling.PL.PolyInstr_ext) (rows: list Schedule) : bool :=
+  match pis, rows with
+  | [], [] => true
+  | pi :: pis', row :: rows' =>
+      listzzs_strict_eqb (Tiling.PL.pi_schedule1_ext pi) row &&
+      check_rows_are_source_schedulesb pis' rows'
+  | _, _ => false
+  end.
+
+Lemma check_rows_are_source_schedulesb_nth :
+  forall pis rows n pi row,
+    check_rows_are_source_schedulesb pis rows = true ->
+    nth_error pis n = Some pi -> nth_error rows n = Some row ->
+    row = Tiling.PL.pi_schedule1_ext pi.
+Proof.
+  induction pis as [|head pis IH];
+    intros rows n pi row Hcheck Hp Hr;
+    destruct rows as [|headrow rows]; cbn in Hcheck; try discriminate.
+  - destruct n; discriminate.
+  - apply andb_true_iff in Hcheck. destruct Hcheck as [Hhead Htail].
+    destruct n as [|n]; cbn in Hp, Hr.
+    + inversion Hp; inversion Hr; subst.
+      symmetry. apply listzzs_strict_eqb_eq. exact Hhead.
+    + eapply IH; eauto.
+Qed.
+
+Lemma semantic_band_value_dimension_irrelevant :
+  forall n m dim rows idx,
+    semantic_band_value n dim rows idx = semantic_band_value m dim rows idx.
+Proof.
+  intros n m dim rows idx.
+  unfold semantic_band_value, semantic_band_row.
+  destruct (nth_error rows dim); [reflexivity|].
+  unfold zero_schedule_row. cbn.
+  rewrite !dot_product_repeat_zero_left. reflexivity.
+Qed.
+
+Lemma semantic_scalar_rows_to_source_bridge :
+  forall mask envv before_pis after_pis ws rows,
+    check_rows_are_source_schedulesb
+      (Tiling.compose_tiling_pinstrs_ext_from_after
+         (List.length envv) before_pis after_pis ws) rows = true ->
+    semantic_scalar_rows_reversal_bridge
+      mask envv before_pis after_pis ws rows ->
+    scalar_aware_reversal_bridge envv before_pis after_pis ws
+      {| sabl_start := O; sabl_loop_mask := mask |}.
+Proof.
+  intros mask envv before_pis after_pis ws rows Hrows Hbridge
+         flat ip1 ip2 Hflat Hin1 Hin2 Hold Hnew.
+  destruct (Hbridge flat ip1 ip2 Hflat Hin1 Hin2 Hold Hnew)
+    as [pi1 [pi2 [rows1 [rows2 [dim
+         [Hp1 [Hp2 [Hr1 [Hr2 [_ [Hdim [Hprior Hdec]]]]]]]]]]]].
+  pose proof (check_rows_are_source_schedulesb_nth
+                _ _ _ _ _ Hrows Hp1 Hr1) as Hrow1.
+  pose proof (check_rows_are_source_schedulesb_nth
+                _ _ _ _ _ Hrows Hp2 Hr2) as Hrow2.
+  subst rows1 rows2.
+  exists pi1, pi2, dim.
+  split; [exact Hp1|]. split; [exact Hp2|]. split; [exact Hdim|].
+  unfold scalar_aware_component_active. cbn.
+  split; [reflexivity|]. split.
+  - rewrite !affine_product_select_scalar_rows,
+            !affine_product_firstn_local. exact Hprior.
+  - rewrite (semantic_band_value_dimension_irrelevant
+               (List.length (Tiling.PL.ip_index_ext ip1))
+               (List.length envv + Tiling.PL.pi_depth_ext pi1)).
+    rewrite (semantic_band_value_dimension_irrelevant
+               (List.length (Tiling.PL.ip_index_ext ip2))
+               (List.length envv + Tiling.PL.pi_depth_ext pi2)).
+    exact Hdec.
+Qed.
+
+(** This additional direct path retains the already-proved scalar guards.
+    The exact-row check excludes source padding that the older semantic path
+    alone handles; those cases retain that path as a separate alternative. *)
+Definition checked_tiling_sourceb_phase_scalar_second_direct
+    (before after: Tiling.PL.t)
+    (ws: list statement_tiling_witness) : imp bool :=
+  let '(before_pis, before_ctxt, _) := before in
+  let '(after_pis, _, _) := after in
+  if TilingCheck.check_pprog_tiling_sourceb before after ws then
+    match infer_pprog_phase_semantic_second_level_band_shape before after ws with
+    | None => pure false
+    | Some shape =>
+        if check_rows_are_source_schedulesb
+             (Tiling.compose_tiling_pinstrs_ext_from_after
+                (List.length before_ctxt) before_pis after_pis ws)
+             (pssbs_full_rows shape)
+        then check_pprog_scalar_aware_permutable_band_direct before after ws
+               {| sabl_start := O; sabl_loop_mask := pssbs_loop_mask shape |}
+        else pure false
+    end
+  else pure false.
+
+Lemma checked_tiling_sourceb_phase_scalar_second_direct_true_inv :
+  forall before_pis before_ctxt before_vars after_pis after_ctxt after_vars ws,
+    mayReturn
+      (checked_tiling_sourceb_phase_scalar_second_direct
+         (before_pis, before_ctxt, before_vars)
+         (after_pis, after_ctxt, after_vars) ws) true ->
+    exists shape,
+      TilingCheck.check_pprog_tiling_sourceb
+        (before_pis, before_ctxt, before_vars)
+        (after_pis, after_ctxt, after_vars) ws = true /\
+      infer_pprog_phase_semantic_second_level_band_shape
+        (before_pis, before_ctxt, before_vars)
+        (after_pis, after_ctxt, after_vars) ws = Some shape /\
+      check_rows_are_source_schedulesb
+        (Tiling.compose_tiling_pinstrs_ext_from_after
+           (List.length before_ctxt) before_pis after_pis ws)
+        (pssbs_full_rows shape) = true /\
+      mayReturn (check_pprog_scalar_aware_permutable_band_direct
+        (before_pis, before_ctxt, before_vars)
+        (after_pis, after_ctxt, after_vars) ws
+        {| sabl_start := O; sabl_loop_mask := pssbs_loop_mask shape |}) true.
+Proof.
+  intros before_pis before_ctxt before_vars after_pis after_ctxt after_vars ws H.
+  unfold checked_tiling_sourceb_phase_scalar_second_direct in H.
+  cbn beta iota zeta in H.
+  destruct (TilingCheck.check_pprog_tiling_sourceb _ _ ws) eqn:Hs;
+    [|apply mayReturn_pure in H; discriminate].
+  destruct (infer_pprog_phase_semantic_second_level_band_shape _ _ ws)
+    as [shape|] eqn:Hshape;
+    [|apply mayReturn_pure in H; discriminate].
+  destruct (check_rows_are_source_schedulesb _ _) eqn:Hr;
+    [|apply mayReturn_pure in H; discriminate].
+  exists shape. repeat split; assumption.
+Qed.
+
+Lemma checked_tiling_sourceb_phase_scalar_second_direct_reordering_safe :
+  forall before_pis before_ctxt before_vars after_pis ws envv,
+    List.length before_ctxt = List.length envv ->
+    Forall (Tiling.PL.wf_pinstr_tiling before_ctxt before_vars) before_pis ->
+    Forall (Tiling.PL.wf_pinstr_tiling before_ctxt before_vars) after_pis ->
+    mayReturn (checked_tiling_sourceb_phase_scalar_second_direct
+      (before_pis, before_ctxt, before_vars)
+      (after_pis, before_ctxt, before_vars) ws) true ->
+    pprog_tiling_reordering_safe envv before_pis after_pis ws [].
+Proof.
+  intros before_pis before_ctxt before_vars after_pis ws envv
+         Hlen Hwf_before Hwf_after Hcheck.
+  destruct (checked_tiling_sourceb_phase_scalar_second_direct_true_inv
+              _ _ _ _ _ _ _ Hcheck)
+    as [shape [Hsource [Hinfer [Hrows Hcomponents]]]].
+  pose proof (infer_pprog_phase_semantic_second_level_band_shape_sound
+                _ _ _ _ Hinfer) as Hshape.
+  pose proof (TilingCheck.check_pprog_tiling_sourceb_sound
+                _ _ _ Hsource)
+    as [Hprog [_ [Hwf_ws [_ Hdepths]]]].
+  assert (Hwits : Forall2 Tiling.after_matches_tiling_witness after_pis ws).
+  { eapply tiling_rel_pprog_structure_source_after_matches; eauto. }
+  assert (Hcomposed_wf : Forall (Tiling.PL.wf_pinstr_ext_tiling before_ctxt)
+    (Tiling.compose_tiling_pinstrs_ext_from_after
+       (List.length before_ctxt) before_pis after_pis ws)).
+  { eapply compose_tiling_pinstrs_ext_from_after_wf_tiling; eauto. }
+  assert (Hcomponentwise : pinstr_list_scalar_aware_componentwise_permutable
+    envv (Tiling.compose_tiling_pinstrs_ext_from_after
+            (List.length before_ctxt) before_pis after_pis ws)
+    {| sabl_start := O; sabl_loop_mask := pssbs_loop_mask shape |}).
+  { eapply (check_pprog_scalar_aware_permutable_band_direct_sound
+              before_ctxt envv _ _ _ _ _ _ _ _);
+      eauto. }
+  eapply scalar_aware_componentwise_permutable_implies_reordering_safe.
+  - rewrite Hlen in Hcomponentwise. exact Hcomponentwise.
+  - eapply semantic_scalar_rows_to_source_bridge.
+    + rewrite <- Hlen. exact Hrows.
+    + eapply phase_semantic_second_level_band_shape_scalar_reversal_bridge;
+        eauto.
+Qed.
+
+Lemma checked_tiling_sourceb_phase_scalar_second_direct_correct_same_ctxt :
+  forall before_pis before_ctxt before_vars after_pis ws st1 st2,
+    Forall (Tiling.PL.wf_pinstr_tiling before_ctxt before_vars) before_pis ->
+    Forall (Tiling.PL.wf_pinstr_tiling before_ctxt before_vars) after_pis ->
+    mayReturn (checked_tiling_sourceb_phase_scalar_second_direct
+      (before_pis, before_ctxt, before_vars)
+      (after_pis, before_ctxt, before_vars) ws) true ->
+    Tiling.PL.instance_list_semantics (after_pis, before_ctxt, before_vars) st1 st2 ->
+    exists st2', Tiling.PL.instance_list_semantics (before_pis, before_ctxt, before_vars) st1 st2'
+                 /\ State.eq st2 st2'.
+Proof.
+  intros before_pis before_ctxt before_vars after_pis ws st1 st2
+         Hwf_before Hwf_after Hcheck Hsem.
+  destruct (checked_tiling_sourceb_phase_scalar_second_direct_true_inv
+              _ _ _ _ _ _ _ Hcheck) as [shape [Hsource _]].
+  eapply (tiling_sourceb_validate_correct_with_reordering
+            (before_pis, before_ctxt, before_vars)
+            (after_pis, before_ctxt, before_vars) ws [] st1 st2);
+    [exact Hsource| |exact Hsem].
+  cbn. intros envv Hlen.
+  eapply checked_tiling_sourceb_phase_scalar_second_direct_reordering_safe;
+    eauto.
+Qed.
+
+Definition checked_tiling_sourceb_phase_semantic_extended_direct
+    (before after: Tiling.PL.t) (ws: list statement_tiling_witness) : imp bool :=
+  BIND scalar_ok <- checked_tiling_sourceb_phase_scalar_second_direct before after ws -;
+  if scalar_ok then pure true
+  else checked_tiling_sourceb_phase_semantic_band_direct before after ws.
+
+Lemma checked_tiling_sourceb_phase_semantic_extended_direct_sourceb_true :
+  forall before after ws,
+    mayReturn (checked_tiling_sourceb_phase_semantic_extended_direct before after ws) true ->
+    TilingCheck.check_pprog_tiling_sourceb before after ws = true.
+Proof.
+  intros [[bp bc] bv] [[ap ac] av] ws H.
+  unfold checked_tiling_sourceb_phase_semantic_extended_direct in H.
+  bind_imp_destruct H scalar_ok Hscalar. destruct scalar_ok.
+  - destruct (checked_tiling_sourceb_phase_scalar_second_direct_true_inv
+                _ _ _ _ _ _ _ Hscalar) as [shape [Hsource _]]. exact Hsource.
+  - eapply checked_tiling_sourceb_phase_semantic_band_direct_sourceb_true; eauto.
+Qed.
+
+Lemma checked_tiling_sourceb_phase_semantic_extended_direct_correct_same_ctxt :
+  forall before_pis before_ctxt before_vars after_pis ws st1 st2,
+    Forall (Tiling.PL.wf_pinstr_tiling before_ctxt before_vars) before_pis ->
+    Forall (Tiling.PL.wf_pinstr_tiling before_ctxt before_vars) after_pis ->
+    mayReturn (checked_tiling_sourceb_phase_semantic_extended_direct
+      (before_pis, before_ctxt, before_vars)
+      (after_pis, before_ctxt, before_vars) ws) true ->
+    Tiling.PL.instance_list_semantics (after_pis, before_ctxt, before_vars) st1 st2 ->
+    exists st2', Tiling.PL.instance_list_semantics (before_pis, before_ctxt, before_vars) st1 st2'
+                 /\ State.eq st2 st2'.
+Proof.
+  intros before_pis before_ctxt before_vars after_pis ws st1 st2
+         Hwf_before Hwf_after Hcheck Hsem.
+  unfold checked_tiling_sourceb_phase_semantic_extended_direct in Hcheck.
+  bind_imp_destruct Hcheck scalar_ok Hscalar. destruct scalar_ok.
+  - eapply checked_tiling_sourceb_phase_scalar_second_direct_correct_same_ctxt; eauto.
+  - eapply checked_tiling_sourceb_phase_semantic_band_direct_correct_same_ctxt; eauto.
+Qed.
+
+(** Local bands use the same second-level arithmetic as the whole-program
+    phase shape, but keep the surrounding prefix and suffix exactly once. *)
+Definition pinstr_with_schedule
+    (pi: Tiling.PL.PolyInstr) (sched: Schedule) : Tiling.PL.PolyInstr :=
+  {| Tiling.PL.pi_depth := Tiling.PL.pi_depth pi;
+     Tiling.PL.pi_instr := Tiling.PL.pi_instr pi;
+     Tiling.PL.pi_poly := Tiling.PL.pi_poly pi;
+     Tiling.PL.pi_schedule := sched;
+     Tiling.PL.pi_point_witness := Tiling.PL.pi_point_witness pi;
+     Tiling.PL.pi_transformation := Tiling.PL.pi_transformation pi;
+     Tiling.PL.pi_access_transformation := Tiling.PL.pi_access_transformation pi;
+     Tiling.PL.pi_waccess := Tiling.PL.pi_waccess pi;
+     Tiling.PL.pi_raccess := Tiling.PL.pi_raccess pi |}.
+
+Definition scalar_aware_second_level_target_schedule
+    (env_size: nat) (before_pi: Tiling.PL.PolyInstr)
+    (w: statement_tiling_witness) (layout: scalar_aware_band_layout)
+    (recipe: second_level_band_recipe) : option Schedule :=
+  let local := pinstr_with_schedule before_pi
+    (scalar_aware_layout_band_rows layout (Tiling.PL.pi_schedule before_pi)) in
+  let lifted := Tiling.lift_schedule_after_env
+    (List.length (stw_links w)) env_size (Tiling.PL.pi_schedule before_pi) in
+  match phase_semantic_second_level_target_schedule
+          env_size (sabl_loop_mask layout) local w recipe with
+  | Some middle => Some
+      (firstn (sabl_start layout) lifted ++ middle ++
+       skipn (sabl_start layout + List.length (sabl_loop_mask layout)) lifted)
+  | None => None
+  end.
+
+Definition scalar_aware_second_level_entry_shape
+    (env_size: nat) (layout: scalar_aware_band_layout)
+    (before_pi after_pi: Tiling.PL.PolyInstr)
+    (w: statement_tiling_witness) : Prop :=
+  exists recipe expected,
+    second_level_band_recipe_of_witness w = Some recipe /\
+    sabl_loop_mask layout <> [] /\
+    List.length (scalar_aware_layout_band_rows layout
+      (Tiling.PL.pi_schedule before_pi)) = List.length (sabl_loop_mask layout) /\
+    select_by_mask (sabl_loop_mask layout)
+      (scalar_aware_layout_band_rows layout (Tiling.PL.pi_schedule before_pi)) =
+      slbr_root_rows recipe /\
+    scalar_aware_second_level_target_schedule env_size before_pi w layout recipe =
+      Some expected /\
+    schedule_matches_with_symmetric_trailing_zero_padding expected (Tiling.PL.pi_schedule after_pi).
+
+Definition infer_scalar_aware_second_level_band_layout
+    (env_size: nat) (before: Tiling.PL.PolyInstr)
+    (w: statement_tiling_witness) : option scalar_aware_band_layout :=
+  match second_level_band_recipe_of_witness w with
+  | Some recipe => find_scalar_aware_band_aux
+      (S (List.length (Tiling.PL.pi_schedule before))) O env_size
+      (Tiling.PL.pi_schedule before) (slbr_root_rows recipe)
+  | None => None
+  end.
+
+Definition check_scalar_aware_second_level_entry_shapeb
+    (env_size: nat) (layout: scalar_aware_band_layout)
+    (before after: Tiling.PL.PolyInstr) (w: statement_tiling_witness) : bool :=
+  match second_level_band_recipe_of_witness w with
+  | Some recipe =>
+      let rows := scalar_aware_layout_band_rows layout (Tiling.PL.pi_schedule before) in
+      negb (Nat.eqb (List.length (sabl_loop_mask layout)) O) &&
+      Nat.eqb (List.length rows) (List.length (sabl_loop_mask layout)) &&
+      listzzs_strict_eqb (select_by_mask (sabl_loop_mask layout) rows)
+                       (slbr_root_rows recipe) &&
+      match scalar_aware_second_level_target_schedule env_size before w layout recipe with
+      | Some expected => check_schedule_with_symmetric_trailing_zero_paddingb
+                           expected (Tiling.PL.pi_schedule after)
+      | None => false
+      end
+  | None => false
+  end.
+
+Lemma check_scalar_aware_second_level_entry_shapeb_sound :
+  forall env_size layout before after w,
+    check_scalar_aware_second_level_entry_shapeb env_size layout before after w = true ->
+    scalar_aware_second_level_entry_shape env_size layout before after w.
+Proof.
+  intros env_size layout before after w H.
+  unfold check_scalar_aware_second_level_entry_shapeb in H.
+  destruct (second_level_band_recipe_of_witness w) as [recipe|] eqn:Hr;
+    try discriminate.
+  repeat rewrite andb_true_iff in H.
+  destruct H as [[[Hnonempty Hlen] Hselected] Htarget].
+  destruct (scalar_aware_second_level_target_schedule env_size before w layout recipe)
+    as [expected|] eqn:He; try discriminate.
+  exists recipe, expected. repeat split; try assumption.
+  - apply negb_true_iff in Hnonempty. apply Nat.eqb_neq in Hnonempty.
+    intro Hnil. rewrite Hnil in Hnonempty. contradiction.
+  - apply Nat.eqb_eq. exact Hlen.
+  - apply listzzs_strict_eqb_eq. exact Hselected.
+  - apply check_schedule_with_symmetric_trailing_zero_paddingb_sound. exact Htarget.
+Qed.
+
+Lemma scalar_aware_second_level_entry_eval :
+  forall env_size layout before w recipe expected envv added point,
+    second_level_band_recipe_of_witness w = Some recipe ->
+    List.length (scalar_aware_layout_band_rows layout (Tiling.PL.pi_schedule before)) =
+      List.length (sabl_loop_mask layout) ->
+    select_by_mask (sabl_loop_mask layout)
+      (scalar_aware_layout_band_rows layout (Tiling.PL.pi_schedule before)) =
+      slbr_root_rows recipe ->
+    scalar_aware_second_level_target_schedule env_size before w layout recipe = Some expected ->
+    List.length envv = env_size ->
+    List.length added = List.length (stw_links w) ->
+    List.length point = stw_point_dim w ->
+    well_formed_statement_tiling_witness w ->
+    Forall (fun link => List.length (ae_param_coeffs (tl_expr link)) = List.length envv)
+      (stw_links w) ->
+    added = eval_tile_links [] point envv (stw_links w) ->
+    exists band child root,
+      band = firstn (List.length (sabl_loop_mask layout))
+        (skipn (sabl_start layout)
+          (affine_product (Tiling.PL.pi_schedule before) (envv ++ point))) /\
+      render_scalar_aware_value_prefix (sabl_loop_mask layout) band
+        (semantic_quotient_tiles
+          (scalar_aware_loop_tile_values (sabl_loop_mask layout) band (slbr_root_sizes recipe))
+          (slbr_child_sizes recipe)) = Some child /\
+      render_scalar_aware_value_prefix (sabl_loop_mask layout) band
+        (scalar_aware_loop_tile_values (sabl_loop_mask layout) band (slbr_root_sizes recipe)) = Some root /\
+      affine_product expected (envv ++ added ++ point) =
+        firstn (sabl_start layout)
+          (affine_product (Tiling.PL.pi_schedule before) (envv ++ point)) ++
+        (child ++ root) ++ band ++
+        skipn (sabl_start layout + List.length (sabl_loop_mask layout))
+          (affine_product (Tiling.PL.pi_schedule before) (envv ++ point)).
+Proof.
+  intros env_size layout before w recipe expected envv added point
+    Hrecipe Hband Hselected Hexpected Henv Hadded_len Hpoint Hwf Hparams Hadded.
+  set (local := pinstr_with_schedule before
+    (scalar_aware_layout_band_rows layout (Tiling.PL.pi_schedule before))).
+  assert (Hpadded : phase_semantic_padded_source_schedule env_size
+    (List.length (sabl_loop_mask layout)) local =
+    scalar_aware_layout_band_rows layout (Tiling.PL.pi_schedule before)).
+  {
+    change (scalar_aware_layout_band_rows layout (Tiling.PL.pi_schedule before) ++
+      repeat (Tiling.PL.zero_affine_function (env_size + Tiling.PL.pi_depth before))
+        (List.length (sabl_loop_mask layout) -
+         List.length (scalar_aware_layout_band_rows layout (Tiling.PL.pi_schedule before))) =
+      scalar_aware_layout_band_rows layout (Tiling.PL.pi_schedule before)).
+    rewrite Hband, Nat.sub_diag. simpl. apply app_nil_r.
+  }
+  destruct (second_level_band_recipe_of_witness_sound w recipe Hrecipe) as [_ Hspec].
+  destruct (second_level_band_recipe_spec_lengths _ _ _ _ Hspec) as [Hrlen Hclen].
+  assert (Hwidth : List.length (slbr_root_rows recipe) = count_true (sabl_loop_mask layout)).
+  {
+    rewrite <- Hselected. apply select_by_mask_length_count_true. exact Hband.
+  }
+  assert (Hrl : List.length (slbr_root_sizes recipe) = count_true (sabl_loop_mask layout)) by lia.
+  assert (Hcl : List.length (slbr_child_sizes recipe) = count_true (sabl_loop_mask layout)) by lia.
+  assert (Hmatch : schedule_matches_with_symmetric_trailing_zero_padding
+    (slbr_root_rows recipe) (select_by_mask (sabl_loop_mask layout)
+      (phase_semantic_padded_source_schedule env_size (List.length (sabl_loop_mask layout)) local))).
+  {
+    rewrite Hpadded, Hselected. left. exists O, O.
+    unfold pad_schedule_with_zero_rows. simpl. symmetry. apply app_nil_r.
+  }
+  pose proof (phase_semantic_second_added_tiles_eq env_size (sabl_loop_mask layout)
+    local w recipe (slbr_root_sizes recipe) (slbr_child_sizes recipe)
+    envv point added Henv Hpoint Hspec (prefix_sizes_refl _) (prefix_sizes_refl _)
+    Hrl Hcl ltac:(change (List.length (scalar_aware_layout_band_rows layout
+      (Tiling.PL.pi_schedule before)) <= List.length (sabl_loop_mask layout))%nat; lia)
+    Hwf Hparams Hmatch Hadded) as [Hchild_added Hroot_added].
+  unfold scalar_aware_second_level_target_schedule in Hexpected.
+  fold local in Hexpected.
+  destruct (phase_semantic_second_level_target_schedule env_size (sabl_loop_mask layout)
+    local w recipe) as [middle|] eqn:Hmiddle; try discriminate.
+  inversion Hexpected; subst expected; clear Hexpected.
+  assert (Hlinks : List.length (stw_links w) = (2 * List.length (slbr_root_rows recipe))%nat)
+    by (eapply second_level_band_recipe_spec_links_length; exact Hspec).
+  destruct (phase_semantic_second_level_target_schedule_eval env_size (sabl_loop_mask layout)
+    local w recipe middle envv added point Hmiddle Henv (eq_trans Hadded_len Hlinks)
+    Hpoint ltac:(lia)) as [band [child [root [Hb [Hc [Hr Heval]]]]]].
+  rewrite Hchild_added in Hc. rewrite Hroot_added in Hr.
+  rewrite <- Hb in Hc, Hr.
+  rewrite Hpadded, affine_product_scalar_aware_layout_band_rows in Hb.
+  exists band, child, root. split; [exact Hb|]. split; [exact Hc|]. split; [exact Hr|].
+  rewrite !affine_product_app, affine_product_firstn, affine_product_skipn.
+  unfold Tiling.lift_schedule_after_env.
+  rewrite (Tiling.lift_affine_function_after_env_eval
+    (List.length (stw_links w)) env_size (Tiling.PL.pi_schedule before)
+    envv added point Henv Hadded_len).
+  rewrite Heval. repeat rewrite app_assoc. reflexivity.
+Qed.
+
+Lemma scalar_aware_two_level_prefix_gt_active :
+  forall mask band1 band2 child_tiles1 child_tiles2 root_tiles1 root_tiles2
+    child1 child2 root1 root2,
+    List.length band1 = List.length mask ->
+    List.length band2 = List.length mask ->
+    scalar_aware_loop_tiles_monotone mask band1 band2 child_tiles1 child_tiles2 ->
+    scalar_aware_loop_tiles_monotone mask band1 band2 root_tiles1 root_tiles2 ->
+    render_scalar_aware_value_prefix mask band1 child_tiles1 = Some child1 ->
+    render_scalar_aware_value_prefix mask band2 child_tiles2 = Some child2 ->
+    render_scalar_aware_value_prefix mask band1 root_tiles1 = Some root1 ->
+    render_scalar_aware_value_prefix mask band2 root_tiles2 = Some root2 ->
+    lex_compare (child1 ++ root1) (child2 ++ root2) = Gt ->
+    exists dim x y, (dim < List.length mask)%nat /\
+      nth_error band1 dim = Some x /\ nth_error band2 dim = Some y /\ (x > y)%Z /\
+      listz_pointwise_le (select_scalar_values (firstn dim mask) (firstn dim band2))
+        (select_scalar_values (firstn dim mask) (firstn dim band1)).
+Proof.
+  intros mask band1 band2 ct1 ct2 rt1 rt2 c1 c2 r1 r2 Hl1 Hl2 Hcm Hrm Hc1 Hc2 Hr1 Hr2 Hgt.
+  assert (Hcl : List.length c1 = List.length c2).
+  { rewrite (render_scalar_aware_value_prefix_length _ _ _ _ Hl1 Hc1),
+      (render_scalar_aware_value_prefix_length _ _ _ _ Hl2 Hc2). reflexivity. }
+  rewrite lex_compare_app in Hgt by exact Hcl.
+  destruct (lex_compare c1 c2) eqn:Hcc; try discriminate.
+  - exact (scalar_aware_prefix_gt_implies_active_decrease mask band1 band2 rt1 rt2
+      Hrm r1 r2 Hr1 Hr2 Hgt).
+  - exact (scalar_aware_prefix_gt_implies_active_decrease mask band1 band2 ct1 ct2
+      Hcm c1 c2 Hc1 Hc2 Hcc).
+Qed.
+
+Lemma scalar_aware_second_level_pair_local_reversal_bridge_wf_with_env_len :
+  forall before_pis before_ctxt before_vars after_pis ws layouts envv
+         flat ip1 ip2,
+    List.length before_ctxt = List.length envv ->
+    TilingCheck.check_pprog_tiling_sourceb
+      (before_pis, before_ctxt, before_vars)
+      (after_pis, before_ctxt, before_vars) ws = true ->
+    Forall
+      (Tiling.PL.wf_pinstr_tiling before_ctxt before_vars)
+      before_pis ->
+    List.length layouts = List.length before_pis ->
+    Tiling.PL.flatten_instrs_ext envv
+      (Tiling.compose_tiling_pinstrs_ext_from_after
+         (List.length envv) before_pis after_pis ws) flat ->
+    In ip1 flat ->
+    In ip2 flat ->
+    Tiling.PL.instr_point_ext_old_sched_lt ip1 ip2 ->
+    Tiling.PL.instr_point_ext_new_sched_ge ip1 ip2 ->
+    (forall before_pi after_pi w layout,
+       nth_error before_pis (Tiling.PL.ip_nth_ext ip1) = Some before_pi ->
+       nth_error after_pis (Tiling.PL.ip_nth_ext ip1) = Some after_pi ->
+       nth_error ws (Tiling.PL.ip_nth_ext ip1) = Some w ->
+       nth_error layouts (Tiling.PL.ip_nth_ext ip1) = Some layout ->
+       scalar_aware_second_level_entry_shape
+         (List.length before_ctxt) layout before_pi after_pi w) ->
+    (forall before_pi after_pi w layout,
+       nth_error before_pis (Tiling.PL.ip_nth_ext ip2) = Some before_pi ->
+       nth_error after_pis (Tiling.PL.ip_nth_ext ip2) = Some after_pi ->
+       nth_error ws (Tiling.PL.ip_nth_ext ip2) = Some w ->
+       nth_error layouts (Tiling.PL.ip_nth_ext ip2) = Some layout ->
+       scalar_aware_second_level_entry_shape
+         (List.length before_ctxt) layout before_pi after_pi w) ->
+    (forall layout1 layout2,
+       nth_error layouts (Tiling.PL.ip_nth_ext ip1) = Some layout1 ->
+       nth_error layouts (Tiling.PL.ip_nth_ext ip2) = Some layout2 ->
+       layout1 = layout2) ->
+    (forall w1 w2 recipe1 recipe2,
+       nth_error ws (Tiling.PL.ip_nth_ext ip1) = Some w1 ->
+       nth_error ws (Tiling.PL.ip_nth_ext ip2) = Some w2 ->
+       second_level_band_recipe_of_witness w1 = Some recipe1 ->
+       second_level_band_recipe_of_witness w2 = Some recipe2 ->
+       slbr_root_sizes recipe1 = slbr_root_sizes recipe2 /\
+       slbr_child_sizes recipe1 = slbr_child_sizes recipe2) ->
+    exists layout pi1 pi2 dim,
+      nth_error layouts (Tiling.PL.ip_nth_ext ip1) = Some layout /\
+      nth_error layouts (Tiling.PL.ip_nth_ext ip2) = Some layout /\
+      nth_error
+        (Tiling.compose_tiling_pinstrs_ext_from_after
+           (List.length envv) before_pis after_pis ws)
+        (Tiling.PL.ip_nth_ext ip1) = Some pi1 /\
+      nth_error
+        (Tiling.compose_tiling_pinstrs_ext_from_after
+           (List.length envv) before_pis after_pis ws)
+        (Tiling.PL.ip_nth_ext ip2) = Some pi2 /\
+      (dim < List.length (sabl_loop_mask layout))%nat /\
+      scalar_aware_component_active layout dim pi1 pi2 ip1 ip2.
+Proof.
+  intros before_pis before_ctxt before_vars after_pis ws layouts envv
+         flat ip1 ip2 Hlen_env Hsource Hwf_before Hlayouts_len
+         Hflat Hin1 Hin2 Hold Hnew Hshape_at1 Hshape_at2
+         Hsame_layout Hsame_recipe.
+  pose proof
+    (TilingCheck.check_pprog_tiling_sourceb_sound
+       (before_pis, before_ctxt, before_vars)
+       (after_pis, before_ctxt, before_vars) ws Hsource)
+    as [Hprog [_ [Hwf_ws [Hpositive_ws Hdepths]]]].
+  assert
+    (Hwf_ws_env :
+       Forall
+         (Tiling.wf_statement_tiling_witness_with_param_dim
+            (List.length envv))
+         ws).
+  {
+    rewrite <- Hlen_env.
+    exact Hwf_ws.
+  }
+  destruct
+    (composed_point_pair_facts_of_members
+       before_pis before_ctxt before_vars
+       after_pis before_ctxt before_vars
+       ws envv flat ip1 ip2
+       Hprog Hwf_ws_env Hpositive_ws Hdepths Hflat Hin1 Hin2)
+    as [Hpoint1 Hpoint2].
+  unfold composed_point_facts in Hpoint1, Hpoint2.
+  destruct Hpoint1 as [before_pi1 [after_pi1 [w1
+    [Hbefore1 [Hafter1 [Hw1
+    [Hwf_stmt1 [Hpositive1 [Hpoint_depth1
+    [Hpref1 [Hbel1 Hidx_len1]]]]]]]]]]].
+  destruct Hpoint2 as [before_pi2 [after_pi2 [w2
+    [Hbefore2 [Hafter2 [Hw2
+    [Hwf_stmt2 [Hpositive2 [Hpoint_depth2
+    [Hpref2 [Hbel2 Hidx_len2]]]]]]]]]]].
+  assert
+    (Hlayout_idx1 :
+       (Tiling.PL.ip_nth_ext ip1 < List.length layouts)%nat).
+  {
+    rewrite Hlayouts_len.
+    apply nth_error_Some.
+    rewrite Hbefore1.
+    discriminate.
+  }
+  assert
+    (Hlayout_idx2 :
+       (Tiling.PL.ip_nth_ext ip2 < List.length layouts)%nat).
+  {
+    rewrite Hlayouts_len.
+    apply nth_error_Some.
+    rewrite Hbefore2.
+    discriminate.
+  }
+  destruct
+    (nth_error layouts (Tiling.PL.ip_nth_ext ip1))
+    as [layout1|] eqn:Hlayout1.
+  2:{
+    apply nth_error_None in Hlayout1.
+    lia.
+  }
+  destruct
+    (nth_error layouts (Tiling.PL.ip_nth_ext ip2))
+    as [layout2|] eqn:Hlayout2.
+  2:{
+    apply nth_error_None in Hlayout2.
+    lia.
+  }
+  pose proof
+    (Hsame_layout layout1 layout2 eq_refl eq_refl) as Hlayout_eq.
+  subst layout2.
+  rename layout1 into layout.
+  destruct
+    (Hshape_at1 before_pi1 after_pi1 w1 layout
+       Hbefore1 Hafter1 Hw1 eq_refl)
+    as [recipe1 [expected1
+         [Hrecipe1 [Hmask_nonempty1
+         [Hband_len1 [Hselected1
+         [Hexpected1 Htarget1]]]]]]].
+  destruct
+    (Hshape_at2 before_pi2 after_pi2 w2 layout
+       Hbefore2 Hafter2 Hw2 eq_refl)
+    as [recipe2 [expected2
+         [Hrecipe2 [Hmask_nonempty2
+         [Hband_len2 [Hselected2
+         [Hexpected2 Htarget2]]]]]]].
+  destruct (Hsame_recipe w1 w2 recipe1 recipe2 Hw1 Hw2 Hrecipe1 Hrecipe2)
+    as [Hroots_same Hchildren_same].
+  destruct (second_level_band_recipe_of_witness_sound w1 recipe1 Hrecipe1) as [_ Hspec1].
+  destruct (second_level_band_recipe_of_witness_sound w2 recipe2 Hrecipe2) as [_ Hspec2].
+  pose proof
+    (Tiling.nth_error_compose_tiling_pinstrs_ext_from_after
+       (List.length envv) before_pis after_pis ws
+       (Tiling.PL.ip_nth_ext ip1)
+       before_pi1 after_pi1 w1 Hbefore1 Hafter1 Hw1)
+    as Hcomposed1.
+  pose proof
+    (Tiling.nth_error_compose_tiling_pinstrs_ext_from_after
+       (List.length envv) before_pis after_pis ws
+       (Tiling.PL.ip_nth_ext ip2)
+       before_pi2 after_pi2 w2 Hbefore2 Hafter2 Hw2)
+    as Hcomposed2.
+  pose proof
+    (Tiling.tiling_rel_pprog_structure_source_nth
+       before_pis before_ctxt before_vars
+       after_pis before_ctxt before_vars
+       (List.map Tiling.compiled_pinstr_tiling_witness ws)
+       (Tiling.PL.ip_nth_ext ip1)
+       before_pi1 after_pi1
+       (Tiling.compiled_pinstr_tiling_witness w1)
+       Hprog Hbefore1 Hafter1
+       (Tiling.nth_error_map_some
+          _ _ Tiling.compiled_pinstr_tiling_witness
+          ws (Tiling.PL.ip_nth_ext ip1) w1 Hw1))
+    as Hstmt1.
+  pose proof
+    (Tiling.tiling_rel_pprog_structure_source_nth
+       before_pis before_ctxt before_vars
+       after_pis before_ctxt before_vars
+       (List.map Tiling.compiled_pinstr_tiling_witness ws)
+       (Tiling.PL.ip_nth_ext ip2)
+       before_pi2 after_pi2
+       (Tiling.compiled_pinstr_tiling_witness w2)
+       Hprog Hbefore2 Hafter2
+       (Tiling.nth_error_map_some
+          _ _ Tiling.compiled_pinstr_tiling_witness
+          ws (Tiling.PL.ip_nth_ext ip2) w2 Hw2))
+    as Hstmt2.
+  assert
+    (Hafter_depth1 :
+       Tiling.PL.pi_depth after_pi1 =
+       (Tiling.PL.pi_depth before_pi1 +
+        List.length (stw_links w1))%nat).
+  {
+    unfold Tiling.tiling_rel_pinstr_structure_source in Hstmt1.
+    destruct Hstmt1 as [_ [Hdepth _]].
+    exact Hdepth.
+  }
+  assert
+    (Hafter_depth2 :
+       Tiling.PL.pi_depth after_pi2 =
+       (Tiling.PL.pi_depth before_pi2 +
+        List.length (stw_links w2))%nat).
+  {
+    unfold Tiling.tiling_rel_pinstr_structure_source in Hstmt2.
+    destruct Hstmt2 as [_ [Hdepth _]].
+    exact Hdepth.
+  }
+  set
+    (added1 :=
+       Tiling.tiled_added_part
+         (List.length envv) (List.length (stw_links w1))
+         (Tiling.PL.ip_index_ext ip1)).
+  set
+    (point1 :=
+       Tiling.tiled_point_part
+         (List.length envv) (List.length (stw_links w1))
+         (Tiling.PL.ip_index_ext ip1)).
+  set
+    (added2 :=
+       Tiling.tiled_added_part
+         (List.length envv) (List.length (stw_links w2))
+         (Tiling.PL.ip_index_ext ip2)).
+  set
+    (point2 :=
+       Tiling.tiled_point_part
+         (List.length envv) (List.length (stw_links w2))
+         (Tiling.PL.ip_index_ext ip2)).
+  assert (Hadded_len1 : List.length added1 = List.length (stw_links w1)).
+  {
+    subst added1.
+    eapply Tiling.tiled_added_part_length
+      with (point_dim := stw_point_dim w1).
+    rewrite Hidx_len1, Hafter_depth1, <- Hpoint_depth1.
+    lia.
+  }
+  assert (Hadded_len2 : List.length added2 = List.length (stw_links w2)).
+  {
+    subst added2.
+    eapply Tiling.tiled_added_part_length
+      with (point_dim := stw_point_dim w2).
+    rewrite Hidx_len2, Hafter_depth2, <- Hpoint_depth2.
+    lia.
+  }
+  assert (Hpoint_len1 : List.length point1 = stw_point_dim w1).
+  {
+    subst point1.
+    eapply Tiling.tiled_point_part_length
+      with (added_dims := List.length (stw_links w1)).
+    rewrite Hidx_len1, Hafter_depth1, <- Hpoint_depth1.
+    lia.
+  }
+  assert (Hpoint_len2 : List.length point2 = stw_point_dim w2).
+  {
+    subst point2.
+    eapply Tiling.tiled_point_part_length
+      with (added_dims := List.length (stw_links w2)).
+    rewrite Hidx_len2, Hafter_depth2, <- Hpoint_depth2.
+    lia.
+  }
+  assert
+    (Hidx_split1 :
+       Tiling.PL.ip_index_ext ip1 = envv ++ added1 ++ point1).
+  {
+    subst added1 point1.
+    transitivity
+      (firstn (List.length envv) (Tiling.PL.ip_index_ext ip1) ++
+       Tiling.tiled_added_part
+         (List.length envv) (List.length (stw_links w1))
+         (Tiling.PL.ip_index_ext ip1) ++
+       Tiling.tiled_point_part
+         (List.length envv) (List.length (stw_links w1))
+         (Tiling.PL.ip_index_ext ip1)).
+    - apply Tiling.tiled_index_split.
+    - rewrite Hpref1. reflexivity.
+  }
+  assert
+    (Hidx_split2 :
+       Tiling.PL.ip_index_ext ip2 = envv ++ added2 ++ point2).
+  {
+    subst added2 point2.
+    transitivity
+      (firstn (List.length envv) (Tiling.PL.ip_index_ext ip2) ++
+       Tiling.tiled_added_part
+         (List.length envv) (List.length (stw_links w2))
+         (Tiling.PL.ip_index_ext ip2) ++
+       Tiling.tiled_point_part
+         (List.length envv) (List.length (stw_links w2))
+         (Tiling.PL.ip_index_ext ip2)).
+    - apply Tiling.tiled_index_split.
+    - rewrite Hpref2. reflexivity.
+  }
+  unfold Tiling.compose_tiling_pinstr_ext in Hbel1, Hbel2.
+  destruct Hbel1 as
+    [Hafter_dom1 [_ [_ [Hts11 [Hts21 [_ _]]]]]].
+  destruct Hbel2 as
+    [Hafter_dom2 [_ [_ [Hts12 [Hts22 [_ _]]]]]].
+  assert
+    (Hts11_old :
+       Tiling.PL.ip_time_stamp1_ext ip1 =
+       affine_product (Tiling.PL.pi_schedule before_pi1)
+         (envv ++ point1)).
+  {
+    rewrite Hts11.
+    cbn [Tiling.compose_tiling_pinstr_ext].
+    rewrite Hidx_split1.
+    unfold Tiling.lift_schedule_after_env.
+    eapply Tiling.lift_affine_function_after_env_eval.
+    - reflexivity.
+    - exact Hadded_len1.
+  }
+  assert
+    (Hts12_old :
+       Tiling.PL.ip_time_stamp1_ext ip2 =
+       affine_product (Tiling.PL.pi_schedule before_pi2)
+         (envv ++ point2)).
+  {
+    rewrite Hts12.
+    cbn [Tiling.compose_tiling_pinstr_ext].
+    rewrite Hidx_split2.
+    unfold Tiling.lift_schedule_after_env.
+    eapply Tiling.lift_affine_function_after_env_eval.
+    - reflexivity.
+    - exact Hadded_len2.
+  }
+  assert
+    (Hts21_after :
+       Tiling.PL.ip_time_stamp2_ext ip1 =
+       affine_product (Tiling.PL.pi_schedule after_pi1)
+         (Tiling.PL.ip_index_ext ip1)).
+  {
+    rewrite Hts21.
+    cbn [Tiling.compose_tiling_pinstr_ext].
+    reflexivity.
+  }
+  assert
+    (Hts22_after :
+       Tiling.PL.ip_time_stamp2_ext ip2 =
+       affine_product (Tiling.PL.pi_schedule after_pi2)
+         (Tiling.PL.ip_index_ext ip2)).
+  {
+    rewrite Hts22.
+    cbn [Tiling.compose_tiling_pinstr_ext].
+    reflexivity.
+  }
+  assert
+    (Hstmt1_env :
+       Tiling.tiling_rel_pinstr_structure_source
+         (List.length envv) before_pi1 after_pi1
+         (Tiling.compiled_pinstr_tiling_witness w1)).
+  {
+    rewrite <- Hlen_env.
+    exact Hstmt1.
+  }
+  assert
+    (Hstmt2_env :
+       Tiling.tiling_rel_pinstr_structure_source
+         (List.length envv) before_pi2 after_pi2
+         (Tiling.compiled_pinstr_tiling_witness w2)).
+  {
+    rewrite <- Hlen_env.
+    exact Hstmt2.
+  }
+  destruct Hwf_stmt1 as [Hwf_stmt1 Hparams1].
+  destruct Hwf_stmt2 as [Hwf_stmt2 Hparams2].
+  assert
+    (Hadded_eq1 :
+       added1 = eval_tile_links [] point1 envv (stw_links w1)).
+  {
+    pose proof
+      (Tiling.tiling_rel_pinstr_structure_source_domain_complete
+         envv before_pi1 after_pi1
+         (Tiling.compiled_pinstr_tiling_witness w1)
+         added1 point1 Hstmt1_env
+         (Tiling.wf_compiled_pinstr_tiling_witness w1)
+         (Tiling.compiled_pinstr_tiling_witness_matches w1)
+         Hadded_len1 Hpoint_len1
+         (conj Hwf_stmt1 Hparams1) Hpositive1)
+      as Hcomplete.
+    rewrite Hidx_split1 in Hafter_dom1.
+    specialize (Hcomplete Hafter_dom1).
+    tauto.
+  }
+  assert
+    (Hadded_eq2 :
+       added2 = eval_tile_links [] point2 envv (stw_links w2)).
+  {
+    pose proof
+      (Tiling.tiling_rel_pinstr_structure_source_domain_complete
+         envv before_pi2 after_pi2
+         (Tiling.compiled_pinstr_tiling_witness w2)
+         added2 point2 Hstmt2_env
+         (Tiling.wf_compiled_pinstr_tiling_witness w2)
+         (Tiling.compiled_pinstr_tiling_witness_matches w2)
+         Hadded_len2 Hpoint_len2
+         (conj Hwf_stmt2 Hparams2) Hpositive2)
+      as Hcomplete.
+    rewrite Hidx_split2 in Hafter_dom2.
+    specialize (Hcomplete Hafter_dom2).
+    tauto.
+  }
+  destruct (scalar_aware_second_level_entry_eval
+    (List.length before_ctxt) layout before_pi1 w1 recipe1 expected1 envv added1 point1
+    Hrecipe1 Hband_len1 Hselected1 Hexpected1 (eq_sym Hlen_env) Hadded_len1
+    Hpoint_len1 Hwf_stmt1 Hparams1 Hadded_eq1)
+    as [band_values1 [child_values1 [root_values1
+      [Hband_values1 [Hchild_render1 [Hroot_render1 Heval1]]]]]].
+  destruct (scalar_aware_second_level_entry_eval
+    (List.length before_ctxt) layout before_pi2 w2 recipe2 expected2 envv added2 point2
+    Hrecipe2 Hband_len2 Hselected2 Hexpected2 (eq_sym Hlen_env) Hadded_len2
+    Hpoint_len2 Hwf_stmt2 Hparams2 Hadded_eq2)
+    as [band_values2 [child_values2 [root_values2
+      [Hband_values2 [Hchild_render2 [Hroot_render2 Heval2]]]]]].
+  rewrite <- Hroots_same, <- Hchildren_same in Hchild_render2.
+  rewrite <- Hroots_same in Hroot_render2.
+  set (mixed_values1 := child_values1 ++ root_values1) in *.
+  set (mixed_values2 := child_values2 ++ root_values2) in *.
+  assert (Hband_values_len1 : List.length band_values1 = List.length (sabl_loop_mask layout)).
+  {
+    rewrite Hband_values1, <- affine_product_scalar_aware_layout_band_rows.
+    unfold affine_product. rewrite map_length. exact Hband_len1.
+  }
+  assert (Hband_values_len2 : List.length band_values2 = List.length (sabl_loop_mask layout)).
+  {
+    rewrite Hband_values2, <- affine_product_scalar_aware_layout_band_rows.
+    unfold affine_product. rewrite map_length. exact Hband_len2.
+  }
+  destruct (second_level_band_recipe_spec_lengths _ _ _ _ Hspec1) as [Hrlen Hclen].
+  assert (Hwidth : List.length (slbr_root_rows recipe1) = count_true (sabl_loop_mask layout)).
+  { rewrite <- Hselected1. apply select_by_mask_length_count_true. exact Hband_len1. }
+  assert (Hselected_values_len1 :
+    List.length (select_by_mask (sabl_loop_mask layout) band_values1) =
+    List.length (slbr_root_sizes recipe1)).
+  { rewrite select_by_mask_length_count_true by exact Hband_values_len1. lia. }
+  destruct (second_level_band_recipe_spec_positive_sizes _ _ _ _ Hspec1 Hpositive1)
+    as [Hpositive_roots Hpositive_children].
+  pose proof (scalar_aware_loop_tile_values_monotone
+    (sabl_loop_mask layout) band_values1 band_values2 (slbr_root_sizes recipe1)
+    Hband_values_len1 Hband_values_len2 Hselected_values_len1 Hpositive_roots)
+    as Hroot_monotone.
+  assert (Hroots_len : List.length
+    (scalar_aware_loop_tile_values (sabl_loop_mask layout) band_values1 (slbr_root_sizes recipe1)) =
+    List.length (slbr_child_sizes recipe1)).
+  {
+    unfold scalar_aware_loop_tile_values. rewrite map_length, combine_length,
+      Hselected_values_len1, Nat.min_id. lia.
+  }
+  pose proof (scalar_aware_loop_tiles_monotone_quotient
+    (sabl_loop_mask layout) band_values1 band_values2
+    (scalar_aware_loop_tile_values (sabl_loop_mask layout) band_values1 (slbr_root_sizes recipe1))
+    (scalar_aware_loop_tile_values (sabl_loop_mask layout) band_values2 (slbr_root_sizes recipe1))
+    (slbr_child_sizes recipe1) Hroot_monotone Hroots_len Hpositive_children)
+    as Hchild_monotone.
+  assert
+    (Hactual_target1 :
+       is_eq (Tiling.PL.ip_time_stamp2_ext ip1)
+       (firstn (sabl_start layout)
+          (affine_product (Tiling.PL.pi_schedule before_pi1)
+             (envv ++ point1)) ++
+        mixed_values1 ++ band_values1 ++
+        skipn
+          (sabl_start layout + List.length (sabl_loop_mask layout))%nat
+          (affine_product (Tiling.PL.pi_schedule before_pi1)
+             (envv ++ point1))) = true).
+  {
+    rewrite Hts21_after, Hidx_split1.
+    pose proof
+      (schedule_matches_with_symmetric_trailing_zero_padding_affine_product_is_eq
+         expected1 (Tiling.PL.pi_schedule after_pi1)
+         (envv ++ added1 ++ point1) Htarget1) as Hmatch.
+    rewrite Heval1 in Hmatch.
+    exact Hmatch.
+  }
+  assert
+    (Hactual_target2 :
+       is_eq (Tiling.PL.ip_time_stamp2_ext ip2)
+       (firstn (sabl_start layout)
+          (affine_product (Tiling.PL.pi_schedule before_pi2)
+             (envv ++ point2)) ++
+        mixed_values2 ++ band_values2 ++
+        skipn
+          (sabl_start layout + List.length (sabl_loop_mask layout))%nat
+          (affine_product (Tiling.PL.pi_schedule before_pi2)
+             (envv ++ point2))) = true).
+  {
+    rewrite Hts22_after, Hidx_split2.
+    pose proof
+      (schedule_matches_with_symmetric_trailing_zero_padding_affine_product_is_eq
+         expected2 (Tiling.PL.pi_schedule after_pi2)
+         (envv ++ added2 ++ point2) Htarget2) as Hmatch.
+    rewrite Heval2 in Hmatch.
+    exact Hmatch.
+  }
+  assert
+    (Hnew_without_padding :
+       lex_compare
+         (firstn (sabl_start layout)
+            (affine_product (Tiling.PL.pi_schedule before_pi1)
+               (envv ++ point1)) ++
+          mixed_values1 ++ band_values1 ++
+          skipn
+            (sabl_start layout + List.length (sabl_loop_mask layout))%nat
+            (affine_product (Tiling.PL.pi_schedule before_pi1)
+               (envv ++ point1)))
+         (firstn (sabl_start layout)
+            (affine_product (Tiling.PL.pi_schedule before_pi2)
+               (envv ++ point2)) ++
+          mixed_values2 ++ band_values2 ++
+          skipn
+            (sabl_start layout + List.length (sabl_loop_mask layout))%nat
+            (affine_product (Tiling.PL.pi_schedule before_pi2)
+               (envv ++ point2))) <>
+       Lt).
+  {
+    unfold Tiling.PL.instr_point_ext_new_sched_ge in Hnew.
+    rewrite (lex_compare_left_eq _ _ _ Hactual_target1),
+      (lex_compare_right_eq _ _ _ Hactual_target2) in Hnew.
+    intro Hlt.
+    rewrite Hlt in Hnew.
+    destruct Hnew; discriminate.
+  }
+  assert
+    (Hold_decomposed :
+       lex_compare
+         (firstn (sabl_start layout)
+            (affine_product (Tiling.PL.pi_schedule before_pi1)
+               (envv ++ point1)) ++
+          band_values1 ++
+          skipn
+            (sabl_start layout + List.length (sabl_loop_mask layout))%nat
+            (affine_product (Tiling.PL.pi_schedule before_pi1)
+               (envv ++ point1)))
+         (firstn (sabl_start layout)
+            (affine_product (Tiling.PL.pi_schedule before_pi2)
+               (envv ++ point2)) ++
+          band_values2 ++
+          skipn
+            (sabl_start layout + List.length (sabl_loop_mask layout))%nat
+            (affine_product (Tiling.PL.pi_schedule before_pi2)
+               (envv ++ point2))) =
+       Lt).
+  {
+    unfold Tiling.PL.instr_point_ext_old_sched_lt in Hold.
+    rewrite Hts11_old, Hts12_old in Hold.
+    pose proof
+      (firstn_band_skipn_reconstruct
+         Z (sabl_start layout)
+         (List.length (sabl_loop_mask layout))
+         (affine_product (Tiling.PL.pi_schedule before_pi1)
+            (envv ++ point1))) as Hsplit1.
+    pose proof
+      (firstn_band_skipn_reconstruct
+         Z (sabl_start layout)
+         (List.length (sabl_loop_mask layout))
+         (affine_product (Tiling.PL.pi_schedule before_pi2)
+            (envv ++ point2))) as Hsplit2.
+    rewrite <- Hband_values1 in Hsplit1.
+    rewrite <- Hband_values2 in Hsplit2.
+    rewrite <- Hsplit1, <- Hsplit2 in Hold.
+    exact Hold.
+  }
+  assert
+    (Hprefix_len :
+       List.length
+         (firstn (sabl_start layout)
+            (affine_product (Tiling.PL.pi_schedule before_pi1)
+               (envv ++ point1))) =
+       List.length
+         (firstn (sabl_start layout)
+            (affine_product (Tiling.PL.pi_schedule before_pi2)
+               (envv ++ point2)))).
+  {
+    pose proof Hband_len1 as Hband_sched_len1.
+    pose proof Hband_len2 as Hband_sched_len2.
+    unfold scalar_aware_layout_band_rows in
+      Hband_sched_len1, Hband_sched_len2.
+    rewrite !firstn_length, !skipn_length in
+      Hband_sched_len1, Hband_sched_len2.
+    assert
+      (Hmask_fit1 :
+         (List.length (sabl_loop_mask layout) <=
+         (List.length (Tiling.PL.pi_schedule before_pi1) -
+          sabl_start layout))%nat).
+    {
+      rewrite <- Hband_sched_len1.
+      apply Nat.le_min_r.
+    }
+    assert
+      (Hmask_fit2 :
+         (List.length (sabl_loop_mask layout) <=
+         (List.length (Tiling.PL.pi_schedule before_pi2) -
+          sabl_start layout))%nat).
+    {
+      rewrite <- Hband_sched_len2.
+      apply Nat.le_min_r.
+    }
+    assert
+      (Hstart1 :
+         (sabl_start layout <=
+          List.length (Tiling.PL.pi_schedule before_pi1))%nat).
+    {
+      destruct (sabl_loop_mask layout); [contradiction|].
+      simpl in Hmask_fit1.
+      lia.
+    }
+    assert
+      (Hstart2 :
+         (sabl_start layout <=
+          List.length (Tiling.PL.pi_schedule before_pi2))%nat).
+    {
+      destruct (sabl_loop_mask layout); [contradiction|].
+      simpl in Hmask_fit2.
+      lia.
+    }
+    unfold affine_product.
+    rewrite !firstn_length, !map_length.
+    rewrite !Nat.min_l by assumption.
+    reflexivity.
+  }
+  assert (Hmixed_len : List.length mixed_values1 = List.length mixed_values2).
+  {
+    unfold mixed_values1, mixed_values2. rewrite !app_length.
+    rewrite (render_scalar_aware_value_prefix_length _ _ _ _ Hband_values_len1 Hchild_render1),
+      (render_scalar_aware_value_prefix_length _ _ _ _ Hband_values_len2 Hchild_render2),
+      (render_scalar_aware_value_prefix_length _ _ _ _ Hband_values_len1 Hroot_render1),
+      (render_scalar_aware_value_prefix_length _ _ _ _ Hband_values_len2 Hroot_render2).
+    reflexivity.
+  }
+  destruct
+    (scalar_aware_reversal_implies_mixed_gt
+       (firstn (sabl_start layout)
+          (affine_product (Tiling.PL.pi_schedule before_pi1)
+             (envv ++ point1)))
+       (firstn (sabl_start layout)
+          (affine_product (Tiling.PL.pi_schedule before_pi2)
+             (envv ++ point2)))
+       mixed_values1 mixed_values2
+       band_values1 band_values2
+       (skipn
+          (sabl_start layout + List.length (sabl_loop_mask layout))%nat
+          (affine_product (Tiling.PL.pi_schedule before_pi1)
+             (envv ++ point1)))
+       (skipn
+          (sabl_start layout + List.length (sabl_loop_mask layout))%nat
+          (affine_product (Tiling.PL.pi_schedule before_pi2)
+             (envv ++ point2)))
+       Hprefix_len Hmixed_len Hold_decomposed Hnew_without_padding)
+    as [Hprefix_eq Hmixed_gt].
+  destruct (scalar_aware_two_level_prefix_gt_active
+    (sabl_loop_mask layout) band_values1 band_values2 _ _ _ _
+    child_values1 child_values2 root_values1 root_values2
+    Hband_values_len1 Hband_values_len2 Hchild_monotone Hroot_monotone
+    Hchild_render1 Hchild_render2 Hroot_render1 Hroot_render2 Hmixed_gt)
+    as [dim [x [y [Hdim [Hx [Hy [Hxy Hprior]]]]]]].
+  assert
+    (Hfull_composed1 :
+       affine_product
+         (Tiling.PL.pi_schedule1_ext
+            (Tiling.compose_tiling_pinstr_ext
+               (List.length envv) before_pi1 after_pi1 w1))
+         (Tiling.PL.ip_index_ext ip1) =
+       affine_product
+         (Tiling.PL.pi_schedule before_pi1) (envv ++ point1)).
+  {
+    cbn [Tiling.compose_tiling_pinstr_ext].
+    rewrite Hidx_split1.
+    eapply Tiling.lift_affine_function_after_env_eval.
+    - reflexivity.
+    - exact Hadded_len1.
+  }
+  assert
+    (Hfull_composed2 :
+       affine_product
+         (Tiling.PL.pi_schedule1_ext
+            (Tiling.compose_tiling_pinstr_ext
+               (List.length envv) before_pi2 after_pi2 w2))
+         (Tiling.PL.ip_index_ext ip2) =
+       affine_product
+         (Tiling.PL.pi_schedule before_pi2) (envv ++ point2)).
+  {
+    cbn [Tiling.compose_tiling_pinstr_ext].
+    rewrite Hidx_split2.
+    eapply Tiling.lift_affine_function_after_env_eval.
+    - reflexivity.
+    - exact Hadded_len2.
+  }
+  exists layout,
+    (Tiling.compose_tiling_pinstr_ext
+       (List.length envv) before_pi1 after_pi1 w1),
+    (Tiling.compose_tiling_pinstr_ext
+       (List.length envv) before_pi2 after_pi2 w2),
+    dim.
+  split; [reflexivity|].
+  split; [reflexivity|].
+  split; [exact Hcomposed1|].
+  split; [exact Hcomposed2|].
+  split; [exact Hdim|].
+  eapply scalar_aware_component_active_from_band_values
+    with
+      (old1 :=
+         affine_product
+           (Tiling.PL.pi_schedule before_pi1) (envv ++ point1))
+      (old2 :=
+         affine_product
+           (Tiling.PL.pi_schedule before_pi2) (envv ++ point2))
+      (band1 := band_values1)
+      (band2 := band_values2)
+      (x := x) (y := y).
+  - exact Hfull_composed1.
+  - exact Hfull_composed2.
+  - exact Hband_values1.
+  - exact Hband_values2.
+  - exact Hprefix_eq.
+  - exact Hprior.
+  - exact Hx.
+  - exact Hy.
+  - exact Hdim.
+  - exact Hxy.
 Qed.
 
 End PhaseAwareSemanticBands.

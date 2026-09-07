@@ -258,10 +258,13 @@ Definition try_checked_iss_phase_pipeline_from_poly
       if ValidatorCore.checked_iss_complete_cut_shape_validate pol pol_iss w then
         BIND iss_wf <- ValidatorCore.check_wf_polyprog pol_iss -;
         if iss_wf then
-          try_phase_pipeline_from_source_pol
-            pol_iss
-            run_pluto_phase_pipeline_with_iss
-            before_scop
+          match export_for_phase_scheduler pol_iss with
+          | Some iss_scop =>
+              try_phase_pipeline_from_source_pol
+                pol_iss run_pluto_phase_pipeline iss_scop
+          | None =>
+              res_to_alarm LoopIR.dummy (Err "Cannot export checked ISS program.")
+          end
         else
           try_phase_pipeline_from_source_pol
             pol

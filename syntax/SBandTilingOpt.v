@@ -19,6 +19,7 @@ Definition tiling_validation_route_label
     (route: TilingSched.tiling_band_validation_route) : string :=
   match route with
   | TilingSched.DirectBandAccepted => "permutable-band"
+  | TilingSched.GeneralScheduleAccepted => "actual-schedule"
   | TilingSched.Rejected => "rejected"
   end.
 
@@ -42,7 +43,7 @@ Definition reject_tiling (_: unit) : imp SPolIRs.Loop.t :=
   | TilingSched.Rejected =>
       res_to_alarm SPolIRs.Loop.dummy
         (Err "Tiling validation rejected or unavailable.")
-  | TilingSched.DirectBandAccepted =>
+  | TilingSched.DirectBandAccepted | TilingSched.GeneralScheduleAccepted =>
       res_to_alarm SPolIRs.Loop.dummy
         (Err "Impossible accepted result while recording tiling rejection.")
   end.
@@ -52,7 +53,7 @@ Definition prepared_codegen_after_tiling_route
     (route: TilingSched.tiling_band_validation_route)
   : imp SPolIRs.Loop.t :=
   match route with
-  | TilingSched.DirectBandAccepted =>
+  | TilingSched.DirectBandAccepted | TilingSched.GeneralScheduleAccepted =>
       CoreOpt.PrepareCore.prepared_codegen
         (PolyLang.current_view_pprog pol_after)
   | TilingSched.Rejected =>
@@ -64,7 +65,7 @@ Definition reject_post_tiling_affine
     (route: TilingSched.tiling_band_validation_route)
     (_: unit) : imp SPolIRs.Loop.t :=
   match route with
-  | TilingSched.DirectBandAccepted =>
+  | TilingSched.DirectBandAccepted | TilingSched.GeneralScheduleAccepted =>
       res_to_alarm SPolIRs.Loop.dummy
         (Err "Post-tiling affine validation failed.")
   | TilingSched.Rejected =>
@@ -90,7 +91,7 @@ Definition try_verified_tiling_after_phase_mid_band
               .checked_tiling_schedule_sourceb_first_runtime_validate_route
               pol_mid pol_after ws -;
           match route with
-          | TilingSched.DirectBandAccepted =>
+          | TilingSched.DirectBandAccepted | TilingSched.GeneralScheduleAccepted =>
               BIND wf_after <-
                 CoreOpt.ValidatorCore.check_wf_polyprog_general
                   pol_after -;
@@ -167,7 +168,7 @@ Definition try_verified_post_tiling_affine_after_phase_mid_band
               .checked_tiling_schedule_sourceb_first_runtime_validate_route
               pol_mid pol_posttile ws -;
           match route with
-          | TilingSched.DirectBandAccepted =>
+          | TilingSched.DirectBandAccepted | TilingSched.GeneralScheduleAccepted =>
               BIND wf_posttile <-
                 CoreOpt.ValidatorCore.check_wf_polyprog_general
                   pol_posttile -;
@@ -253,8 +254,12 @@ Definition try_checked_iss_post_tiling_affine_phase_pipeline_from_poly_band
       if CoreOpt.ValidatorCore.checked_iss_complete_cut_shape_validate pol pol_iss w then
         BIND iss_wf <- CoreOpt.ValidatorCore.check_wf_polyprog pol_iss -;
         if iss_wf then
-          try_post_tiling_affine_phase_pipeline_from_source_pol_band_with_iss
-            pol_iss before_scop
+          match CoreOpt.export_for_phase_scheduler pol_iss with
+          | Some iss_scop =>
+              try_post_tiling_affine_phase_pipeline_from_source_pol_band
+                pol_iss iss_scop
+          | None => reject_tiling tt
+          end
         else
           try_post_tiling_affine_phase_pipeline_from_source_pol_band pol before_scop
       else
@@ -271,10 +276,12 @@ Definition try_checked_iss_phase_pipeline_from_poly_band
       if CoreOpt.ValidatorCore.checked_iss_complete_cut_shape_validate pol pol_iss w then
         BIND iss_wf <- CoreOpt.ValidatorCore.check_wf_polyprog pol_iss -;
         if iss_wf then
-          try_phase_pipeline_from_source_pol_band
-            pol_iss
-            CoreOpt.run_pluto_phase_pipeline_with_iss
-            before_scop
+          match CoreOpt.export_for_phase_scheduler pol_iss with
+          | Some iss_scop =>
+              try_phase_pipeline_from_source_pol_band
+                pol_iss CoreOpt.run_pluto_phase_pipeline iss_scop
+          | None => reject_tiling tt
+          end
         else
           try_phase_pipeline_from_source_pol_band
             pol

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -8,6 +9,7 @@ import tempfile
 from pathlib import Path
 
 from pluto_versions import locate_buggy_pluto_and_polycc
+from innerpar_semantics import checked_state, validate_checked_result
 
 
 PLUTO_FLAGS = [
@@ -72,12 +74,12 @@ def main():
         require(generated.exists(), "Pluto returned success without generated C output")
         generated_text = generated.read_text()
         require(
-            "#pragma omp parallel for" in generated_text and "for (t2=" in generated_text,
-            "Pluto output did not parallelize the dependent surviving t2 loop",
+            re.search(r"#pragma omp parallel for[^\n]*\n\s*for \(", generated_text) is not None,
+            "Pluto output did not contain an OpenMP parallel loop",
         )
         print(
             "[pluto-miscompile] producer: expected=success-with-inner-OpenMP "
-            "actual=exit-0,parallel-t2 interpretation=unsafe-loop-substitution"
+            "actual=exit-0,omp-loop interpretation=unsafe-loop-substitution"
         )
 
         baseline_exe = work / "baseline"
@@ -112,29 +114,25 @@ def main():
         polcert_env = os.environ.copy()
         polcert_env["POLCERT_PLUTO"] = str(pluto)
         polcert_env.setdefault("COMPCERT_CONFIG", str(repo / "polcert.ini"))
+        reference = checked_state(loop.read_text(), work, 'loop-reference', compiler, run, fixture='vanished')
+        require(reference[-1] == baseline, 'Loop reference disagrees with the C witness')
 
         strict = run(
             [polopt, *PLUTO_FLAGS[:-1], "--parallel", "--parallel-strict", loop],
-            cwd=repo,
+            cwd=work,
             env=polcert_env,
         )
-        require(
-            strict.returncode == 0
-            and strict.stdout.count("parallel for") == 1
-            and "parallel for i0 in range(0, 1)" in strict.stdout
-            and "parallel for i1" not in strict.stdout,
-            "PolCert strict hinted route did not preserve the vanished hint as "
-            f"a semantically sequential singleton loop:\n{strict.stdout}",
-        )
+        outcome = validate_checked_result(strict, reference, work, 'strict-state', compiler, run,
+                                          strict=True, fixture='vanished', require_tiling=False)
         print(
             "[pluto-miscompile] polcert-hint: expected=singleton-parallel "
-            "actual=exit-0,parallel-i0-range-0-1 "
+            f"actual=exit-{strict.returncode},{outcome} "
             "interpretation=vanished-coordinate-did-not-transfer-inward"
         )
 
         actual_inner = run(
             [polopt, "--notile", "--parallel-current", "1", loop],
-            cwd=repo,
+            cwd=work,
             env=polcert_env,
         )
         require(actual_inner.returncode != 0, "PolCert accepted Pluto's actual dependent t2 loop")

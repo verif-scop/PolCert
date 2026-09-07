@@ -2,7 +2,7 @@
 
 This directory contains the textual loop-language frontend used by the `polopt` executable.
 
-For a user-oriented overview of the optimizer itself, start with [../POLOPT.md](../POLOPT.md).
+For optimizer flags and examples, start with the [flag guide](../doc/POLOPT_FLAG_GUIDE.md).
 This file focuses on the surface language.
 
 ## Purpose
@@ -108,16 +108,8 @@ Debug scheduler stages:
 
 The generated regression suite is under [../tests/polopt-generated](../tests/polopt-generated).
 
-Current strict proved-path status:
-
-- total generated inputs: `62`
-- succeeded: `62`
-- changed: `59`
-- unchanged: `3`
-- nontrivially changed: `59`
-- automatically detected tiled outputs: `39`
-
-These are the same strict-suite numbers reported in [../README.md](../README.md)
-and [../POLOPT.md](../POLOPT.md). The CI gate itself is driven by
-`tests/polopt-generated/strict_suite_manifest.json`; the prose here is just the
-current observed result on that manifest-gated corpus.
+The CI gate is driven by
+[strict_suite_manifest.json](../tests/polopt-generated/strict_suite_manifest.json).
+Run `make test-polopt-generated` to obtain results for the current compiler and
+manifest. Historical counts of accepted, changed, or tiled outputs do not
+describe a new build until that suite has run.

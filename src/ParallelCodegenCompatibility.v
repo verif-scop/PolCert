@@ -383,9 +383,11 @@ Qed.
 Lemma checked_vector_annotated_codegen_ok_inv :
   forall pp cert pl,
     mayReturn (checked_vector_annotated_codegen pp cert) (Okk pl) ->
-    (mayReturn (vector_annotated_codegen pp cert) pl /\
-     ParallelLoop.trace_safe pl /\
-     ParallelLoop.vector_annotations_innermostb pl = true) \/
+    (exists pl_raw,
+      mayReturn (vector_annotated_codegen_raw pp cert) pl_raw /\
+      pl = ParallelLoop.full_cleanup pl_raw /\
+      parallel_cleanup_safe pl_raw /\
+      ParallelLoop.vector_annotations_innermostb pl = true) \/
     (mayReturn (vector_annotated_codegen_raw pp cert) pl /\
      ParallelLoop.trace_safe pl /\
      ParallelLoop.vector_annotations_innermostb pl = true).
@@ -393,22 +395,22 @@ Proof.
   intros pp cert pl Hcodegen.
   unfold checked_vector_annotated_codegen in Hcodegen.
   apply mayReturn_bind in Hcodegen.
-  destruct Hcodegen as [pl' [Hann Hret]].
-  destruct (vector_codegen_safeb pl') eqn:Hsafe.
+  destruct Hcodegen as [pl_raw [Hann Hret]].
+  destruct (parallel_cleanup_safeb pl_raw &&
+    ParallelLoop.vector_annotations_innermostb
+      (ParallelLoop.full_cleanup pl_raw)) eqn:Hsafe.
   - apply mayReturn_pure in Hret.
-    inversion Hret; subst pl'.
-    left.
-    split.
-    + exact Hann.
-    + eapply vector_codegen_safeb_sound; eauto.
-  - apply mayReturn_bind in Hret.
-    destruct Hret as [pl_raw [Hraw Hret]].
-    destruct (vector_codegen_safeb pl_raw) eqn:Hsafe_raw.
+    inversion Hret; subst pl.
+    apply andb_true_iff in Hsafe.
+    destruct Hsafe as [Hcleanup Hinner].
+    left. exists pl_raw. repeat split; auto.
+    eapply parallel_cleanup_safeb_sound; eauto.
+  - destruct (vector_codegen_safeb pl_raw) eqn:Hsafe_raw.
     + apply mayReturn_pure in Hret.
       inversion Hret; subst pl_raw.
       right.
       split.
-      * exact Hraw.
+      * exact Hann.
       * eapply vector_codegen_safeb_sound; eauto.
     + apply mayReturn_pure in Hret.
       discriminate.

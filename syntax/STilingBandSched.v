@@ -28,6 +28,7 @@ Definition tiling_validation_route_label
     (route: CoreBandRuntime.tiling_band_validation_route) : string :=
   match route with
   | CoreBandRuntime.DirectBandAccepted => "permutable-band"
+  | CoreBandRuntime.GeneralScheduleAccepted => "actual-schedule"
   | CoreBandRuntime.Rejected => "rejected"
   end.
 

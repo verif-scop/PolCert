@@ -78,6 +78,8 @@ def parse_affine(expr: str) -> tuple[tuple[tuple[str, int], ...], int]:
     coeffs: dict[str, int] = defaultdict(int)
     const = 0
     while i < len(s):
+        if s[i] not in "+-":
+            raise ValueError(f"unsupported affine syntax at {s[i:]!r}")
         sign = 1 if s[i] == "+" else -1
         i += 1
         j = i
@@ -87,14 +89,16 @@ def parse_affine(expr: str) -> tuple[tuple[tuple[str, int], ...], int]:
             num = int(s[i:j])
         else:
             num = 1
-        if j < len(s) and (s[j].isalpha() or s[j] == "_"):
+        if j < len(s) and (s[j].isalpha() or s[j] in "_$"):
             k = j + 1
-            while k < len(s) and (s[k].isalnum() or s[k] in "_'"):
+            while k < len(s) and (s[k].isalnum() or s[k] in "_$'"):
                 k += 1
             var = s[j:k]
             coeffs[var] += sign * num
             i = k
         else:
+            if j == i or (j < len(s) and s[j] not in "+-"):
+                raise ValueError(f"unsupported affine syntax at {s[i:]!r}")
             const += sign * num
             i = j
     return normalize_coeffs(coeffs), const
@@ -320,7 +324,15 @@ def collect_var_order(
     after: Program,
     global_cut_repr: dict[tuple, tuple[Constraint, Constraint]],
 ) -> list[str]:
+    """A named serialization basis, not the source's semantic coordinates.
+
+    Debug dumps do not declare iterator order.  PhaseISS must map every row
+    by these names into the explicit source OpenScop parameter/iterator order.
+    Lexicographic order here is only a reproducible wire encoding.
+    """
     params = list(before.params)
+    if len(params) != len(set(params)):
+        raise ValueError("duplicate parameter names in ISS dump")
     nonparams: set[str] = set()
 
     def add_constraint_vars(c: Constraint) -> None:
@@ -340,6 +352,10 @@ def collect_var_order(
 
 def constraint_to_domain_rows(c: Constraint, var_order: list[str]) -> list[dict]:
     coeff_map = c.coeff_map()
+    if len(var_order) != len(set(var_order)):
+        raise ValueError("duplicate names in ISS bridge VAR_ORDER")
+    if any(coeff and var not in var_order for var, coeff in coeff_map.items()):
+        raise ValueError("ISS bridge VAR_ORDER omits a nonzero constraint variable")
     coeffs = [coeff_map.get(var, 0) for var in var_order]
     if c.rel == "ge":
         return [{"coeffs": [-x for x in coeffs], "const": c.const}]
@@ -396,6 +412,10 @@ def encode_bridge_text(bridge: dict) -> str:
 
 def collect_iss_structure(before: Program, after: Program) -> tuple[list[str], dict]:
     messages: list[str] = []
+    if before.npar != len(before.params) or after.npar != len(after.params):
+        raise ValueError("ISS dump parameter name/count mismatch")
+    if before.params != after.params:
+        raise ValueError("ISS changed the ordered parameter list")
     before_by_payload: dict[tuple, Stmt] = {}
     for stmt in before.stmts:
         key = stmt.payload_key()

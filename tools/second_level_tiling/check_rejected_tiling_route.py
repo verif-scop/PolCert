@@ -50,6 +50,68 @@ def route_lines(stderr: str) -> list[str]:
     ]
 
 
+def hinted_malformed_rejection_stage(
+    consumer: str, stderr: str, *, reader_rejection_confirmed: bool = False,
+) -> str | None:
+    """Keep formal tiling rejection separate from strict proposal preflight."""
+    routes = route_lines(stderr)
+    if routes == [REJECTED_ROUTE] and not any(marker in stderr for marker in (
+        "[parallel-validation] status=rejected", "[vector-validation] status=rejected",
+    )):
+        return "tiling"
+    if (consumer == "parallel-strict" and not routes
+            and "[parallel-validation] proposal=actual reason=no-compatible-candidate" in stderr
+            and "[parallel-validation] status=rejected source=pluto-hint reason=no-certifiable-dimension" in stderr
+            and "[vector-validation] status=rejected" not in stderr):
+        if "[parallel-validation] proposal=actual reason=instance-space-mismatch" in stderr:
+            return "parallel-preflight"
+        if reader_rejection_confirmed:
+            return "parallel-reader"
+    return None
+
+
+def confirm_second_level_reader_rejection(root: Path, stderr: str, timeout: int) -> bool:
+    """Re-read this run's exact corrupted proposals; no formal rejection is inferred."""
+    prefix = TILE_LINK_MUTATION + " in "
+    names = [line.split(prefix, 1)[1].strip() for line in stderr.splitlines() if prefix in line]
+    if not names:
+        return False
+    for name in dict.fromkeys(names):
+        if Path(name).name != name or not name.endswith(".posttile.scop"):
+            return False
+        after = root / name
+        before = root / name[:-len(".posttile.scop")]
+        before = Path(str(before) + ".midtransform.scop")
+        if not before.is_file() or not after.is_file():
+            return False
+        proc = subprocess.run(
+            [str(root / "polcert"), "--tiling", "--second-level-tile", str(before), str(after)],
+            cwd=root, text=True, capture_output=True, timeout=timeout, check=False,
+        )
+        if (proc.returncode != 2 or "cannot extract tiling witness" not in proc.stderr
+                or "incomplete tile-link pair" not in proc.stderr
+                or route_lines(proc.stderr) or "[TILING-" in proc.stdout + proc.stderr):
+            return False
+        print(f"[malformed-reader] before={before.name} after={after.name} exit=2 reason=incomplete-tile-link-pair", flush=True)
+    return True
+
+
+def final_affine_rejection_stage(consumer: str, stderr: str) -> str | None:
+    routes = route_lines(stderr)
+    if routes == [BAND_ROUTE] and not any(marker in stderr for marker in (
+        "[parallel-validation] status=rejected", "[vector-validation] status=rejected",
+    )):
+        return "final-affine"
+    if (consumer == "parallel-hint-strict" and not routes
+            and "[parallel-validation] scope=phase reason=affine-rejected" in stderr
+            and "[parallel-validation] proposal=actual coordinate=" in stderr
+            and " accepted=false nontrivial=false" in stderr
+            and "[parallel-validation] status=rejected source=pluto-hint reason=no-certifiable-dimension" in stderr
+            and "[vector-validation] status=rejected" not in stderr):
+        return "parallel-candidate-affine"
+    return None
+
+
 def run_polopt(
     *,
     polopt: Path,
@@ -154,6 +216,8 @@ def assert_no_alternate_route(label: str, stderr: str) -> None:
         raise AssertionError(f"{label} malformed candidate reported permutable-band")
     if "fallback" in stderr.lower():
         raise AssertionError(f"{label} reported a forbidden fallback route")
+    if "plain tiling producer changed the post-tile schedule" in stderr:
+        raise AssertionError(f"{label} failed at phase consistency, not tiling validation")
 
 
 def check_malformed_tiling_cases(
@@ -231,8 +295,13 @@ def check_integrated_direct_checker_rejection(
             f"{label} did not report exactly one rejected route\n"
             f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
         )
-    if proc.stderr.count("[frozen-nonpermutable-pluto]") != 2:
-        raise AssertionError(f"{label} did not replace both Pluto phase outputs")
+    for phase in ("affine", "tiled"):
+        if proc.stderr.count(f"[frozen-nonpermutable-pluto] phase={phase} ") != 1:
+            raise AssertionError(f"{label} did not replace the {phase} phase")
+    if ".posttile.scop," not in proc.stderr or ".afterscheduling.scop with nonpermutable-band.posttile.scop" not in proc.stderr:
+        raise AssertionError(f"{label} did not bind the tiled and final phase outputs")
+    if "plain tiling producer changed the post-tile schedule" in proc.stderr:
+        raise AssertionError(f"{label} failed before reaching tiling validation")
     assert_no_alternate_route(label, proc.stderr)
     if proc.stderr.count("[alarm]") != 1:
         raise AssertionError(f"{label} did not report exactly one alarm")
@@ -432,6 +501,9 @@ def check_malformed_tiling_with_hinted_consumers(
     env["POLCERT_REAL_PLUTO"] = str(real_pluto)
     env["POLCERT_PLUTO"] = str(wrapper)
     env["POLCERT_REJECTING_PLUTO_MODE"] = "tiling"
+    # The actual-proposal adapter can reject incompatible instance spaces before
+    # invoking the formal tiling stage. Its debug marker identifies that boundary.
+    env["POLCERT_PARALLEL_DEBUG"] = "1"
     count = 0
     for producer_name in producer_names:
         producer = all_cases[producer_name]
@@ -454,17 +526,16 @@ def check_malformed_tiling_with_hinted_consumers(
             label = f"malformed {producer_name} with hinted {consumer_name}"
             if proc.returncode == 0:
                 raise AssertionError(f"{label} did not fail closed")
-            if route_lines(proc.stderr) != [REJECTED_ROUTE]:
-                raise AssertionError(
-                    f"{label} did not preserve its unique producer rejection\n"
-                    f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+            stage = hinted_malformed_rejection_stage(consumer_name, proc.stderr)
+            if (stage is None and consumer_name == "parallel-strict"
+                    and "--second-level-tile" in producer.args):
+                stage = hinted_malformed_rejection_stage(
+                    consumer_name, proc.stderr,
+                    reader_rejection_confirmed=confirm_second_level_reader_rejection(root, proc.stderr, timeout),
                 )
-            if (
-                "[parallel-validation] status=rejected" in proc.stderr
-                or "[vector-validation] status=rejected" in proc.stderr
-            ):
+            if stage is None:
                 raise AssertionError(
-                    f"{label} was mislabeled as a consumer rejection\n"
+                    f"{label} did not fail at a recognized malformed-proposal boundary\n"
                     f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
                 )
             assert_no_alternate_route(label, proc.stderr)
@@ -474,6 +545,7 @@ def check_malformed_tiling_with_hinted_consumers(
                 raise AssertionError(f"{label} did not report exactly one alarm")
             if "== Optimized Loop ==" in proc.stdout:
                 raise AssertionError(f"{label} emitted output after rejection")
+            print(f"[malformed-hinted] case={producer_name}/{consumer_name} stage={stage} rejected=true", flush=True)
             count += 1
     return count
 
@@ -579,6 +651,7 @@ def check_final_affine_failure_cases(
     env["POLCERT_REAL_PLUTO"] = str(real_pluto)
     env["POLCERT_PLUTO"] = str(wrapper)
     env["POLCERT_REJECTING_PLUTO_MODE"] = "final-affine"
+    env["POLCERT_PARALLEL_DEBUG"] = "1"
     count = 0
     for name, producer_args in producer_cases:
         for (
@@ -599,12 +672,14 @@ def check_final_affine_failure_cases(
                 raise AssertionError(
                     f"{label} unexpectedly accepted the malformed final schedule"
                 )
-            if route_lines(proc.stderr) != [BAND_ROUTE]:
+            stage = final_affine_rejection_stage(consumer_name, proc.stderr)
+            if stage is None:
                 raise AssertionError(
-                    f"{label} did not preserve the successful tiling-leg route\n"
+                    f"{label} did not report a recognized final-affine rejection\n"
                     f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
                 )
-            if consumer_rejection is not None and consumer_rejection in proc.stderr:
+            if (stage == "final-affine" and consumer_rejection is not None
+                    and consumer_rejection in proc.stderr):
                 raise AssertionError(
                     f"{label} was mislabeled as a consumer rejection"
                 )
@@ -624,6 +699,7 @@ def check_final_affine_failure_cases(
                 raise AssertionError(
                     f"{label} emitted output after a validation alarm"
                 )
+            print(f"[final-affine-negative] case={name}/{consumer_name} stage={stage} rejected=true", flush=True)
             count += 1
     return count
 

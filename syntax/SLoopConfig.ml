@@ -4,6 +4,7 @@ type config = {
   mutable dump_scheduled_openscop : bool;
   mutable debug_scheduler : bool;
   mutable extract_only : bool;
+  mutable extract_strengthened_only : bool;
   mutable profile_stages : bool;
   mutable force_identity : bool;
   mutable force_notile : bool;

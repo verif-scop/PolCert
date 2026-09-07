@@ -4,6 +4,7 @@ type config = SLoopConfig.config = {
   mutable dump_scheduled_openscop : bool;
   mutable debug_scheduler : bool;
   mutable extract_only : bool;
+  mutable extract_strengthened_only : bool;
   mutable profile_stages : bool;
   mutable force_identity : bool;
   mutable force_notile : bool;
@@ -55,7 +56,7 @@ let usage prog =
   String.concat ""
     [
       Printf.sprintf
-        "Usage: %s [--dump-input] [--dump-extracted-openscop] [--dump-scheduled-openscop] [--debug-scheduler] [--extract-only] [--profile-stages] [--identity] [--identity-tiled] [--notile] [--iss] [--second-level-tile] [--diamond-tile] [--full-diamond-tile] [--intratileopt|--nointratileopt] [--rar] [--const-unroll] [--parallel] [--parallel-strict] [--parallel-current <dim>] [--vector] [--vector-strict] [--vector-current <dim>] <file.loop>\n"
+        "Usage: %s [--dump-input] [--dump-extracted-openscop] [--dump-scheduled-openscop] [--debug-scheduler] [--extract-only|--extract-strengthened-only] [--profile-stages] [--identity] [--identity-tiled] [--notile] [--iss] [--second-level-tile] [--diamond-tile] [--full-diamond-tile] [--intratileopt|--nointratileopt] [--rar] [--const-unroll] [--parallel] [--parallel-strict] [--parallel-current <dim>] [--vector] [--vector-strict] [--vector-current <dim>] <file.loop>\n"
         prog;
       Printf.sprintf
         "       %s --pluto-compat [--explain] [--dry-run] <Pluto-like optimizer flags> <file.loop>\n"
@@ -78,6 +79,7 @@ let usage prog =
       "\nDefault optimization path:\n";
       "  extracted theorem-aligned affine+tiling pipeline with band-aware ordinary tiling (`SBandTilingOpt.opt`)\n";
       "\nExplicit phase controls:\n";
+      "  --extract-strengthened-only : export the strengthened source OpenScop, without invoking Pluto\n";
       "  --profile-stages  : print OCaml-side stage timings for the default no-parallel\n";
       "                      theorem-aligned routes (`--identity`, `--notile`, or default)\n";
       "  --identity        : no Pluto phase, just checked extraction/strengthen/codegen\n";
@@ -603,6 +605,7 @@ let parse_args () : config =
       dump_scheduled_openscop = false;
       debug_scheduler = false;
       extract_only = false;
+      extract_strengthened_only = false;
       profile_stages = false;
       force_identity = false;
       force_notile = false;
@@ -673,7 +676,16 @@ let parse_args () : config =
       | "--dump-extracted-openscop" -> cfg.dump_extracted_openscop <- true; go (i + 1)
       | "--dump-scheduled-openscop" -> cfg.dump_scheduled_openscop <- true; go (i + 1)
       | "--debug-scheduler" -> cfg.debug_scheduler <- true; go (i + 1)
-      | "--extract-only" -> cfg.extract_only <- true; go (i + 1)
+      | "--extract-only" ->
+          if cfg.extract_strengthened_only then
+            usage_error Sys.argv.(0) "choose only one extraction output mode";
+          cfg.extract_only <- true; go (i + 1)
+      | "--extract-strengthened-only" ->
+          if cfg.extract_only && not cfg.extract_strengthened_only then
+            usage_error Sys.argv.(0) "choose only one extraction output mode";
+          cfg.extract_only <- true;
+          cfg.extract_strengthened_only <- true;
+          go (i + 1)
       | "--profile-stages" -> cfg.profile_stages <- true; go (i + 1)
       | "--identity" -> cfg.force_identity <- true; go (i + 1)
       | "--identity-tiled" ->
@@ -998,6 +1010,17 @@ let validate_flag_model prog (cfg : config) =
       selection
   | Error msg -> usage_error prog msg
 
+let phase_pipeline_mode_of_selection = function
+  | SLoopRoute.Optimize {
+      schedule_family = SLoopRoute.AffineSchedule;
+      structural_extension = SLoopRoute.Plain;
+      tiling_family = SLoopRoute.Tiled { shape = SLoopRoute.Rectangular; _ };
+      execution_family = SLoopRoute.Sequential;
+      intra_tile_policy = SLoopRoute.IntraTileDisabled;
+      _
+    } -> Scheduler.SingleInvocationPhases
+  | _ -> Scheduler.StagedPhases
+
 let configure_scheduler_modes selection (cfg : config) =
   let schedule_mode, tiling_mode, diamond_mode, intra_tile_mode =
     match selection with
@@ -1051,5 +1074,6 @@ let configure_scheduler_modes selection (cfg : config) =
     tiling_mode;
   Scheduler.set_diamond_mode diamond_mode;
   Scheduler.set_intra_tile_mode intra_tile_mode;
+  Scheduler.set_phase_pipeline_mode (phase_pipeline_mode_of_selection selection);
   Scheduler.set_pluto_extra_flags (pluto_scheduler_extra_flags cfg);
   Scheduler.set_pluto_control_files cfg.pluto_control_files

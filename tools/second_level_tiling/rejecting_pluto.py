@@ -11,6 +11,7 @@ import sys
 
 TILE_LINK_MODE = "tiling"
 FINAL_AFFINE_MODE = "final-affine"
+TILED_SCHEDULE_MODE = "tiling-schedule"
 
 
 def generated_output(args: list[str], suffix: str) -> Path | None:
@@ -26,12 +27,20 @@ def generated_output(args: list[str], suffix: str) -> Path | None:
 
 
 def tiling_output(args: list[str]) -> Path | None:
-    suffix = (
-        ".posttile.scop"
-        if "--diamond-tile" in args or "--full-diamond-tile" in args
-        else ".afterscheduling.scop"
-    )
-    return generated_output(args, suffix)
+    return (generated_output(args, ".posttile.scop")
+            or generated_output(args, ".afterscheduling.scop"))
+
+
+def identical_final_alias(args: list[str], output: Path) -> Path | None:
+    """Preserve plain tiling's posttile=final contract during corruption."""
+    if "--diamond-tile" in args or "--full-diamond-tile" in args:
+        return None
+    final = generated_output(args, ".afterscheduling.scop")
+    if final is None or final == output:
+        return None
+    if final.read_bytes() != output.read_bytes():
+        raise ValueError("plain tiling posttile and final outputs already differ")
+    return final
 
 
 def corrupt_tile_link(output: Path, target_coefficients: tuple[int, ...]) -> int:
@@ -156,7 +165,7 @@ def main() -> int:
     if "--tile" not in args:
         return 0
 
-    if mode == TILE_LINK_MODE:
+    if mode in (TILE_LINK_MODE, TILED_SCHEDULE_MODE):
         output = tiling_output(args)
     elif mode == FINAL_AFFINE_MODE:
         if "--diamond-tile" not in args and "--full-diamond-tile" not in args:
@@ -174,6 +183,9 @@ def main() -> int:
         print("[rejecting-pluto] missing scheduled OpenScop output", file=sys.stderr)
         return 70
 
+    alias = (identical_final_alias(args, output)
+             if mode in (TILE_LINK_MODE, TILED_SCHEDULE_MODE) else None)
+
     if mode == TILE_LINK_MODE:
         target_coefficients = (
             (-8, -256) if "--second-level-tile" in args else (-32,)
@@ -182,6 +194,8 @@ def main() -> int:
         if count != 1:
             print("[rejecting-pluto] no tiling tile-link row found", file=sys.stderr)
             return 71
+        if alias is not None:
+            alias.write_bytes(output.read_bytes())
         print(
             f"[rejecting-pluto] corrupted one tiling tile-link in {output.name}",
             file=sys.stderr,
@@ -192,8 +206,11 @@ def main() -> int:
     if count == 0:
         print("[rejecting-pluto] no final scattering input found", file=sys.stderr)
         return 71
+    if alias is not None:
+        alias.write_bytes(output.read_bytes())
+    phase = "tiled" if mode == TILED_SCHEDULE_MODE else "final"
     print(
-        f"[rejecting-pluto] reversed {count} final scattering input coefficients "
+        f"[rejecting-pluto] reversed {count} {phase} scattering input coefficients "
         f"in {output.name}",
         file=sys.stderr,
     )

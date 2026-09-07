@@ -699,6 +699,7 @@ def main() -> int:
     environment = collect_environment()
     provenance = read_build_provenance()
     provenance_errors = check_build_provenance(environment, provenance)
+    provenance_required = environment["POLCERT_REQUIRE_PROVENANCE"] == "1"
     if provenance_errors:
         summary = {
             "root": str(ROOT),
@@ -706,6 +707,8 @@ def main() -> int:
             "output_root": str(out_dir),
             "environment": environment,
             "build_provenance": {
+                "required": provenance_required,
+                "manifest_present": provenance is not None,
                 "manifest": provenance,
                 "verified": False,
                 "errors": provenance_errors,
@@ -745,8 +748,10 @@ def main() -> int:
         "output_root": str(out_dir),
         "environment": environment,
         "build_provenance": {
+            "required": provenance_required,
+            "manifest_present": provenance is not None,
             "manifest": provenance,
-            "verified": not provenance_errors,
+            "verified": provenance_required and not provenance_errors,
             "errors": provenance_errors,
         },
         "results": [dict(asdict(item), ok=item.ok) for item in results],

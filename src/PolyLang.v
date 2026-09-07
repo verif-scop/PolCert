@@ -1004,9 +1004,10 @@ Fixpoint from_openscop_domain' (constrs: list (bool * openscop_constraint)) (ite
   | (false, constr) :: constrs' =>
     if is_null constr then from_openscop_domain' constrs' iters_dim varctxt_dim
     else
+      (* a.x + c = 0 becomes a.x <= -c and -a.x <= c. *)
       (   ((skipn iters_dim (removelast constr)) 
             ++ (firstn iters_dim (removelast constr))), 
-            (last constr 0%Z)) ::
+            (- last constr 0%Z)%Z) ::
       (-- ((skipn iters_dim (removelast constr)) 
             ++ (firstn iters_dim (removelast constr))), 
             (last constr 0%Z)) ::

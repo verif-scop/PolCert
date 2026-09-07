@@ -1170,14 +1170,74 @@ Proof.
   - eapply IH. exact Hnth.
 Qed.
 
-Lemma phase_scalar_reversal_same_class :
+(** Phase classification only needs a preserved head, exact identity classes,
+    and consistent recipes.  Keeping these facts separate from the local
+    tiling shape lets ordinary and two-level bridges share the same argument. *)
+Record phase_scalar_classification_shape
+    (env_size: nat)
+    (before_pi after_pi: Core.Tiling.PL.PolyInstr)
+    (w: statement_tiling_witness)
+    (entry: phase_scalar_entry) : Prop := {
+  pscs_head : pinstr_head_constant before_pi = Some (pse_phase entry);
+  pscs_target_prefix : forall point, exists rest,
+    is_eq (affine_product (Core.Tiling.PL.pi_schedule after_pi) point)
+      (firstn 1 (affine_product
+        (Core.Tiling.lift_schedule_after_env (List.length (stw_links w))
+          env_size (Core.Tiling.PL.pi_schedule before_pi)) point) ++ rest) = true;
+  pscs_identity : pse_identity entry = true -> forall point,
+    is_eq (affine_product (Core.Tiling.PL.pi_schedule after_pi) point)
+      (affine_product
+        (Core.Tiling.lift_schedule_after_env (List.length (stw_links w))
+          env_size (Core.Tiling.PL.pi_schedule before_pi)) point) = true;
+  pscs_sizes : pse_identity entry = false ->
+    pse_sizes entry = Core.tile_sizes_of_witness w
+}.
+
+Definition phase_scalar_classification_shapes
+    (env_size: nat)
+    (before_pis after_pis: list Core.Tiling.PL.PolyInstr)
+    (ws: list statement_tiling_witness)
+    (entries: list phase_scalar_entry) : Prop :=
+  List.length before_pis = List.length entries /\
+  forall n before_pi after_pi w entry,
+    nth_error before_pis n = Some before_pi ->
+    nth_error after_pis n = Some after_pi ->
+    nth_error ws n = Some w ->
+    nth_error entries n = Some entry ->
+    phase_scalar_classification_shape env_size before_pi after_pi w entry.
+
+Lemma phase_scalar_shape_classification :
+  forall env_size before_pis after_pis ws entries,
+    phase_scalar_shape_entries env_size before_pis after_pis ws entries ->
+    phase_scalar_classification_shapes env_size before_pis after_pis ws entries.
+Proof.
+  intros env_size before_pis after_pis ws entries Hshape.
+  split.
+  - destruct (phase_scalar_shape_entries_lengths
+      env_size before_pis after_pis ws entries Hshape) as [_ [_ Hlen]].
+    exact Hlen.
+  - intros n before_pi after_pi w entry Hbefore Hafter Hw Hentry.
+    pose proof (phase_scalar_shape_entries_nth_error
+      env_size before_pis after_pis ws entries n before_pi after_pi w entry
+      Hshape Hbefore Hafter Hw Hentry) as Hlocal.
+    constructor.
+    + eapply phase_scalar_entry_shape_head; eauto.
+    + intro point. eapply phase_scalar_entry_target_phase_decomposition; eauto.
+    + intros Hidentity point. eapply phase_scalar_identity_entry_timestamp_eq; eauto.
+    + intro Hidentity.
+      destruct (phase_scalar_entry_shape_tiled_inv
+        env_size before_pi after_pi w entry Hlocal Hidentity) as [_ [_ Hsizes]].
+      exact Hsizes.
+Qed.
+
+Lemma phase_scalar_reversal_same_class_abstract :
   forall before_pis before_ctxt before_vars
          after_pis ws entries envv flat ip1 ip2,
     List.length before_ctxt = List.length envv ->
     Core.TilingCheck.check_pprog_tiling_sourceb
       (before_pis, before_ctxt, before_vars)
       (after_pis, before_ctxt, before_vars) ws = true ->
-    phase_scalar_shape_entries
+    phase_scalar_classification_shapes
       (List.length before_ctxt)
       before_pis after_pis ws entries ->
     phase_scalar_entries_consistent entries ->
@@ -1248,11 +1308,7 @@ Proof.
          [Hwf_stmt2 [Hpositive2 [Hpoint_depth2
          [Hpref2 [Hbel2 Hidx_len2]]]]]]]]]]].
   (* Select the aligned phase entry for each endpoint. *)
-  destruct
-    (phase_scalar_shape_entries_lengths
-       (List.length before_ctxt)
-       before_pis after_pis ws entries Hshape)
-    as [_ [_ Hentries_len]].
+  destruct Hshape as [Hentries_len Hshape].
   destruct
     (nth_error entries (Core.Tiling.PL.ip_nth_ext ip1))
     as [entry1|] eqn:Hentry1.
@@ -1287,28 +1343,22 @@ Proof.
   }
   (* Derive each statement-local phase shape and constant head. *)
   pose proof
-    (phase_scalar_shape_entries_nth_error
-       (List.length before_ctxt)
-       before_pis after_pis ws entries
-       (Core.Tiling.PL.ip_nth_ext ip1)
+    (Hshape (Core.Tiling.PL.ip_nth_ext ip1)
        before_pi1 after_pi1 w1 entry1
-       Hshape Hbefore1 Hafter1 Hw1 Hentry1)
+       Hbefore1 Hafter1 Hw1 Hentry1)
     as Hentry_shape1.
   pose proof
-    (phase_scalar_shape_entries_nth_error
-       (List.length before_ctxt)
-       before_pis after_pis ws entries
-       (Core.Tiling.PL.ip_nth_ext ip2)
+    (Hshape (Core.Tiling.PL.ip_nth_ext ip2)
        before_pi2 after_pi2 w2 entry2
-       Hshape Hbefore2 Hafter2 Hw2 Hentry2)
+       Hbefore2 Hafter2 Hw2 Hentry2)
     as Hentry_shape2.
   pose proof
-    (phase_scalar_entry_shape_head
+    (pscs_head
        (List.length before_ctxt)
        before_pi1 after_pi1 w1 entry1 Hentry_shape1)
     as Hhead1.
   pose proof
-    (phase_scalar_entry_shape_head
+    (pscs_head
        (List.length before_ctxt)
        before_pi2 after_pi2 w2 entry2 Hentry_shape2)
     as Hhead2.
@@ -1350,16 +1400,16 @@ Proof.
   { rewrite Hts22. reflexivity. }
   (* Expose the scalar prefix preserved by both target timestamps. *)
   destruct
-    (phase_scalar_entry_target_phase_decomposition
+    (pscs_target_prefix
        (List.length before_ctxt)
        before_pi1 after_pi1 w1 entry1
-       (Core.Tiling.PL.ip_index_ext ip1) Hentry_shape1)
+       Hentry_shape1 (Core.Tiling.PL.ip_index_ext ip1))
     as [rest1 Htime_eq1_raw].
   destruct
-    (phase_scalar_entry_target_phase_decomposition
+    (pscs_target_prefix
        (List.length before_ctxt)
        before_pi2 after_pi2 w2 entry2
-       (Core.Tiling.PL.ip_index_ext ip2) Hentry_shape2)
+       Hentry_shape2 (Core.Tiling.PL.ip_index_ext ip2))
     as [rest2 Htime_eq2_raw].
   assert
     (Htime_eq1 :
@@ -1478,18 +1528,16 @@ Proof.
   - assert (Hidentity2 : pse_identity entry2 = true).
     { symmetry. exact Hsame_kind. }
     pose proof
-      (phase_scalar_identity_entry_timestamp_eq
+      (pscs_identity
          (List.length before_ctxt)
          before_pi1 after_pi1 w1 entry1
-         (Core.Tiling.PL.ip_index_ext ip1)
-         Hentry_shape1 Hidentity1)
+         Hentry_shape1 Hidentity1 (Core.Tiling.PL.ip_index_ext ip1))
       as Hidentity_time1_raw.
     pose proof
-      (phase_scalar_identity_entry_timestamp_eq
+      (pscs_identity
          (List.length before_ctxt)
          before_pi2 after_pi2 w2 entry2
-         (Core.Tiling.PL.ip_index_ext ip2)
-         Hentry_shape2 Hidentity2)
+         Hentry_shape2 Hidentity2 (Core.Tiling.PL.ip_index_ext ip2))
       as Hidentity_time2_raw.
     assert
       (Hidentity_time1 :
@@ -1535,18 +1583,18 @@ Proof.
     { symmetry. exact Hsame_kind. }
     destruct (Hsame_tiled_data eq_refl)
       as [Hsame_layout Hsame_sizes].
-    destruct
-      (phase_scalar_entry_shape_tiled_inv
+    pose proof
+      (pscs_sizes
          (List.length before_ctxt)
          before_pi1 after_pi1 w1 entry1
          Hentry_shape1 Hidentity1)
-      as [_ [_ Hentry_sizes1]].
-    destruct
-      (phase_scalar_entry_shape_tiled_inv
+      as Hentry_sizes1.
+    pose proof
+      (pscs_sizes
          (List.length before_ctxt)
          before_pi2 after_pi2 w2 entry2
          Hentry_shape2 Hidentity2)
-      as [_ [_ Hentry_sizes2]].
+      as Hentry_sizes2.
     rewrite Hentry_sizes1, Hentry_sizes2 in Hsame_sizes.
     exists (pse_layout entry1), w1, w2, entry1, entry2.
     split; [reflexivity|].
@@ -1561,6 +1609,39 @@ Proof.
       * split; [exact Hw1|].
         split; [exact Hw2|].
         exact Hsame_sizes.
+Qed.
+
+Lemma phase_scalar_reversal_same_class :
+  forall before_pis before_ctxt before_vars after_pis ws entries envv flat ip1 ip2,
+    List.length before_ctxt = List.length envv ->
+    Core.TilingCheck.check_pprog_tiling_sourceb
+      (before_pis, before_ctxt, before_vars)
+      (after_pis, before_ctxt, before_vars) ws = true ->
+    phase_scalar_shape_entries (List.length before_ctxt)
+      before_pis after_pis ws entries ->
+    phase_scalar_entries_consistent entries ->
+    Core.Tiling.PL.flatten_instrs_ext envv
+      (Core.Tiling.compose_tiling_pinstrs_ext_from_after
+        (List.length envv) before_pis after_pis ws) flat ->
+    In ip1 flat -> In ip2 flat ->
+    Core.Tiling.PL.instr_point_ext_old_sched_lt ip1 ip2 ->
+    Core.Tiling.PL.instr_point_ext_new_sched_ge ip1 ip2 ->
+    exists layout w1 w2 entry1 entry2,
+      nth_error entries (Core.Tiling.PL.ip_nth_ext ip1) = Some entry1 /\
+      nth_error entries (Core.Tiling.PL.ip_nth_ext ip2) = Some entry2 /\
+      pse_identity entry1 = false /\ pse_identity entry2 = false /\
+      nth_error (phase_scalar_layouts entries)
+        (Core.Tiling.PL.ip_nth_ext ip1) = Some layout /\
+      nth_error (phase_scalar_layouts entries)
+        (Core.Tiling.PL.ip_nth_ext ip2) = Some layout /\
+      nth_error ws (Core.Tiling.PL.ip_nth_ext ip1) = Some w1 /\
+      nth_error ws (Core.Tiling.PL.ip_nth_ext ip2) = Some w2 /\
+      Core.tile_sizes_of_witness w1 = Core.tile_sizes_of_witness w2.
+Proof.
+  intros before_pis before_ctxt before_vars after_pis ws entries envv flat ip1 ip2
+    Henv Hsource Hshape Hconsistent Hflat Hin1 Hin2 Hold Hnew.
+  eapply phase_scalar_reversal_same_class_abstract; eauto.
+  eapply phase_scalar_shape_classification; eauto.
 Qed.
 
 Definition checked_tiling_sourceb_phase_scalar_direct
@@ -1867,6 +1948,449 @@ Proof.
          before_pis before_ctxt before_vars after_pis ws envv);
       eauto.
   - exact Hsem.
+Qed.
+
+(** Recipe-size equality is class-local.  Two-level witnesses store root and
+    child links alternately, so the existing flat size key identifies both
+    quotient stages without strengthening equality across different phases. *)
+Fixpoint phase_second_root_sizes (sizes: list Z) : list Z :=
+  match sizes with
+  | root :: _ :: rest => root :: phase_second_root_sizes rest
+  | _ => []
+  end.
+
+Fixpoint phase_second_child_sizes (sizes: list Z) : list Z :=
+  match sizes with
+  | _ :: child :: rest => child :: phase_second_child_sizes rest
+  | _ => []
+  end.
+
+Lemma phase_second_recipe_sizes_of_spec :
+  forall point_dim prefix_len links recipe,
+    Core.second_level_band_recipe_spec point_dim prefix_len links recipe ->
+    Core.slbr_root_sizes recipe =
+      phase_second_root_sizes (List.map tl_tile_size links) /\
+    Core.slbr_child_sizes recipe =
+      phase_second_child_sizes (List.map tl_tile_size links).
+Proof.
+  intros point_dim prefix_len links recipe Hspec.
+  induction Hspec; cbn.
+  - split; reflexivity.
+  - destruct IHHspec as [Hroot Hchild].
+    rewrite Hroot, Hchild. split; reflexivity.
+Qed.
+
+Lemma phase_second_recipe_sizes_eq :
+  forall w1 w2 recipe1 recipe2,
+    Core.second_level_band_recipe_of_witness w1 = Some recipe1 ->
+    Core.second_level_band_recipe_of_witness w2 = Some recipe2 ->
+    Core.tile_sizes_of_witness w1 = Core.tile_sizes_of_witness w2 ->
+    Core.slbr_root_sizes recipe1 = Core.slbr_root_sizes recipe2 /\
+    Core.slbr_child_sizes recipe1 = Core.slbr_child_sizes recipe2.
+Proof.
+  intros w1 w2 recipe1 recipe2 Hparse1 Hparse2 Hsizes.
+  destruct (Core.second_level_band_recipe_of_witness_sound _ _ Hparse1)
+    as [_ Hspec1].
+  destruct (Core.second_level_band_recipe_of_witness_sound _ _ Hparse2)
+    as [_ Hspec2].
+  destruct (phase_second_recipe_sizes_of_spec _ _ _ _ Hspec1)
+    as [Hroot1 Hchild1].
+  destruct (phase_second_recipe_sizes_of_spec _ _ _ _ Hspec2)
+    as [Hroot2 Hchild2].
+  unfold Core.tile_sizes_of_witness in Hsizes.
+  rewrite Hroot1, Hroot2, Hchild1, Hchild2, Hsizes.
+  split; reflexivity.
+Qed.
+
+Record phase_second_entry_shape
+    (env_size: nat) (before_pi after_pi: Core.Tiling.PL.PolyInstr)
+    (w: statement_tiling_witness) (entry: phase_scalar_entry) : Prop := {
+  pses_before_head : pinstr_head_constant before_pi = Some (pse_phase entry);
+  pses_after_head : pinstr_head_constant after_pi = Some (pse_phase entry);
+  pses_tiled : pse_identity entry = false ->
+    Core.sabl_start (pse_layout entry) = 1%nat /\
+    Core.scalar_aware_second_level_entry_shape
+      env_size (pse_layout entry) before_pi after_pi w;
+  pses_identity : pse_identity entry = true ->
+    stw_links w = [] /\
+    Core.schedule_matches_with_trailing_zero_padding
+      (Core.Tiling.lift_schedule_after_env O env_size
+        (Core.Tiling.PL.pi_schedule before_pi))
+      (Core.Tiling.PL.pi_schedule after_pi);
+  pses_sizes : pse_sizes entry = Core.tile_sizes_of_witness w
+}.
+
+Definition infer_phase_second_entry
+    (env_size: nat) (before_pi after_pi: Core.Tiling.PL.PolyInstr)
+    (w: statement_tiling_witness) : option phase_scalar_entry :=
+  match pinstr_head_constant before_pi, pinstr_head_constant after_pi with
+  | Some phase, Some after_phase =>
+    if Z.eqb phase after_phase then
+      match stw_links w with
+      | [] =>
+        if Core.check_schedule_with_trailing_zero_paddingb
+          (Core.Tiling.lift_schedule_after_env O env_size
+            (Core.Tiling.PL.pi_schedule before_pi))
+          (Core.Tiling.PL.pi_schedule after_pi)
+        then Some {| pse_phase := phase; pse_identity := true;
+                     pse_layout := identity_phase_scalar_layout; pse_sizes := [] |}
+        else None
+      | _ :: _ =>
+        match Core.infer_scalar_aware_second_level_band_layout env_size before_pi w with
+        | Some layout =>
+          if Nat.eqb (Core.sabl_start layout) 1%nat &&
+             Core.check_scalar_aware_second_level_entry_shapeb
+               env_size layout before_pi after_pi w
+          then Some {| pse_phase := phase; pse_identity := false;
+                       pse_layout := layout; pse_sizes := Core.tile_sizes_of_witness w |}
+          else None
+        | None => None
+        end
+      end
+    else None
+  | _, _ => None
+  end.
+
+Lemma infer_phase_second_entry_sound :
+  forall env_size before_pi after_pi w entry,
+    infer_phase_second_entry env_size before_pi after_pi w = Some entry ->
+    phase_second_entry_shape env_size before_pi after_pi w entry.
+Proof.
+  intros env_size before_pi after_pi w entry H.
+  unfold infer_phase_second_entry in H.
+  destruct (pinstr_head_constant before_pi) as [phase|] eqn:Hbefore;
+    [|discriminate].
+  destruct (pinstr_head_constant after_pi) as [after_phase|] eqn:Hafter;
+    [|discriminate].
+  destruct (Z.eqb phase after_phase) eqn:Hphase; [|discriminate].
+  apply Z.eqb_eq in Hphase. subst after_phase.
+  destruct (stw_links w) as [|link links] eqn:Hlinks.
+  - destruct (Core.check_schedule_with_trailing_zero_paddingb _ _) eqn:Hschedule;
+      [|discriminate].
+    inversion H; subst entry. constructor; cbn.
+    + exact Hbefore.
+    + exact Hafter.
+    + discriminate.
+    + intros _. split; [exact Hlinks|].
+      eapply Core.check_schedule_with_trailing_zero_paddingb_sound; eauto.
+    + unfold Core.tile_sizes_of_witness. rewrite Hlinks. reflexivity.
+  - destruct (Core.infer_scalar_aware_second_level_band_layout env_size before_pi w)
+      as [layout|] eqn:Hlayout; [|discriminate].
+    destruct (Nat.eqb (Core.sabl_start layout) 1%nat &&
+      Core.check_scalar_aware_second_level_entry_shapeb
+        env_size layout before_pi after_pi w) eqn:Hcheck; [|discriminate].
+    apply andb_true_iff in Hcheck. destruct Hcheck as [Hstart Hshape].
+    inversion H; subst entry. constructor; cbn.
+    + exact Hbefore.
+    + exact Hafter.
+    + intros _. split.
+      * apply Nat.eqb_eq. exact Hstart.
+      * eapply Core.check_scalar_aware_second_level_entry_shapeb_sound; eauto.
+    + discriminate.
+    + reflexivity.
+Qed.
+
+Lemma phase_second_entry_classification :
+  forall env_size before_pi after_pi w entry,
+    phase_second_entry_shape env_size before_pi after_pi w entry ->
+    phase_scalar_classification_shape env_size before_pi after_pi w entry.
+Proof.
+  intros env_size before_pi after_pi w entry Hshape.
+  destruct Hshape as [Hbefore Hafter Htiled Hidentity Hsizes].
+  constructor.
+  - exact Hbefore.
+  - intro point.
+    exists (skipn 1 (affine_product (Core.Tiling.PL.pi_schedule after_pi) point)).
+    rewrite (Mixed.schedule_head_constant_lift_sound _ _ _ _ _ Hbefore).
+    rewrite <- (Mixed.schedule_head_constant_sound _ _ Hafter point).
+    rewrite firstn_skipn. apply is_eq_reflexive.
+  - intros Hid point. destruct (Hidentity Hid) as [Hlinks Hschedule].
+    rewrite Hlinks. cbn.
+    eapply Core.schedule_matches_with_symmetric_trailing_zero_padding_affine_product_is_eq.
+    left. exact Hschedule.
+  - intros _. exact Hsizes.
+Qed.
+
+Inductive phase_second_shape_entries (env_size: nat) :
+    list Core.Tiling.PL.PolyInstr -> list Core.Tiling.PL.PolyInstr ->
+    list statement_tiling_witness -> list phase_scalar_entry -> Prop :=
+| PhaseSecondShapeEntriesNil : phase_second_shape_entries env_size [] [] [] []
+| PhaseSecondShapeEntriesCons : forall bp ap w entry bps aps ws entries,
+    phase_second_entry_shape env_size bp ap w entry ->
+    phase_second_shape_entries env_size bps aps ws entries ->
+    phase_second_shape_entries env_size (bp :: bps) (ap :: aps)
+      (w :: ws) (entry :: entries).
+
+Fixpoint infer_phase_second_shape_entries
+    (env_size: nat) (before_pis after_pis: list Core.Tiling.PL.PolyInstr)
+    (ws: list statement_tiling_witness) : option (list phase_scalar_entry) :=
+  match before_pis, after_pis, ws with
+  | [], [], [] => Some []
+  | bp :: bps, ap :: aps, w :: ws' =>
+    match infer_phase_second_entry env_size bp ap w,
+          infer_phase_second_shape_entries env_size bps aps ws' with
+    | Some entry, Some entries => Some (entry :: entries)
+    | _, _ => None
+    end
+  | _, _, _ => None
+  end.
+
+Lemma infer_phase_second_shape_entries_sound :
+  forall env_size bps aps ws entries,
+    infer_phase_second_shape_entries env_size bps aps ws = Some entries ->
+    phase_second_shape_entries env_size bps aps ws entries.
+Proof.
+  intros env_size bps. induction bps as [|bp bps IH];
+    intros aps ws entries H; destruct aps as [|ap aps];
+    destruct ws as [|w ws]; cbn in H; try discriminate.
+  - inversion H; constructor.
+  - destruct (infer_phase_second_entry env_size bp ap w) as [entry|] eqn:Hentry;
+      [|discriminate].
+    destruct (infer_phase_second_shape_entries env_size bps aps ws)
+      as [rest|] eqn:Hrest; [|discriminate].
+    inversion H; subst entries. constructor.
+    + eapply infer_phase_second_entry_sound; eauto.
+    + eapply IH; eauto.
+Qed.
+
+Lemma phase_second_shape_entries_lengths :
+  forall env_size bps aps ws entries,
+    phase_second_shape_entries env_size bps aps ws entries ->
+    List.length bps = List.length aps /\
+    List.length bps = List.length ws /\ List.length bps = List.length entries.
+Proof.
+  intros env_size bps aps ws entries H. induction H; cbn; lia.
+Qed.
+
+Lemma phase_second_shape_entries_nth :
+  forall env_size bps aps ws entries n bp ap w entry,
+    phase_second_shape_entries env_size bps aps ws entries ->
+    nth_error bps n = Some bp -> nth_error aps n = Some ap ->
+    nth_error ws n = Some w -> nth_error entries n = Some entry ->
+    phase_second_entry_shape env_size bp ap w entry.
+Proof.
+  intros env_size bps aps ws entries n bp ap w entry H.
+  revert n bp ap w entry. induction H; intros n bp' ap' w' entry' Hb Ha Hw He;
+    destruct n; cbn in *; try discriminate.
+  - inversion Hb; inversion Ha; inversion Hw; inversion He; subst. assumption.
+  - eapply IHphase_second_shape_entries; eauto.
+Qed.
+
+Lemma phase_second_shape_classification :
+  forall env_size bps aps ws entries,
+    phase_second_shape_entries env_size bps aps ws entries ->
+    phase_scalar_classification_shapes env_size bps aps ws entries.
+Proof.
+  intros env_size bps aps ws entries H. split.
+  - destruct (phase_second_shape_entries_lengths _ _ _ _ _ H) as [_ [_ Hlen]].
+    exact Hlen.
+  - intros n bp ap w entry Hb Ha Hw He.
+    eapply phase_second_entry_classification.
+    eapply phase_second_shape_entries_nth; eauto.
+Qed.
+
+Definition infer_pprog_phase_second_shape
+    (before after: Core.Tiling.PL.t) (ws: list statement_tiling_witness)
+    : option (list phase_scalar_entry) :=
+  let '(bps, bc, bv) := before in let '(aps, ac, av) := after in
+  if Core.TilingCheck.ctxt_eqb bc ac && Core.TilingCheck.ctxt_ty_eqb bv av then
+    match infer_phase_second_shape_entries (List.length bc) bps aps ws with
+    | Some entries =>
+      if check_phase_scalar_entries_consistentb entries then Some entries else None
+    | None => None
+    end
+  else None.
+
+Lemma infer_pprog_phase_second_shape_sound :
+  forall bps bc bv aps ac av ws entries,
+    infer_pprog_phase_second_shape (bps, bc, bv) (aps, ac, av) ws = Some entries ->
+    phase_second_shape_entries (List.length bc) bps aps ws entries /\
+    phase_scalar_entries_consistent entries.
+Proof.
+  intros bps bc bv aps ac av ws entries H.
+  unfold infer_pprog_phase_second_shape in H.
+  destruct (Core.TilingCheck.ctxt_eqb bc ac && Core.TilingCheck.ctxt_ty_eqb bv av);
+    [|discriminate].
+  destruct (infer_phase_second_shape_entries (List.length bc) bps aps ws)
+    as [found|] eqn:Hfound; [|discriminate].
+  destruct (check_phase_scalar_entries_consistentb found) eqn:Hconsistent;
+    [|discriminate].
+  inversion H; subst entries. split.
+  - eapply infer_phase_second_shape_entries_sound; eauto.
+  - eapply check_phase_scalar_entries_consistentb_sound; eauto.
+Qed.
+
+Definition checked_tiling_sourceb_phase_second_direct
+    (before after: Core.Tiling.PL.t) (ws: list statement_tiling_witness) : imp bool :=
+  let '(bps, bc, _) := before in let '(aps, _, _) := after in
+  if Core.TilingCheck.check_pprog_tiling_sourceb before after ws then
+    match infer_pprog_phase_second_shape before after ws with
+    | Some entries => check_pprog_phase_scalar_components_direct
+        (List.length bc) bps aps ws (phase_scalar_layouts entries)
+    | None => pure false
+    end
+  else pure false.
+
+Lemma checked_tiling_sourceb_phase_second_direct_true_inv :
+  forall bps bc bv aps ac av ws,
+    mayReturn (checked_tiling_sourceb_phase_second_direct
+      (bps, bc, bv) (aps, ac, av) ws) true ->
+    exists entries,
+      Core.TilingCheck.check_pprog_tiling_sourceb
+        (bps, bc, bv) (aps, ac, av) ws = true /\
+      infer_pprog_phase_second_shape (bps, bc, bv) (aps, ac, av) ws = Some entries /\
+      mayReturn (check_pprog_phase_scalar_components_direct
+        (List.length bc) bps aps ws (phase_scalar_layouts entries)) true.
+Proof.
+  intros bps bc bv aps ac av ws H.
+  unfold checked_tiling_sourceb_phase_second_direct in H.
+  destruct (Core.TilingCheck.check_pprog_tiling_sourceb _ _ ws) eqn:Hsource;
+    [|apply mayReturn_pure in H; discriminate].
+  destruct (infer_pprog_phase_second_shape _ _ ws) as [entries|] eqn:Hshape;
+    [|apply mayReturn_pure in H; discriminate].
+  exists entries. split; [reflexivity|]. split; [reflexivity|exact H].
+Qed.
+
+Local Lemma phase_second_tiled_shape_at :
+  forall env_size bps aps ws entries n entry,
+    phase_second_shape_entries env_size bps aps ws entries ->
+    nth_error entries n = Some entry -> pse_identity entry = false ->
+    forall bp ap w layout,
+      nth_error bps n = Some bp -> nth_error aps n = Some ap ->
+      nth_error ws n = Some w ->
+      nth_error (phase_scalar_layouts entries) n = Some layout ->
+      Core.scalar_aware_second_level_entry_shape env_size layout bp ap w.
+Proof.
+  intros env_size bps aps ws entries n entry Hshapes Hentry Hid
+    bp ap w layout Hb Ha Hw Hlayout.
+  pose proof (phase_second_shape_entries_nth
+    _ _ _ _ _ _ _ _ _ _ Hshapes Hb Ha Hw Hentry) as Hshape.
+  destruct (pses_tiled _ _ _ _ _ Hshape Hid) as [_ Htiled].
+  pose proof (nth_error_phase_scalar_layouts _ _ _ Hentry) as Hentry_layout.
+  rewrite Hlayout in Hentry_layout. inversion Hentry_layout; subst layout.
+  exact Htiled.
+Qed.
+
+Lemma checked_tiling_sourceb_phase_second_direct_reordering_safe :
+  forall bps bc bv aps ws envv,
+    List.length bc = List.length envv ->
+    Forall (Core.Tiling.PL.wf_pinstr_tiling bc bv) bps ->
+    Forall (Core.Tiling.PL.wf_pinstr_tiling bc bv) aps ->
+    mayReturn (checked_tiling_sourceb_phase_second_direct
+      (bps, bc, bv) (aps, bc, bv) ws) true ->
+    Core.pprog_tiling_reordering_safe envv bps aps ws [].
+Proof.
+  intros bps bc bv aps ws envv Henv Hwf_before Hwf_after Hcheck.
+  destruct (checked_tiling_sourceb_phase_second_direct_true_inv
+    _ _ _ _ _ _ _ Hcheck) as [entries [Hsource [Hinfer Hcomponents]]].
+  destruct (infer_pprog_phase_second_shape_sound _ _ _ _ _ _ _ _ Hinfer)
+    as [Hshapes Hconsistent].
+  destruct (phase_second_shape_entries_lengths _ _ _ _ _ Hshapes)
+    as [_ [_ Hentries_len]].
+  assert (Hlayouts_len : List.length (phase_scalar_layouts entries) = List.length bps).
+  { unfold phase_scalar_layouts. rewrite map_length. symmetry. exact Hentries_len. }
+  pose proof (Core.TilingCheck.check_pprog_tiling_sourceb_sound
+    _ _ _ Hsource) as [Hprog [_ [Hwf_ws [_ Hdepths]]]].
+  assert (Hwits : Forall2 Core.Tiling.after_matches_tiling_witness aps ws).
+  { eapply Core.tiling_rel_pprog_structure_source_after_matches; eauto. }
+  assert (Hcomposed_wf : Forall (Core.Tiling.PL.wf_pinstr_ext_tiling bc)
+    (Core.Tiling.compose_tiling_pinstrs_ext_from_after (List.length bc) bps aps ws)).
+  { eapply Core.compose_tiling_pinstrs_ext_from_after_wf_tiling; eauto. }
+  assert (Hcomponentwise : pinstr_list_phase_scalar_componentwise_permutable
+    envv bps aps ws (phase_scalar_layouts entries)).
+  { eapply (check_pprog_phase_scalar_components_direct_sound
+      bc envv bps aps ws (phase_scalar_layouts entries)); eauto. }
+  unfold Core.pprog_tiling_reordering_safe, Core.pprog_permutable_tiling_bands.
+  intros flat ip1 ip2 Hflat Hin1 Hin2 Hold Hnew.
+  destruct (phase_scalar_reversal_same_class_abstract
+    bps bc bv aps ws entries envv flat ip1 ip2 Henv Hsource
+    (phase_second_shape_classification _ _ _ _ _ Hshapes)
+    Hconsistent Hflat Hin1 Hin2 Hold Hnew)
+    as [class_layout [w1 [w2 [entry1 [entry2
+      [He1 [He2 [Hid1 [Hid2 [Hl1 [Hl2 [Hw1 [Hw2 Hsizes]]]]]]]]]]]]].
+  pose proof (phase_second_tiled_shape_at
+    _ _ _ _ _ _ _ Hshapes He1 Hid1) as Hshape1.
+  pose proof (phase_second_tiled_shape_at
+    _ _ _ _ _ _ _ Hshapes He2 Hid2) as Hshape2.
+  assert (Hsame_layout : forall layout1 layout2,
+    nth_error (phase_scalar_layouts entries) (Core.Tiling.PL.ip_nth_ext ip1) = Some layout1 ->
+    nth_error (phase_scalar_layouts entries) (Core.Tiling.PL.ip_nth_ext ip2) = Some layout2 ->
+    layout1 = layout2).
+  { intros layout1 layout2 H1 H2. rewrite Hl1 in H1. rewrite Hl2 in H2. congruence. }
+  assert (Hsame_recipe : forall witness1 witness2 recipe1 recipe2,
+    nth_error ws (Core.Tiling.PL.ip_nth_ext ip1) = Some witness1 ->
+    nth_error ws (Core.Tiling.PL.ip_nth_ext ip2) = Some witness2 ->
+    Core.second_level_band_recipe_of_witness witness1 = Some recipe1 ->
+    Core.second_level_band_recipe_of_witness witness2 = Some recipe2 ->
+    Core.slbr_root_sizes recipe1 = Core.slbr_root_sizes recipe2 /\
+    Core.slbr_child_sizes recipe1 = Core.slbr_child_sizes recipe2).
+  { intros witness1 witness2 recipe1 recipe2 H1 H2 Hparse1 Hparse2.
+    rewrite Hw1 in H1. rewrite Hw2 in H2. inversion H1; inversion H2; subst.
+    eapply phase_second_recipe_sizes_eq; eauto. }
+  destruct (Core.scalar_aware_second_level_pair_local_reversal_bridge_wf_with_env_len
+    bps bc bv aps ws (phase_scalar_layouts entries) envv flat ip1 ip2
+    Henv Hsource Hwf_before Hlayouts_len Hflat Hin1 Hin2 Hold Hnew
+    Hshape1 Hshape2 Hsame_layout Hsame_recipe)
+    as [layout [pi1 [pi2 [dim [Hlayout1 [Hlayout2 [Hpi1 [Hpi2 [Hdim Hactive]]]]]]]]].
+  eapply (Hcomponentwise flat ip1 ip2 pi1 pi2 layout dim); eauto.
+Qed.
+
+Lemma checked_tiling_sourceb_phase_second_direct_correct_same_ctxt :
+  forall bps bc bv aps ws st1 st2,
+    Forall (Core.Tiling.PL.wf_pinstr_tiling bc bv) bps ->
+    Forall (Core.Tiling.PL.wf_pinstr_tiling bc bv) aps ->
+    mayReturn (checked_tiling_sourceb_phase_second_direct
+      (bps, bc, bv) (aps, bc, bv) ws) true ->
+    Core.Tiling.PL.instance_list_semantics (aps, bc, bv) st1 st2 ->
+    exists st2', Core.Tiling.PL.instance_list_semantics (bps, bc, bv) st1 st2' /\
+      State.eq st2 st2'.
+Proof.
+  intros bps bc bv aps ws st1 st2 Hwf_before Hwf_after Hcheck Hsem.
+  destruct (checked_tiling_sourceb_phase_second_direct_true_inv
+    _ _ _ _ _ _ _ Hcheck) as [entries [Hsource _]].
+  eapply (Core.tiling_sourceb_validate_correct_with_reordering
+    (bps, bc, bv) (aps, bc, bv) ws [] st1 st2).
+  - exact Hsource.
+  - cbn. intros envv Henv.
+    eapply checked_tiling_sourceb_phase_second_direct_reordering_safe; eauto.
+  - exact Hsem.
+Qed.
+
+Definition checked_tiling_sourceb_phase_scalar_extended_direct
+    (before after: Core.Tiling.PL.t) (ws: list statement_tiling_witness) : imp bool :=
+  BIND second_ok <- checked_tiling_sourceb_phase_second_direct before after ws -;
+  if second_ok then pure true
+  else checked_tiling_sourceb_phase_scalar_direct before after ws.
+
+Lemma checked_tiling_sourceb_phase_scalar_extended_direct_sourceb_true :
+  forall before after ws,
+    mayReturn (checked_tiling_sourceb_phase_scalar_extended_direct before after ws) true ->
+    Core.TilingCheck.check_pprog_tiling_sourceb before after ws = true.
+Proof.
+  intros [[bps bc] bv] [[aps ac] av] ws H.
+  unfold checked_tiling_sourceb_phase_scalar_extended_direct in H.
+  bind_imp_destruct H second_ok Hsecond. destruct second_ok.
+  - destruct (checked_tiling_sourceb_phase_second_direct_true_inv
+      _ _ _ _ _ _ _ Hsecond) as [entries [Hsource _]]. exact Hsource.
+  - destruct (checked_tiling_sourceb_phase_scalar_direct_true_inv
+      _ _ _ _ _ _ _ H) as [entries [Hsource _]]. exact Hsource.
+Qed.
+
+Lemma checked_tiling_sourceb_phase_scalar_extended_direct_correct_same_ctxt :
+  forall bps bc bv aps ws st1 st2,
+    Forall (Core.Tiling.PL.wf_pinstr_tiling bc bv) bps ->
+    Forall (Core.Tiling.PL.wf_pinstr_tiling bc bv) aps ->
+    mayReturn (checked_tiling_sourceb_phase_scalar_extended_direct
+      (bps, bc, bv) (aps, bc, bv) ws) true ->
+    Core.Tiling.PL.instance_list_semantics (aps, bc, bv) st1 st2 ->
+    exists st2', Core.Tiling.PL.instance_list_semantics (bps, bc, bv) st1 st2' /\
+      State.eq st2 st2'.
+Proof.
+  intros bps bc bv aps ws st1 st2 Hwf_before Hwf_after Hcheck Hsem.
+  unfold checked_tiling_sourceb_phase_scalar_extended_direct in Hcheck.
+  bind_imp_destruct Hcheck second_ok Hsecond. destruct second_ok.
+  - eapply checked_tiling_sourceb_phase_second_direct_correct_same_ctxt; eauto.
+  - eapply checked_tiling_sourceb_phase_scalar_direct_correct_same_ctxt; eauto.
 Qed.
 
 End TilingBandPhaseScalarValidator.

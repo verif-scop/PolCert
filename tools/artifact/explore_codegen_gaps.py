@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -11,7 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 POLOPT = ROOT / "polopt"
-PLUTO = Path("/pluto/tool/pluto")
+PLUTO = Path(os.environ.get("POLCERT_PLUTO", "/pluto/tool/pluto"))
 MATMUL = ROOT / "tests" / "polopt-generated" / "inputs" / "matmul.loop"
 
 

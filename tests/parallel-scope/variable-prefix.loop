@@ -1,0 +1,10 @@
+context(N);
+
+for t in range(0, N) {
+  for i in range(0, N) {
+    A[t] = i;
+  }
+  for i in range(0, N) {
+    B[t][i] = A[t];
+  }
+}

@@ -1,0 +1,22 @@
+context(T, N);
+
+for q in range(0, T) {
+  for p in range(0, 2) {
+    if ((2 * q + p + 1) <= (T - 1)) {
+      for i in range(0, N) {
+        if (N == 1) {
+          u[(1 - p)][i] = u[p][0] + u[p][0] + u[p][0];
+        }
+        if (2 <= N && i == 0) {
+          u[(1 - p)][i] = u[p][(N - 1)] + u[p][0] + u[p][1];
+        }
+        if (1 <= i && i <= (N - 2)) {
+          u[(1 - p)][i] = u[p][(i - 1)] + u[p][i] + u[p][(i + 1)];
+        }
+        if (2 <= N && i == (N - 1)) {
+          u[(1 - p)][i] = u[p][(N - 2)] + u[p][(N - 1)] + u[p][0];
+        }
+      }
+    }
+  }
+}

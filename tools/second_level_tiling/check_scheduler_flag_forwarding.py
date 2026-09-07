@@ -209,10 +209,10 @@ def main() -> None:
         runtime_source,
         "tiling_band_validation_route",
     )
-    if route_constructors != ["DirectBandAccepted", "Rejected"]:
+    if route_constructors != ["DirectBandAccepted", "GeneralScheduleAccepted", "Rejected"]:
         raise AssertionError(
             "tiling validation route must contain exactly "
-            "DirectBandAccepted and Rejected, saw "
+            "DirectBandAccepted, GeneralScheduleAccepted, and Rejected, saw "
             f"{route_constructors}"
         )
     mixed_source = (
@@ -258,7 +258,7 @@ def main() -> None:
     )
     require(
         complete_direct,
-        "PhaseScalar.checked_tiling_sourceb_phase_scalar_direct",
+        "PhaseScalar.checked_tiling_sourceb_phase_scalar_extended_direct",
         "complete direct phase-class scalar-aware route",
     )
     for forbidden in (
@@ -606,6 +606,17 @@ def main() -> None:
             )
 
     direct_route = "checked_tiling_schedule_sourceb_first_direct_runtime_validate_route"
+    general_dispatcher = coq_definition_body(runtime_source, unified_route)
+    for needle in (
+        "checked_tiling_sourceb_complete_direct_band_check",
+        "if direct_ok then pure DirectBandAccepted",
+        "if has_tiling_coordinatesb ws then",
+        "BIND schedule_ok <- Legacy.Base.checked_tiling_validate_outer before after ws",
+        "if schedule_ok then GeneralScheduleAccepted else Rejected",
+    ):
+        require(general_dispatcher, needle, "proved actual-schedule fallback")
+    require(runtime_source, "Legacy.Base.checked_tiling_validate_outer_correct",
+            "actual-schedule fallback refinement proof")
     direct_dispatcher = coq_definition_body(runtime_source, direct_route)
     require(
         direct_dispatcher,

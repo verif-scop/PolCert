@@ -59,11 +59,11 @@ def check_tiling_validation(case_dir: pathlib.Path, expected: str) -> None:
         )
     routes = TILING_ROUTE_RE.findall(stderr)
     statuses = TILING_STATUS_RE.findall(stderr)
-    if expected == "permutable-band":
-        if routes != ["permutable-band"] or statuses:
+    if expected in ("permutable-band", "actual-schedule"):
+        if routes != [expected] or statuses:
             raise SystemExit(
                 f"case {case_dir.name} has tiling evidence "
-                f"routes={routes!r} statuses={statuses!r}, expected one direct permutable-band route"
+                f"routes={routes!r} statuses={statuses!r}, expected exactly one {expected} route"
             )
     elif expected == "not-applicable:no-loop":
         if routes or statuses != [("not-applicable", "no-loop")]:

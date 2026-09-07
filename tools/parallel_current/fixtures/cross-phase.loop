@@ -1,0 +1,6 @@
+for i in range(0, 100) {
+  A[i] = i;
+}
+for i in range(0, 100) {
+  B[i] = A[(99 - i)];
+}

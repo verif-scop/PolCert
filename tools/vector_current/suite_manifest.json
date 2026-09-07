@@ -14,10 +14,10 @@
       "fixture": "positive",
       "args": [
         "--vector-current",
-        "2"
+        "3"
       ],
       "expect": "success",
-      "needle": "vector for i2",
+      "stdout_regexes": ["vector for [A-Za-z_][A-Za-z_0-9]* in range\\(0, 4\\)"],
       "stderr_needles": [
         "[tiling-validation] route=permutable-band",
         "[vector-validation] status=applied source=explicit-current scope=innermost"
@@ -32,9 +32,9 @@
     {
       "name": "vector-current-positive-iss",
       "fixture": "positive",
-      "args": ["--iss", "--vector-current", "2"],
+      "args": ["--iss", "--vector-current", "3"],
       "expect": "success",
-      "needle": "vector for i2",
+      "stdout_regexes": ["vector for [A-Za-z_][A-Za-z_0-9]* in range\\(0, 4\\)"],
       "stderr_needles": [
         "[tiling-validation] route=permutable-band",
         "[vector-validation] status=applied source=explicit-current scope=innermost"
@@ -127,9 +127,9 @@
       "stderr_counts": {"[alarm] requested checked optimization was rejected": 1}
     },
     {
-      "name": "vector-current-rejects-no-vector-output",
+      "name": "vector-current-rejects-non-innermost-point-coordinate",
       "fixture": "positive",
-      "args": ["--vector-current", "3"],
+      "args": ["--vector-current", "2"],
       "expect": "failure",
       "needles": [
         "non-innermost vector loop, or no vector loop",

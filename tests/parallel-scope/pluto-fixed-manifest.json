@@ -1,0 +1,67 @@
+{
+  "suite_name": "PARALLEL-SCOPED-PLUTO",
+  "stderr_needles_exactly_once": true,
+  "fixtures": {
+    "mxv-seq": "../polopt-generated/inputs/mxv-seq.loop",
+    "mxv-seq3": "../polopt-generated/inputs/mxv-seq3.loop"
+  },
+  "checks": [
+    {
+      "name": "parallel-strict-local-point-and-tile-scopes",
+      "fixture": "mxv-seq",
+      "args": [
+        "--pluto-compat",
+        "--parallel",
+        "--parallel-strict",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile"
+      ],
+      "expect": "success",
+      "needles": [
+        "parallel for",
+        "y[",
+        "z["
+      ],
+      "stderr_needles": [
+        "path=scoped-proposal",
+        "[tiling-validation] route=permutable-band"
+      ],
+      "stderr_absent_needles": [
+        "[alarm]",
+        "path=checked-reference"
+      ]
+    },
+    {
+      "name": "parallel-strict-three-local-depths-canonical-slots",
+      "fixture": "mxv-seq3",
+      "args": [
+        "--pluto-compat",
+        "--parallel",
+        "--parallel-strict",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile"
+      ],
+      "expect": "success",
+      "needles": [
+        "parallel for",
+        "y[",
+        "z[",
+        "w["
+      ],
+      "stderr_needles": [
+        "path=scoped-proposal",
+        "[tiling-validation] route=permutable-band"
+      ],
+      "stderr_absent_needles": [
+        "[alarm]",
+        "path=checked-reference"
+      ]
+    }
+  ]
+}

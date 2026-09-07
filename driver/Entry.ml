@@ -229,6 +229,8 @@ let classify_tiling_band_route after_pol route route_ok =
         (false, true, "rejected")
     | TBandSched.DirectBandAccepted ->
         accept_if_wf "permutable-band"
+    | TBandSched.GeneralScheduleAccepted ->
+        accept_if_wf "actual-schedule"
 
 let checked_tiling_validate_with_bands before_pol after_pol ws =
   let (route, route_ok) =

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -12,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 POLOPT = ROOT / "polopt"
-PLUTO = Path("/pluto/tool/pluto")
+PLUTO = Path(os.environ.get("POLCERT_PLUTO", "/pluto/tool/pluto"))
 
 
 DEFAULT_CASES = [

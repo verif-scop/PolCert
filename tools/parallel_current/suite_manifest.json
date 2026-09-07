@@ -3,12 +3,102 @@
   "stderr_needles_exactly_once": true,
   "fixtures": {
     "positive": "fixtures/positive.loop",
+    "cross-phase": "fixtures/cross-phase.loop",
+    "mixed-phase": "fixtures/mixed-phase.loop",
+    "wavefront": "../../tests/polopt-generated/inputs/wavefront.loop",
     "diamond-example-inner-batch": "fixtures/diamond-example-inner-batch.loop",
     "jacobi-batch": "fixtures/jacobi-batch.loop",
     "matmul-init": "../second_level_tiling/fixtures/matmul-init.loop",
     "dependent": "fixtures/dependent.loop"
   },
   "checks": [
+    {
+      "name": "default-parallel-consumes-wavefront-proposal",
+      "fixture": "wavefront",
+      "args": ["--pluto-compat", "--parallel", "--smartfuse", "--nointratileopt", "--noprevector", "--nounrolljam", "--nodiamond-tile"],
+      "expect": "success",
+      "needles": ["parallel for", "(-32 *"],
+      "stderr_needles": ["path=actual-proposal", "[tiling-validation] route=permutable-band"],
+      "stderr_absent_needles": ["[alarm]", "status=skipped"]
+    },
+    {
+      "name": "strict-parallel-consumes-wavefront-proposal",
+      "fixture": "wavefront",
+      "args": ["--pluto-compat", "--parallel", "--parallel-strict", "--smartfuse", "--nointratileopt", "--noprevector", "--nounrolljam", "--nodiamond-tile"],
+      "expect": "success",
+      "needles": ["parallel for", "(-32 *"],
+      "stderr_needles": ["path=actual-proposal", "[tiling-validation] route=permutable-band"],
+      "stderr_absent_needles": ["[alarm]", "status=skipped"]
+    },
+    {
+      "name": "explicit-innerpar-unsafe-proposal-stays-rejected",
+      "fixture": "wavefront",
+      "args": ["--pluto-compat", "--parallel", "--innerpar", "--parallel-strict", "--smartfuse", "--nointratileopt", "--noprevector", "--nounrolljam", "--nodiamond-tile"],
+      "expect": "failure",
+      "needle": "reason=no-certifiable-dimension"
+    },
+    {
+      "name": "parallel-hint-preserves-sequential-phase",
+      "fixture": "mixed-phase",
+      "args": ["--pluto-compat", "--parallel", "--nofuse", "--nointratileopt", "--noprevector", "--nounrolljam", "--nodiamond-tile"],
+      "expect": "success",
+      "stdout_min_counts": {"parallel for i0 in range(0, ((N + 31) / 32))": 2},
+      "stdout_regexes": ["for i[0-9]+ in range\\(0, N\\) \\{\\s+parallel for i[0-9]+ in range\\(0, 1\\) \\{\\s+x ="],
+      "needles": ["C[", "B["],
+      "stderr_needles": ["[tiling-validation] route=permutable-band"],
+      "stderr_absent_needles": ["[alarm]"]
+    },
+    {
+      "name": "parallel-strict-preserves-local-scopes",
+      "fixture": "mixed-phase",
+      "args": ["--pluto-compat", "--parallel", "--parallel-strict", "--nofuse", "--nointratileopt", "--noprevector", "--nounrolljam", "--nodiamond-tile"],
+      "expect": "success",
+      "stdout_min_counts": {"parallel for i0 in range(0, ((N + 31) / 32))": 2},
+      "stdout_regexes": ["for i[0-9]+ in range\\(0, N\\) \\{\\s+parallel for i[0-9]+ in range\\(0, 1\\) \\{\\s+x ="],
+      "stderr_needles": ["path=scoped-proposal", "[tiling-validation] route=permutable-band"],
+      "stderr_absent_needles": ["[alarm]", "status=skipped"]
+    },
+    {
+      "name": "parallel-strict-two-level-preserves-local-scopes",
+      "fixture": "mixed-phase",
+      "args": ["--pluto-compat", "--parallel", "--parallel-strict", "--second-level-tile", "--nofuse", "--nointratileopt", "--noprevector", "--nounrolljam", "--nodiamond-tile"],
+      "expect": "success",
+      "stdout_min_counts": {"parallel for i0 in range(0, ((N + 255) / 256))": 2},
+      "stdout_regexes": ["for i[0-9]+ in range\\(0, N\\) \\{\\s+parallel for i[0-9]+ in range\\(0, 1\\) \\{\\s+x ="],
+      "needles": ["32 *", "C[", "B["],
+      "stderr_needles": ["path=scoped-proposal", "[tiling-validation] route=permutable-band"],
+      "stderr_absent_needles": ["[alarm]", "status=skipped", "path=checked-reference"]
+    },
+    {
+      "name": "parallel-strict-two-level-post-affine-preserves-local-scopes",
+      "fixture": "mixed-phase",
+      "args": ["--pluto-compat", "--parallel", "--parallel-strict", "--second-level-tile", "--intratileopt", "--nofuse", "--noprevector", "--nounrolljam", "--nodiamond-tile"],
+      "expect": "success",
+      "stdout_min_counts": {"parallel for i0 in range(0, ((N + 255) / 256))": 2},
+      "stdout_regexes": ["for i[0-9]+ in range\\(0, N\\) \\{\\s+parallel for i[0-9]+ in range\\(0, 1\\) \\{\\s+x ="],
+      "needles": ["32 *", "C[", "B["],
+      "stderr_needles": ["path=scoped-proposal", "[tiling-validation] route=permutable-band"],
+      "stderr_absent_needles": ["[alarm]", "status=skipped", "path=checked-reference"]
+    },
+    {
+      "name": "parallel-strict-two-level-identity-preserves-local-scopes",
+      "fixture": "mixed-phase",
+      "args": ["--pluto-compat", "--parallel", "--parallel-strict", "--identity-tiled", "--second-level-tile", "--nofuse", "--nointratileopt", "--noprevector", "--nounrolljam", "--nodiamond-tile"],
+      "expect": "success",
+      "stdout_min_counts": {"parallel for i0 in range(0, ((N + 255) / 256))": 2},
+      "stdout_regexes": ["for i[0-9]+ in range\\(0, N\\) \\{\\s+parallel for i[0-9]+ in range\\(0, 1\\) \\{\\s+x ="],
+      "needles": ["32 *", "C[", "B["],
+      "stderr_needles": ["path=scoped-proposal", "[tiling-validation] route=permutable-band"],
+      "stderr_absent_needles": ["[alarm]", "status=skipped", "path=checked-reference"]
+    },
+    {
+      "name": "parallel-current-distinct-sequential-phases",
+      "fixture": "cross-phase",
+      "args": ["--identity", "--notile", "--parallel-current", "1"],
+      "expect": "success",
+      "needle": "parallel for",
+      "stderr_absent_needles": ["fallback", "[alarm]"]
+    },
     {
       "name": "parallel-current-positive",
       "fixture": "positive",
@@ -98,10 +188,10 @@
       "needles": [
         "parallel for",
         "64 *",
-        "(-2 * i11)",
         "a[",
         "b["
       ],
+      "stdout_regexes": ["(?:i[0-9]+ \\+ \\(-2 \\* i[0-9]+\\)|\\(-2 \\* i[0-9]+\\) \\+ i[0-9]+)"],
       "stderr_needles": ["[tiling-validation] route=permutable-band"],
       "stderr_counts": {"[tiling-validation] route=permutable-band": 1},
       "stderr_absent_needles": ["fallback", "[alarm]"],

@@ -23,11 +23,22 @@ class StrictCorpusTelemetryTests(unittest.TestCase):
             (case_dir / "stderr.txt").write_text(stderr, encoding="utf-8")
             check_polopt_cases.check_tiling_validation(case_dir, expected)
 
-    def test_direct_band_is_the_only_accepted_route(self) -> None:
+    def test_direct_band_route_is_distinct(self) -> None:
         self.check_stderr(
             "[tiling-validation] route=permutable-band\n",
             "permutable-band",
         )
+
+    def test_actual_schedule_route_is_distinct(self) -> None:
+        self.check_stderr(
+            "[tiling-validation] route=actual-schedule\n",
+            "actual-schedule",
+        )
+        with self.assertRaises(SystemExit):
+            self.check_stderr(
+                "[tiling-validation] route=actual-schedule\n",
+                "permutable-band",
+            )
 
     def test_no_loop_is_the_only_not_applicable_status(self) -> None:
         self.check_stderr(

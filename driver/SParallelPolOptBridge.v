@@ -67,6 +67,10 @@ Proof.
     intros wf_after. destruct wf_after.
     + apply select_after_tiling_route_impeq.
     + reflexivity.
+  - apply bind_eq_compat; [reflexivity|].
+    intros wf_after. destruct wf_after.
+    + apply select_after_tiling_route_impeq.
+    + reflexivity.
   - unfold SParallelPolOpt.reject_tiling, FunctorCore.reject_tiling.
     rewrite SParallelPolOpt.observe_tiling_validation_route_eq.
     reflexivity.
@@ -153,6 +157,17 @@ Proof.
     intros wf_after. destruct wf_after.
     + apply select_after_tiling_route_impeq.
     + reflexivity.
+  - apply bind_eq_compat; [reflexivity|].
+    intros wf_posttile. destruct wf_posttile; [|reflexivity].
+    destruct
+      (SPolIRs.PolyLang.from_openscop_schedule_only
+         pol_posttile after_scop) as [pol_after|]; [|reflexivity].
+    apply bind_eq_compat; [reflexivity|].
+    intros final_ok. destruct final_ok; [|reflexivity].
+    apply bind_eq_compat; [reflexivity|].
+    intros wf_after. destruct wf_after.
+    + apply select_after_tiling_route_impeq.
+    + reflexivity.
   - unfold SParallelPolOpt.reject_tiling, FunctorCore.reject_tiling.
     rewrite SParallelPolOpt.observe_tiling_validation_route_eq.
     reflexivity.
@@ -222,8 +237,11 @@ Proof.
         (FunctorCore.ValidatorCore.checked_iss_complete_cut_shape_validate
            pol pol_iss w).
       * apply bind_eq_compat; [reflexivity|].
-        intros iss_wf. destruct iss_wf;
-          apply try_phase_pipeline_from_source_pol_poly_impeq.
+        intros iss_wf. destruct iss_wf.
+        -- destruct (FunctorCore.CoreOpt.export_for_phase_scheduler pol_iss).
+           ++ apply try_phase_pipeline_from_source_pol_poly_impeq.
+           ++ reflexivity.
+        -- apply try_phase_pipeline_from_source_pol_poly_impeq.
       * apply try_phase_pipeline_from_source_pol_poly_impeq.
     + apply try_phase_pipeline_from_source_pol_poly_impeq.
   - apply try_phase_pipeline_from_source_pol_poly_impeq.
@@ -248,8 +266,9 @@ Proof.
            pol pol_iss w).
       * apply bind_eq_compat; [reflexivity|].
         intros iss_wf. destruct iss_wf.
-        -- apply
-             try_post_tiling_affine_phase_pipeline_from_source_pol_poly_with_iss_impeq.
+        -- destruct (FunctorCore.CoreOpt.export_for_phase_scheduler pol_iss).
+           ++ apply try_post_tiling_affine_phase_pipeline_from_source_pol_poly_impeq.
+           ++ reflexivity.
         -- apply try_post_tiling_affine_phase_pipeline_from_source_pol_poly_impeq.
       * apply try_post_tiling_affine_phase_pipeline_from_source_pol_poly_impeq.
     + apply try_post_tiling_affine_phase_pipeline_from_source_pol_poly_impeq.

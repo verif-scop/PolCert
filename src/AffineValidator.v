@@ -305,10 +305,34 @@ Fixpoint forallb_imp {A} (f: A -> imp bool) (l: list A): (imp bool) :=
 
 
 
+(** Keep the rational-empty path unchanged.  On failure, integer
+    canonicalization can rule out fractional witnesses. *)
+Definition isBottom_integer_fallback (pol: polyhedron) :=
+  BIND empty <- isBottom pol -;
+  if empty then pure true else
+  BIND integer_pol <- VplCanonizerZ.canonize pol -;
+  isBottom integer_pol.
+
+Lemma isBottom_integer_fallback_correct:
+  forall pol, If isBottom_integer_fallback pol THEN
+    forall p, in_poly p pol = false.
+Proof.
+  intros pol [] Hcheck; simpl; [|auto].
+  unfold isBottom_integer_fallback in Hcheck.
+  bind_imp_destruct Hcheck empty Hempty.
+  destruct empty.
+  - exact (isBottom_correct_1 pol true Hempty).
+  - bind_imp_destruct Hcheck integer_pol Hinteger.
+    apply isBottom_correct_1 in Hcheck.
+    intros p.
+    rewrite <- (VplCanonizerZ.canonize_correct pol integer_pol Hinteger p).
+    exact (Hcheck p).
+Qed.
+
 Definition validate_lt_ge_pair (pol_lt pol_ge sameloc_enveq_indom_pol: polyhedron) := 
   BIND sameloc_pol_lt <- poly_inter pol_lt sameloc_enveq_indom_pol -;
   BIND sameloc_pol_lt_ge <- poly_inter sameloc_pol_lt pol_ge -;
-  BIND isbot <- isBottom sameloc_pol_lt_ge -;
+  BIND isbot <- isBottom_integer_fallback sameloc_pol_lt_ge -;
   pure (isbot).
 
 Definition validate_two_accesses_helper (old_sched_lt_polys new_sched_ge_polys: list polyhedron) (sameloc_enveq_indom_pol: polyhedron) := 
@@ -409,7 +433,12 @@ Definition validate_two_accesses (a1 a2: AccessFunction) (tf1 tf2: AffineFunctio
   validate_two_accesses_helper old_sched_lt_polys new_sched_ge_polys sameloc_enveq_indom_pol.
 
 
-Definition validate_two_instrs (pi1 pi2: PolyLang.PolyInstr_ext) (env_dim: nat) := 
+Definition schedules_unchanged (pi1 pi2: PolyLang.PolyInstr_ext) :=
+  listzzs_strict_eqb pi1.(PolyLang.pi_schedule1_ext) pi1.(PolyLang.pi_schedule2_ext)
+  && listzzs_strict_eqb pi2.(PolyLang.pi_schedule1_ext) pi2.(PolyLang.pi_schedule2_ext).
+
+Definition validate_two_instrs (pi1 pi2: PolyLang.PolyInstr_ext) (env_dim: nat) :=
+  if schedules_unchanged pi1 pi2 then pure true else
   let iter_dim1 := ((pi1.(PolyLang.pi_depth_ext))) in 
   let iter_dim2 := ((pi2.(PolyLang.pi_depth_ext))) in 
   let dom_dim1 := (env_dim + iter_dim1) % nat in 
@@ -1415,7 +1444,7 @@ Proof.
   bind_imp_destruct Hval isbot Hisbot.
   subst. eapply mayReturn_pure in Hval.
   subst. 
-  eapply isBottom_correct_1 in Hisbot. simpls.
+  eapply isBottom_integer_fallback_correct in Hisbot. simpls.
   pose proof (Hisbot (p1 ++ p2)).
   
   eapply poly_inter_def with (p:=(p1++p2)) in Hpolge.
@@ -2311,6 +2340,28 @@ Proof.
   - eapply symmetrize_access_noncollision. exact Hrw_no_collision.
 Qed.
 
+Lemma unchanged_schedules_no_reversal:
+  forall pi1 pi2 ip1 ip2,
+    schedules_unchanged pi1 pi2 = true ->
+    PolyLang.belongs_to_ext ip1 pi1 ->
+    PolyLang.belongs_to_ext ip2 pi2 ->
+    PolyLang.instr_point_ext_old_sched_lt ip1 ip2 ->
+    PolyLang.instr_point_ext_new_sched_ge ip1 ip2 -> False.
+Proof.
+  intros pi1 pi2 ip1 ip2 Hsame
+    (_ & _ & _ & Hts11 & Hts12 & _)
+    (_ & _ & _ & Hts21 & Hts22 & _) Hold Hnew.
+  unfold schedules_unchanged in Hsame.
+  apply andb_true_iff in Hsame. destruct Hsame as [Hsame1 Hsame2].
+  apply listzzs_strict_eqb_eq in Hsame1.
+  apply listzzs_strict_eqb_eq in Hsame2.
+  unfold PolyLang.instr_point_ext_old_sched_lt in Hold.
+  unfold PolyLang.instr_point_ext_new_sched_ge in Hnew.
+  rewrite Hts11, Hts21, Hsame1, Hsame2 in Hold.
+  rewrite Hts12, Hts22, Hold in Hnew.
+  destruct Hnew; discriminate.
+Qed.
+
 Lemma validate_two_instrs_implies_no_write_collision:
   forall pi1_ext pi2_ext env nth1 nth2 envv ipl1_ext ipl2_ext,
     WHEN res <- validate_two_instrs pi1_ext pi2_ext (length env) THEN
@@ -2336,6 +2387,12 @@ Proof.
     res Hval Hres Hwf1 Hwf2 Henvlen Hext1 Hext2
     ip1 ip2 Hip1 Hip2 Hosched Hnsched.
   unfold validate_two_instrs in Hval.
+  destruct (schedules_unchanged pi1_ext pi2_ext) eqn:Hsame_sched.
+  { exfalso. eapply unchanged_schedules_no_reversal; eauto.
+    - destruct Hext1 as (_ & Hbelongs & _).
+      apply Hbelongs in Hip1. tauto.
+    - destruct Hext2 as (_ & Hbelongs & _).
+      apply Hbelongs in Hip2. tauto. }
   bind_imp_destruct Hval in_domain_poly Hdomain.
   bind_imp_destruct Hval eq_env_poly Henv.
   bind_imp_destruct Hval ww Hww.
@@ -2577,6 +2634,8 @@ Proof.
   pose proof Hbel1 as Hbel1_full.
   pose proof Hbel2 as Hbel2_full.
   unfold validate_two_instrs in Hval.
+  destruct (schedules_unchanged pi1 pi2) eqn:Hsame_sched.
+  { exfalso. eapply unchanged_schedules_no_reversal; eauto. }
   bind_imp_destruct Hval in_domain_poly Hdomain.
   bind_imp_destruct Hval env_eq_in_domain Henv.
   bind_imp_destruct Hval ww Hww.
@@ -4414,8 +4473,8 @@ Qed.
     points.  VPL's emptiness check is over rationals, so canonicalize the
     final guard intersection with [VplCanonizerZ] before asking VPL whether
     it is empty.  Construct the conjunction with [poly_inter_pure] so that
-    only the final integer polyhedron is canonicalized.  This path is
-    deliberately separate from the ordinary affine validator. *)
+    only the final integer polyhedron is canonicalized.  Unlike the ordinary
+    affine checker, this path normalizes before its first emptiness query. *)
 
 Definition validate_lt_ge_pair_integer
     (pol_lt pol_ge sameloc_enveq_indom_pol: polyhedron) :=

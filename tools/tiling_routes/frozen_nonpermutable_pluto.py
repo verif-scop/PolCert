@@ -22,19 +22,32 @@ def main() -> int:
         return 70
 
     source = inputs[-1]
-    output = source.with_name(source.name + ".afterscheduling.scop")
     fixtures = Path(__file__).resolve().parent / "fixtures"
-    replacement = (
-        fixtures / "nonpermutable-band.posttile.scop"
-        if "--tile" in args
-        else fixtures / "nonpermutable-band.midtransform.scop"
-    )
-    shutil.copyfile(replacement, output)
-    print(
-        "[frozen-nonpermutable-pluto] "
-        f"replaced {output.name} with {replacement.name}",
-        file=sys.stderr,
-    )
+    if "--tile" in args:
+        # A single invocation exports both checked phases.  Keep its final
+        # alias identical to posttile, so rejection tests reach the tiling
+        # checker rather than the driver's phase-consistency guard.
+        phases = (
+            ("affine", "midtransform", ("midtransform",)),
+            ("tiled", "posttile", ("posttile", "afterscheduling")),
+        )
+    else:
+        phases = (("affine", "midtransform", ("afterscheduling",)),)
+    for phase, fixture_phase, output_phases in phases:
+        replacement = fixtures / f"nonpermutable-band.{fixture_phase}.scop"
+        outputs = [source.with_name(source.name + f".{name}.scop")
+                   for name in output_phases]
+        if any(not output.is_file() for output in outputs):
+            print("[frozen-nonpermutable-pluto] missing phase output", file=sys.stderr)
+            return 71
+        for output in outputs:
+            shutil.copyfile(replacement, output)
+        print(
+            f"[frozen-nonpermutable-pluto] phase={phase} "
+            f"replaced {','.join(output.name for output in outputs)} "
+            f"with {replacement.name}",
+            file=sys.stderr,
+        )
     return 0
 
 

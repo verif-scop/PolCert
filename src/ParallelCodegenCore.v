@@ -1534,15 +1534,16 @@ Definition checked_vector_annotated_codegen
   (pp : PolyLang.t)
   (cert : ParallelValidator.parallel_cert)
   : imp (result ParallelLoop.t) :=
-  BIND pl <- vector_annotated_codegen pp cert -;
-  if vector_codegen_safeb pl then pure (Okk pl)
+  BIND pl_raw <- vector_annotated_codegen_raw pp cert -;
+  let pl_clean := ParallelLoop.full_cleanup pl_raw in
+  if parallel_cleanup_safeb pl_raw &&
+     ParallelLoop.vector_annotations_innermostb pl_clean
+  then pure (Okk pl_clean)
+  else if vector_codegen_safeb pl_raw then pure (Okk pl_raw)
   else
-    BIND pl_raw <- vector_annotated_codegen_raw pp cert -;
-    if vector_codegen_safeb pl_raw then pure (Okk pl_raw)
-    else
-      pure
-        (Err
-           "Annotated vector codegen produced a non-affine trace, a non-innermost vector loop, or no vector loop"%string).
+    pure
+      (Err
+         "Annotated vector codegen produced a non-affine trace, a non-innermost vector loop, or no vector loop"%string).
 
 Definition checked_annotated_codegen_many
   (pp : PolyLang.t)

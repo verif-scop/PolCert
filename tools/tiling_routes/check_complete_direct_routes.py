@@ -14,10 +14,10 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 RUNTIME_ROUTE_RE = re.compile(
-    r"^\[tiling-validation\] route=(permutable-band|rejected)$",
+    r"^\[tiling-validation\] route=(permutable-band|actual-schedule|rejected)$",
     re.MULTILINE,
 )
-PAIR_ROUTE_RE = re.compile(r"\(route=(permutable-band|rejected)\)")
+PAIR_ROUTE_RE = re.compile(r"\(route=(permutable-band|actual-schedule|rejected)\)")
 
 REQUIRED_CASE_NAMES = {
     "ordinary-common-band",
@@ -32,6 +32,8 @@ REQUIRED_CASE_NAMES = {
     "dependent-one-dimensional-band",
     "frozen-diamond-phase-pair",
     "frozen-nonpermutable-band",
+    "outside-band-write-preserved",
+    "outside-band-write-delayed",
     "explicit-ordinary-noloop",
     "explicit-ordinary-noloop-iss",
     "explicit-identity-noloop",
@@ -320,6 +322,18 @@ def main() -> int:
             False,
         ),
     ]
+    for suffix, target, expected in (
+        ("preserved", "safe", "permutable-band"),
+        ("delayed", "bad", "rejected"),
+    ):
+        cases.append((
+            "outside-band-write-" + suffix,
+            polcert,
+            ["--tiling", "--second-level-tile",
+             str(ROOT / "tools/tiling_routes/fixtures/program3-outside-band.midtransform.scop"),
+             str(ROOT / f"tools/tiling_routes/fixtures/program3-outside-band.{target}-posttile.scop")],
+            expected, False, False,
+        ))
     for name, route_args in (
         ("explicit-ordinary-noloop", explicit_tile_flags),
         ("explicit-identity-noloop", (*explicit_tile_flags, "--identity")),

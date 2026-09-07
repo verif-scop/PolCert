@@ -44,7 +44,7 @@ Definition prepared_codegen_after_tiling_route
     (pol_after: PolyLang.t)
     (route: TilingSched.tiling_band_validation_route): imp LoopIR.t :=
   match route with
-  | TilingSched.DirectBandAccepted =>
+  | TilingSched.DirectBandAccepted | TilingSched.GeneralScheduleAccepted =>
       PrepareCore.prepared_codegen
         (PolyLang.current_view_pprog pol_after)
   | TilingSched.Rejected =>
@@ -56,7 +56,7 @@ Definition reject_post_tiling_affine
     (route: TilingSched.tiling_band_validation_route)
     (_: unit): imp LoopIR.t :=
   match route with
-  | TilingSched.DirectBandAccepted =>
+  | TilingSched.DirectBandAccepted | TilingSched.GeneralScheduleAccepted =>
       res_to_alarm LoopIR.dummy
         (Err "Post-tiling affine validation failed.")
   | TilingSched.Rejected =>
@@ -101,7 +101,7 @@ Definition try_verified_tiling_after_phase_mid_band
             TilingSched.checked_tiling_schedule_sourceb_first_runtime_validate_route
               pol_mid pol_after ws -;
           match route with
-          | TilingSched.DirectBandAccepted =>
+          | TilingSched.DirectBandAccepted | TilingSched.GeneralScheduleAccepted =>
               BIND wf_after <-
                 ValidatorCore.check_wf_polyprog_general pol_after -;
               if wf_after then
@@ -172,7 +172,7 @@ Definition try_verified_post_tiling_affine_after_phase_mid_band
             TilingSched.checked_tiling_schedule_sourceb_first_runtime_validate_route
               pol_mid pol_posttile ws -;
           match route with
-          | TilingSched.DirectBandAccepted =>
+          | TilingSched.DirectBandAccepted | TilingSched.GeneralScheduleAccepted =>
               BIND wf_posttile <-
                 ValidatorCore.check_wf_polyprog_general pol_posttile -;
               if wf_posttile then
@@ -250,8 +250,12 @@ Definition try_checked_iss_post_tiling_affine_phase_pipeline_from_poly_band
       if ValidatorCore.checked_iss_complete_cut_shape_validate pol pol_iss w then
         BIND iss_wf <- ValidatorCore.check_wf_polyprog pol_iss -;
         if iss_wf then
-          try_post_tiling_affine_phase_pipeline_from_source_pol_band_with_iss
-            pol_iss before_scop
+          match BaseOpt.export_for_phase_scheduler pol_iss with
+          | Some iss_scop =>
+              try_post_tiling_affine_phase_pipeline_from_source_pol_band
+                pol_iss iss_scop
+          | None => reject_tiling tt
+          end
         else
           try_post_tiling_affine_phase_pipeline_from_source_pol_band pol before_scop
       else
@@ -268,10 +272,12 @@ Definition try_checked_iss_phase_pipeline_from_poly_band
       if ValidatorCore.checked_iss_complete_cut_shape_validate pol pol_iss w then
         BIND iss_wf <- ValidatorCore.check_wf_polyprog pol_iss -;
         if iss_wf then
-          try_phase_pipeline_from_source_pol_band
-            pol_iss
-            BaseOpt.run_pluto_phase_pipeline_with_iss
-            before_scop
+          match BaseOpt.export_for_phase_scheduler pol_iss with
+          | Some iss_scop =>
+              try_phase_pipeline_from_source_pol_band
+                pol_iss BaseOpt.run_pluto_phase_pipeline iss_scop
+          | None => reject_tiling tt
+          end
         else
           try_phase_pipeline_from_source_pol_band
             pol
@@ -463,6 +469,22 @@ Proof.
                 TilingSched.DirectBandAccepted); eauto.
         -- elim (reject_tiling_impossible loop' Hopt).
       * simpl in Hopt.
+        bind_imp_destruct Hopt wf_after_ok Hwf_check.
+        destruct wf_after_ok.
+        -- pose proof
+             (ValidatorCore.check_wf_polyprog_general_correct
+                pol_after true Hwf_check eq_refl)
+             as Hwf_after.
+           pose proof
+             (PrepareCore.prepared_codegen_correct_general
+                pol_after st st' loop' Hopt Hwf_after Hloop)
+             as Hsem_after.
+           eapply
+             (TilingSched.checked_tiling_schedule_sourceb_first_runtime_validate_route_correct
+                pol_mid pol_after ws st st'
+                TilingSched.GeneralScheduleAccepted); eauto.
+        -- elim (reject_tiling_impossible loop' Hopt).
+      * simpl in Hopt.
         elim (reject_tiling_impossible loop' Hopt).
     + elim (reject_tiling_impossible loop' Hopt).
   - elim (reject_tiling_impossible loop' Hopt).
@@ -570,11 +592,13 @@ Proof.
              (BaseOpt.check_wf_polyprog_affine_correct
                 pol_iss _ Hiss_wf eq_refl)
              as Hwf_iss.
+           destruct (BaseOpt.export_for_phase_scheduler pol_iss) as [iss_scop|].
+           2:{ elim (reject_tiling_impossible loop' Hopt). }
            pose proof
              (try_phase_pipeline_from_source_pol_band_correct
                 pol_iss
-                BaseOpt.run_pluto_phase_pipeline_with_iss
-                before_scop st st' Hwf_iss loop' Hopt Hloop)
+                BaseOpt.run_pluto_phase_pipeline
+                iss_scop st st' Hwf_iss loop' Hopt Hloop)
              as Hiss_corr.
            destruct Hiss_corr as [st_iss [Hiss_sem Heq_iss]].
            pose proof
@@ -875,31 +899,35 @@ Proof.
 Qed.
 
 Local Lemma post_tiling_affine_accepted_tail_correct:
-  forall pol_mid pol_posttile pol_after ws st st' loop',
+  forall pol_mid pol_posttile pol_after ws st st' loop' route,
     PolyLang.wf_pprog_affine pol_mid ->
     PolyLang.wf_pprog_general pol_posttile ->
     PolyLang.wf_pprog_general pol_after ->
+    TilingSched.tiling_band_validation_route_acceptsb route = true ->
     mayReturn
       (TilingSched.checked_tiling_schedule_sourceb_first_runtime_validate_route
          pol_mid pol_posttile ws)
-      TilingSched.DirectBandAccepted ->
+      route ->
     mayReturn
       (ValidatorCore.validate_general pol_posttile pol_after)
       true ->
     mayReturn
       (prepared_codegen_after_tiling_route
-         pol_after TilingSched.DirectBandAccepted)
+         pol_after route)
       loop' ->
     LoopIR.semantics loop' st st' ->
     exists st_mid,
       PolyLang.instance_list_semantics pol_mid st st_mid /\
       State.eq st' st_mid.
 Proof.
-  intros pol_mid pol_posttile pol_after ws st st' loop'
-         Hwf_mid Hwf_posttile Hwf_after Hroute Hfinal Hcodegen Hloop.
+  intros pol_mid pol_posttile pol_after ws st st' loop' route
+         Hwf_mid Hwf_posttile Hwf_after Haccept Hroute Hfinal Hcodegen Hloop.
+  assert (Hprepared : mayReturn
+    (PrepareCore.prepared_codegen (PolyLang.current_view_pprog pol_after)) loop').
+  { destruct route; try discriminate Haccept; exact Hcodegen. }
   pose proof
     (PrepareCore.prepared_codegen_correct_general
-       pol_after st st' loop' Hcodegen Hwf_after Hloop)
+       pol_after st st' loop' Hprepared Hwf_after Hloop)
     as Hsem_after.
   destruct
     (ValidatorCore.validate_general_correct
@@ -909,8 +937,7 @@ Proof.
   destruct
     (TilingSched.checked_tiling_schedule_sourceb_first_runtime_validate_route_correct
        pol_mid pol_posttile ws st st_post
-       TilingSched.DirectBandAccepted
-       Hwf_mid Hwf_posttile Hroute eq_refl Hpost_sem)
+       route Hwf_mid Hwf_posttile Hroute Haccept Hpost_sem)
     as [st_mid [Hmid_sem Heq_mid]].
   exists st_mid.
   split.
@@ -962,7 +989,8 @@ Proof.
                      exact
                        (post_tiling_affine_accepted_tail_correct
                           pol_mid pol_posttile pol_after ws st st' loop'
-                          Hwf_mid Hwf_posttile Hwf_after
+                          TilingSched.DirectBandAccepted
+                          Hwf_mid Hwf_posttile Hwf_after eq_refl
                           Hroute Hfinal Hopt Hloop).
                  --- elim
                        (reject_post_tiling_affine_impossible
@@ -973,6 +1001,40 @@ Proof.
            ++ elim
                 (reject_post_tiling_affine_impossible
                    TilingSched.DirectBandAccepted loop' Hopt).
+        -- elim (reject_tiling_impossible loop' Hopt).
+      * simpl in Hopt.
+        bind_imp_destruct Hopt wf_posttile_ok Hwf_posttile_check.
+        destruct wf_posttile_ok.
+        -- pose proof
+             (ValidatorCore.check_wf_polyprog_general_correct
+                pol_posttile true Hwf_posttile_check eq_refl)
+             as Hwf_posttile.
+           destruct (PolyLang.from_openscop_schedule_only
+                       pol_posttile after_scop)
+             as [pol_after|msg_final] eqn:Hafter.
+           ++ bind_imp_destruct Hopt final_ok Hfinal.
+              destruct final_ok.
+              ** bind_imp_destruct Hopt wf_after_ok Hwf_check.
+                 destruct wf_after_ok.
+                 --- pose proof
+                       (ValidatorCore.check_wf_polyprog_general_correct
+                          pol_after true Hwf_check eq_refl)
+                       as Hwf_after.
+                     exact
+                       (post_tiling_affine_accepted_tail_correct
+                          pol_mid pol_posttile pol_after ws st st' loop'
+                          TilingSched.GeneralScheduleAccepted
+                          Hwf_mid Hwf_posttile Hwf_after eq_refl
+                          Hroute Hfinal Hopt Hloop).
+                 --- elim
+                       (reject_post_tiling_affine_impossible
+                          TilingSched.GeneralScheduleAccepted loop' Hopt).
+              ** elim
+                   (reject_post_tiling_affine_impossible
+                      TilingSched.GeneralScheduleAccepted loop' Hopt).
+           ++ elim
+                (reject_post_tiling_affine_impossible
+                   TilingSched.GeneralScheduleAccepted loop' Hopt).
         -- elim (reject_tiling_impossible loop' Hopt).
       * simpl in Hopt.
         elim (reject_tiling_impossible loop' Hopt).
@@ -1088,9 +1150,11 @@ Proof.
              (BaseOpt.check_wf_polyprog_affine_correct
                 pol_iss _ Hiss_wf eq_refl)
              as Hwf_iss.
+           destruct (BaseOpt.export_for_phase_scheduler pol_iss) as [iss_scop|].
+           2:{ elim (reject_tiling_impossible loop' Hopt). }
            pose proof
-             (try_post_tiling_affine_phase_pipeline_from_source_pol_band_with_iss_correct
-                pol_iss before_scop st st' Hwf_iss loop' Hopt Hloop)
+             (try_post_tiling_affine_phase_pipeline_from_source_pol_band_correct
+                pol_iss iss_scop st st' Hwf_iss loop' Hopt Hloop)
              as Hiss_corr.
            destruct Hiss_corr as [st_iss [Hiss_sem Heq_iss]].
            pose proof

@@ -735,6 +735,8 @@ let classify_tiling_band_route after_pol route route_ok =
         (false, true, "rejected")
     | STilingBandSched.CoreBandRuntime.DirectBandAccepted ->
         accept_if_wf "permutable-band"
+    | STilingBandSched.CoreBandRuntime.GeneralScheduleAccepted ->
+        accept_if_wf "actual-schedule"
 
 let checked_tiling_validate_with_band_route before_pol after_pol ws =
   let (route, route_ok) =
@@ -1087,9 +1089,15 @@ let apply_iss_bridge_to_spol_or_fail
       (List.length bridge.pib_after_domains);
   let after_pis =
     List.map2
-      (fun domain w ->
+      (fun _dump_domain w ->
         let parent = int_of_nat w.ISSWitness.isw_parent_stmt in
         let source = nth_or_fail "ISS parent stmt" before_pis parent in
+        let domain =
+          source.PL.pi_poly
+          @ PhaseISS.signed_piece_constraints
+              bridge.pib_witness.ISSWitness.iw_cuts
+              w.ISSWitness.isw_piece_signs
+        in
         { source with PL.pi_poly = domain })
       bridge.pib_after_domains
       stmt_ws
@@ -1140,6 +1148,10 @@ let identity_schedule_input_scop route pol before_scop =
 let scheduled_scop_of_route route loop =
   let pol = extract_strengthened_poly loop in
   let before_scop = poly_to_openscop pol in
+  (* Match the verified pipeline: first check ISS, then schedule its output.
+     The local route prevents the proposal helpers from applying ISS again. *)
+  let before_scop = identity_schedule_input_scop route pol before_scop in
+  let route = { route with SLoopRoute.structural_extension = SLoopRoute.Plain } in
   if route_uses_post_tiling_affine route then
     let (_, _, after_scop) =
       if route_has_iss route then
@@ -1200,6 +1212,8 @@ let hinted_schedule_name = function
 let scheduled_scop_and_hints_of_route kind route loop =
   let pol = extract_strengthened_poly loop in
   let before_scop = poly_to_openscop pol in
+  let before_scop = identity_schedule_input_scop route pol before_scop in
+  let route = { route with SLoopRoute.structural_extension = SLoopRoute.Plain } in
   let result =
     if route_uses_post_tiling_affine route then
       match kind, route_has_iss route with
@@ -1688,12 +1702,23 @@ let verified_vector_current_config_of_route route dim =
   else
     RawVectorCurrentDefault d
 
-let parallel_scop_and_hint_dims_of_route route loop =
+let valid_parallel_hint_scopes scop hints =
+  let count = List.length (OpenScop.statements scop) in
+  List.for_all (fun hint ->
+    hint.Scheduler.hint_stmt_ids <> [] &&
+    List.for_all (fun id -> id > 0 && id <= count)
+      hint.Scheduler.hint_stmt_ids) hints
+
+let parallel_scop_and_hint_dims_of_route ?hint_snapshot route loop =
   try
     let (after_scop, hints) =
-      scheduled_scop_and_hints_of_route ParallelSchedule route loop
+      match hint_snapshot with
+      | Some snapshot -> snapshot
+      | None -> scheduled_scop_and_hints_of_route ParallelSchedule route loop
     in
-    (Some after_scop, hint_dims hints)
+    if valid_parallel_hint_scopes after_scop hints then
+      (Some after_scop, hint_dims hints)
+    else (None, [])
   with _ -> (None, [])
 
 let max_hint_dim_exclusive dims =
@@ -1718,7 +1743,11 @@ let parallel_candidate_hi_of_scop after_scop hinted_dims =
   let default_hi = with_hints 16 in
   match after_scop with
   | None -> default_hi
-  | Some scop -> max_int default_hi (with_hints (max_scop_scattering_out_dim scop))
+  | Some scop ->
+      let raw_width = max_scop_scattering_out_dim scop in
+      with_hints
+        (int_of_nat
+           (OpenScop.kept_scattering_rows_before scop (nat_of_int raw_width)))
 
 let parallel_candidate_dims_of_scop after_scop hinted_dims =
   unique_ints
@@ -1796,10 +1825,325 @@ let try_verified_vector_current_compile route loop dim =
           (verified_vector_current_config_of_route route dim)
           loop))
 
+(* Profitability only: every candidate reaching this predicate has already
+   passed the verified compiler.  Unknown bounds remain eligible; the search
+   skips only candidates whose parallel loops are all demonstrably trivial. *)
+let rec constant_parallel_bound = function
+  | ParallelBaseLoop.Constant z -> Some z
+  | ParallelBaseLoop.Var _ -> None
+  | ParallelBaseLoop.Sum (a, b) ->
+      constant_parallel_bounds Camlcoq.Z.add a b
+  | ParallelBaseLoop.Mult (k, e) ->
+      Option.map (Camlcoq.Z.mul k) (constant_parallel_bound e)
+  | ParallelBaseLoop.Div (e, k) ->
+      if Camlcoq.Z.eq k Camlcoq.Z.zero then None
+      else Option.map (fun z -> Camlcoq.Z.div z k) (constant_parallel_bound e)
+  | ParallelBaseLoop.Mod (e, k) ->
+      if Camlcoq.Z.eq k Camlcoq.Z.zero then None
+      else Option.map (fun z -> Camlcoq.Z.modulo z k) (constant_parallel_bound e)
+  | ParallelBaseLoop.Max (a, b) ->
+      constant_parallel_bounds (fun x y -> if Camlcoq.Z.le x y then y else x) a b
+  | ParallelBaseLoop.Min (a, b) ->
+      constant_parallel_bounds (fun x y -> if Camlcoq.Z.le x y then x else y) a b
+and constant_parallel_bounds f a b =
+  match constant_parallel_bound a, constant_parallel_bound b with
+  | Some x, Some y -> Some (f x y)
+  | _ -> None
+
+let parallel_trip_count lb ub =
+  let rec additive_terms = function
+    | ParallelBaseLoop.Constant z -> ([], z)
+    | ParallelBaseLoop.Sum (a, b) ->
+        let (ta, ca) = additive_terms a in
+        let (tb, cb) = additive_terms b in
+        (ta @ tb, Camlcoq.Z.add ca cb)
+    | e ->
+        match constant_parallel_bound e with
+        | Some z -> ([], z)
+        | None -> ([e], Camlcoq.Z.zero)
+  in
+  let (lower_terms, lower_const) = additive_terms lb in
+  let (upper_terms, upper_const) = additive_terms ub in
+  if List.sort compare lower_terms = List.sort compare upper_terms then
+    Some (Camlcoq.Z.sub upper_const lower_const)
+  else None
+
+let rec has_potential_parallel_iterations = function
+  | ParallelLoopIR.Loop (mode, _, lb, ub, body) ->
+      let nontrivial =
+        match parallel_trip_count lb ub with
+        | Some count -> Camlcoq.Z.gt count Camlcoq.Z.one
+        | _ -> true
+      in
+      (mode = ParallelLoopIR.ParMode && nontrivial)
+      || has_potential_parallel_iterations body
+  | ParallelLoopIR.Instr _ -> false
+  | ParallelLoopIR.Seq stmts ->
+      List.exists has_potential_parallel_iterations (parallel_stmt_list_to_list stmts)
+  | ParallelLoopIR.Guard (_, body) -> has_potential_parallel_iterations body
+
+let parallel_candidate_is_potentially_nontrivial (((stmt, _), _) : ParallelLoopIR.t) =
+  has_potential_parallel_iterations stmt
+
+exception No_parallel_scope_candidate
+
+let parallel_candidate_debug message =
+  if Sys.getenv_opt "POLCERT_PARALLEL_DEBUG" = Some "1" then
+    report_parallel_validation message
+
+let same_parallel_instance_space (a : OpenScop.coq_OpenScop) (b : OpenScop.coq_OpenScop) =
+  let arrays scop = List.filter (function OpenScop.ArrayExt _ -> true | _ -> false) scop.OpenScop.glb_exts in
+  a.context = b.context && arrays a = arrays b
+  && List.length a.statements = List.length b.statements
+  && List.for_all2
+       (fun x y -> x.OpenScop.domain = y.OpenScop.domain
+           && x.OpenScop.access = y.OpenScop.access
+           && x.OpenScop.stmt_exts_opt = y.OpenScop.stmt_exts_opt)
+       a.statements b.statements
+
+let normalize_parallel_tiled_scop route mid scop =
+  if route_is_second_level route then
+    try
+      (PlutoTilingValidator.extract_phase_artifact_from_scops
+        ~tiling_mode:PlutoTilingValidator.SecondLevel
+        ~before_path:"parallel_mid" ~after_path:"parallel_tiled"
+        mid scop).artifact_after_scop
+    with PlutoTilingValidator.ValidationError _ ->
+      raise No_parallel_scope_candidate
+  else scop
+
+(* Statement numbers in the OpenScop loop extension are one-based.  The
+   extracted lowering uses positions in the imported statement list.  The
+   resulting schedule is still an untrusted affine proposal. *)
+let propose_scoped_parallel_schedule hints scop =
+  let module P = SPolIRs.SPolIRs.PolyLang in
+  let module V = SParallelPolOpt.ValidatorCore.ParallelCore in
+  let ((pis, env), _) =
+    P.canonicalize_schedule_pprog
+      (P.current_view_pprog (import_complete_spol_or_fail "parallel scope" scop))
+  in
+  let count = List.length pis in
+  let width = List.fold_left (fun w pi -> max w (List.length pi.P.pi_schedule)) 0 pis in
+  if hints = [] || count = 0 then raise No_parallel_scope_candidate;
+  let plans = List.map (fun hint ->
+    let dim = hint.Scheduler.hint_current_dim in
+    let ids = List.sort_uniq compare hint.Scheduler.hint_stmt_ids in
+    if dim < 0 || dim >= width || ids = []
+       || List.exists (fun id -> id <= 0 || id > count) ids
+    then raise No_parallel_scope_candidate;
+    { V.scoped_dim = nat_of_int dim;
+      scoped_statements = List.map (fun id -> nat_of_int (id - 1)) ids }) hints
+  in
+  let statements = List.mapi (fun index stmt ->
+    let pi = List.nth pis index in
+    let zero = (List.init (List.length env + int_of_nat pi.P.pi_depth)
+      (fun _ -> Camlcoq.Z.zero), Camlcoq.Z.zero) in
+    let padded = pi.P.pi_schedule @
+      List.init (width - List.length pi.P.pi_schedule) (fun _ -> zero) in
+    let rows = SParallelPolOpt.scoped_parallel_rows plans (nat_of_int index)
+      (nat_of_int 0) zero padded in
+    let n = List.length rows in
+    let scattering = {
+      OpenScop.rel_type = OpenScop.ScttTy;
+      OpenScop.meta = {
+        OpenScop.row_nb = nat_of_int n;
+        OpenScop.col_nb = nat_of_int (n + int_of_nat pi.P.pi_depth + List.length env + 2);
+        OpenScop.out_dim_nb = nat_of_int n;
+        OpenScop.in_dim_nb = pi.P.pi_depth;
+        OpenScop.local_dim_nb = nat_of_int 0;
+        OpenScop.param_nb = nat_of_int (List.length env);
+      };
+      OpenScop.constrs = P.affine_rows_to_sctt_constrs rows
+        (nat_of_int (List.length env)) pi.P.pi_depth (nat_of_int n);
+    } in
+    { stmt with OpenScop.scattering = scattering }) (OpenScop.statements scop)
+  in
+  let proposed = { scop with OpenScop.statements = statements } in
+  let dims = unique_ints (List.map (fun hint ->
+    match OpenScop.raw_to_canonical_schedule_dim proposed
+      (nat_of_int (2 * hint.Scheduler.hint_current_dim + 1)) with
+    | Some dim -> int_of_nat dim
+    | None -> raise No_parallel_scope_candidate) hints) in
+  if dims = [] then raise No_parallel_scope_candidate;
+  proposed, dims
+
+let try_verified_scoped_hints ?hint_snapshot route loop =
+  try
+    let module P = SPolIRs.SPolIRs.PolyLang in
+    let module V = SParallelPolOpt.ValidatorCore in
+    let proposed, hints = match hint_snapshot with
+      | Some snapshot -> snapshot
+      | None -> scheduled_scop_and_hints_of_route ParallelSchedule route loop in
+    let count = List.length (OpenScop.statements proposed) in
+    if not (valid_parallel_hint_scopes proposed hints) then
+      raise No_parallel_scope_candidate;
+    (* Global hints keep their existing path and incur no extra validation. *)
+    if not (List.exists (fun hint ->
+      List.length (List.sort_uniq compare hint.Scheduler.hint_stmt_ids) < count) hints)
+    then None else
+    let after, dims = propose_scoped_parallel_schedule hints proposed in
+    parallel_candidate_debug (Printf.sprintf
+      "proposal=scoped phase=precheck hints=%s coordinates=%s"
+      (String.concat ";" (List.map (fun h -> Printf.sprintf "%d:[%s]"
+        h.Scheduler.hint_current_dim
+        (String.concat "," (List.map string_of_int h.Scheduler.hint_stmt_ids))) hints))
+      (String.concat "," (List.map string_of_int dims)));
+    (* The ordinary many-dimension endpoint permits partial success.  A local
+       hint proposal instead has to certify every requested coordinate. *)
+    let check_parallel_coordinates after =
+      let after_pol = P.canonicalize_schedule_pprog
+        (P.current_view_pprog
+          (import_complete_spol_or_fail "parallel scoped proposal" after)) in
+      if not (List.for_all (fun dim ->
+        let accepted, valid = V.check_pprog_parallel_currentb after_pol (nat_of_int dim) in
+        parallel_candidate_debug (Printf.sprintf
+          "proposal=scoped phase=precheck coordinate=%d accepted=%b valid=%b"
+          dim accepted valid);
+        accepted && valid) dims) then raise No_parallel_scope_candidate
+    in
+    let check_original_proposal before proposed =
+      let old_pol = P.current_view_pprog
+        (import_complete_spol_or_fail "parallel proposal source" before) in
+      match P.from_openscop_schedule_only old_pol proposed with
+      | Err _ -> raise No_parallel_scope_candidate
+      | Okk proposed_pol ->
+          let accepted, valid = V.validate_general old_pol proposed_pol in
+          if not (accepted && valid) then begin
+            parallel_candidate_debug "proposal=scoped reason=producer-affine-rejected";
+            raise No_parallel_scope_candidate
+          end
+    in
+    let candidate before_scop =
+      let phases =
+        if route_uses_post_tiling_affine route then
+          Scheduler.run_pluto_post_tiling_affine_pipeline before_scop
+        else
+          let pair = if route_is_identity route then
+            Scheduler.run_pluto_identity_tiling_pipeline before_scop
+          else Scheduler.run_pluto_phase_pipeline before_scop in
+          match pair with
+          | Err msg -> Err msg
+          | Okk (mid, tiled) -> Okk (mid, tiled, tiled)
+      in
+      match phases with
+      | Err msg -> Err msg
+      | Okk (mid, tiled, _) ->
+          let tiled = normalize_parallel_tiled_scop route mid tiled in
+          let proposed, after =
+            if route_is_second_level route then
+              let proposed = normalize_parallel_tiled_scop route mid proposed in
+              let after, mapped_dims = propose_scoped_parallel_schedule hints proposed in
+              if mapped_dims <> dims then raise No_parallel_scope_candidate;
+              proposed, after
+            else proposed, after
+          in
+          if not (same_parallel_instance_space tiled proposed) then begin
+            parallel_candidate_debug "proposal=scoped reason=instance-space-mismatch";
+            raise No_parallel_scope_candidate;
+          end;
+          check_original_proposal tiled proposed;
+          check_parallel_coordinates after;
+          Okk (mid, (tiled, after))
+    in
+    let config = if route_has_iss route then
+      VerifiedParallelCompiler.RawParallelCurrentManyPostTilingAffineISS (List.map nat_of_int dims)
+    else VerifiedParallelCompiler.RawParallelCurrentManyPostTilingAffine (List.map nat_of_int dims) in
+    let result =
+      if route_has_tiling route then
+        Scheduler.with_post_tiling_affine_candidate candidate (fun () ->
+          verified_candidate_or_raise (TilingValidationRoute.capture_result (fun () ->
+            VerifiedParallelCompiler.compile config loop)))
+      else
+        Scheduler.with_affine_candidate (fun before ->
+          check_original_proposal before proposed;
+          check_parallel_coordinates after;
+          Okk after) (fun () ->
+          try_verified_parallel_current_many_compile route loop dims)
+    in
+    parallel_candidate_debug (Printf.sprintf
+      "proposal=scoped hints=%d coordinates=%s accepted=%b"
+      (List.length hints) (String.concat "," (List.map string_of_int dims))
+      (Option.is_some result));
+    result
+  with
+  | No_parallel_scope_candidate -> None
+  | CertcheckerConfig.CertCheckerFailure (_, "Post-tiling affine validation failed.") ->
+      parallel_candidate_debug "proposal=scoped reason=affine-rejected";
+      None
+  | CertcheckerConfig.CertCheckerFailure (_, "Scheduler validation failed.") ->
+      parallel_candidate_debug "proposal=scoped reason=affine-rejected";
+      None
+
+let accept_scoped_parallel_result (pl, routes) =
+  TilingValidationRoute.report routes;
+  report_parallel_validation "status=accepted source=pluto-hint path=scoped-proposal";
+  pl, true
+
+let try_verified_proposed_parallel_compile route loop proposed_opt dim =
+  if not (route_has_tiling route) || proposed_opt = None then None else
+  let proposed = Option.get proposed_opt in
+  let candidate before_scop =
+    let phases =
+      if route_uses_post_tiling_affine route then
+        Scheduler.run_pluto_post_tiling_affine_pipeline before_scop
+      else
+        let pair =
+          if route_is_identity route then
+            Scheduler.run_pluto_identity_tiling_pipeline before_scop
+          else Scheduler.run_pluto_phase_pipeline before_scop
+        in
+        match pair with
+        | Err msg -> Err msg
+        | Okk (mid, after) -> Okk (mid, after, after)
+    in
+    match phases with
+    | Err msg -> Err msg
+    | Okk (mid, tiled, _) ->
+        let tiled = normalize_parallel_tiled_scop route mid tiled in
+        let proposed = normalize_parallel_tiled_scop route mid proposed in
+        if not (same_parallel_instance_space tiled proposed) then begin
+          parallel_candidate_debug "proposal=actual reason=instance-space-mismatch";
+          raise No_parallel_scope_candidate
+        end;
+        (* The hint refers to [proposed], not to the sequential tiling rerun.
+           The affine validator checks this last schedule change before the
+           global parallel certificate is checked. *)
+        Okk (mid, (tiled, proposed))
+  in
+  let config =
+    if route_has_iss route then
+      VerifiedParallelCompiler.RawParallelCurrentPostTilingAffineISS (nat_of_int dim)
+    else VerifiedParallelCompiler.RawParallelCurrentPostTilingAffine (nat_of_int dim)
+  in
+  try
+    let result = Scheduler.with_post_tiling_affine_candidate candidate (fun () ->
+      match TilingValidationRoute.capture_result (fun () ->
+              VerifiedParallelCompiler.compile config loop) with
+      | Error (CertcheckerConfig.CertCheckerFailure (_, "Post-tiling affine validation failed."), _) ->
+          parallel_candidate_debug "scope=phase reason=affine-rejected";
+          None
+      | captured -> verified_candidate_or_raise captured) in
+    parallel_candidate_debug
+      (Printf.sprintf "proposal=%s coordinate=%d accepted=%b nontrivial=%b"
+         "actual" dim
+         (Option.is_some result)
+         (match result with Some (pl, _) -> parallel_candidate_is_potentially_nontrivial pl | None -> false));
+    result
+  with
+  | No_parallel_scope_candidate ->
+      parallel_candidate_debug "proposal=actual reason=no-compatible-candidate";
+      None
+  | CertcheckerConfig.CertCheckerFailure (_, "Post-tiling affine validation failed.") ->
+      parallel_candidate_debug "scope=phase reason=affine-rejected";
+      None
+
 let run_verified_hinted_parallel_optimization_with
+    ?hint_snapshot
+    ?proposal_compile
+    ?(scope_compile = fun _ _ _ _ -> None)
     try_compile sequential_fallback route loop =
   let (after_scop, hinted_dims) =
-    parallel_scop_and_hint_dims_of_route route loop
+    parallel_scop_and_hint_dims_of_route ?hint_snapshot route loop
   in
   let hinted_dims = unique_ints hinted_dims in
   let strict =
@@ -1813,34 +2157,97 @@ let run_verified_hinted_parallel_optimization_with
     else
       parallel_candidate_dims_of_scop after_scop hinted_dims
   in
-  let rec go = function
+  let accept ((pl, routes), path, dim) =
+    if Option.is_some proposal_compile then
+      report_parallel_validation
+        (Printf.sprintf "status=accepted source=pluto-hint path=%s coordinate=%d"
+           path dim);
+    TilingValidationRoute.report routes;
+    (pl, true)
+  in
+  let rec go singleton_fallback = function
     | [] ->
         if strict then begin
           report_parallel_validation
             "status=rejected source=pluto-hint reason=no-certifiable-dimension";
           (tag_loop_for_parallel_pretty loop, false)
-        end else
-          sequential_fallback route loop
+        end else begin
+          match singleton_fallback with
+          | Some result -> accept result
+          | None -> sequential_fallback route loop
+        end
     | dim :: rest ->
-        begin match try_compile route loop dim with
-        | Some (pl, routes) ->
-            TilingValidationRoute.report routes;
-            (pl, true)
-        | None -> go rest
+        let uses_proposal =
+          Option.is_some proposal_compile
+          && route_has_tiling route && List.mem dim hinted_dims
+        in
+        let reference () =
+          Option.map (fun result -> (result, "checked-reference", dim))
+            (try_compile route loop dim)
+        in
+        let compiled =
+          match proposal_compile with
+          | Some compile when uses_proposal ->
+              begin match compile route loop after_scop dim with
+              | Some accepted -> Some (accepted, "actual-proposal", dim)
+              | None when strict -> None
+              | None ->
+                  begin match scope_compile route loop after_scop dim with
+                  | Some ((pl, _) as accepted)
+                    when parallel_candidate_is_potentially_nontrivial pl ->
+                      Some (accepted, "phase-scoped-proposal", dim)
+                  | _ -> reference ()
+                  end
+              end
+          | _ -> reference ()
+        in
+        begin match compiled with
+        | Some (((pl, _), _, _) as result) ->
+            if strict || parallel_candidate_is_potentially_nontrivial pl then
+              accept result
+            else
+              let fallback =
+                match singleton_fallback with
+                | Some _ -> singleton_fallback
+                | None -> Some result
+              in
+              go fallback rest
+        | None ->
+            let scoped =
+              if not strict && List.mem dim hinted_dims && not uses_proposal then
+                scope_compile route loop after_scop dim
+              else None
+            in
+            begin match scoped with
+            | Some ((pl, _) as result) when parallel_candidate_is_potentially_nontrivial pl ->
+                accept (result, "phase-scoped-proposal", dim)
+            | _ -> go singleton_fallback rest
+            end
         end
   in
-  go candidates
+  go None candidates
 
 let run_verified_hinted_parallel_optimization route loop =
-  run_verified_hinted_parallel_optimization_with
-    try_verified_parallel_current_compile
-    verified_sequential_after_parallel_skip
-    route loop
+  Scheduler.with_checked_parallel_proposal (fun () ->
+    let hint_snapshot =
+      try Some (scheduled_scop_and_hints_of_route ParallelSchedule route loop)
+      with _ -> None in
+    match Option.bind hint_snapshot (fun snapshot ->
+      try_verified_scoped_hints ~hint_snapshot:snapshot route loop) with
+    | Some ((pl, _) as result) when parallel_candidate_is_potentially_nontrivial pl ->
+        accept_scoped_parallel_result result
+    | _ -> run_verified_hinted_parallel_optimization_with
+      ?hint_snapshot
+      ~proposal_compile:try_verified_proposed_parallel_compile
+      try_verified_parallel_current_compile
+      verified_sequential_after_parallel_skip
+      route loop)
 
 let run_verified_hinted_multipar_parallel_optimization_with
+    ?hint_snapshot
     try_compile sequential_fallback route loop =
   let (after_scop, hinted_dims) =
-    parallel_scop_and_hint_dims_of_route route loop
+    parallel_scop_and_hint_dims_of_route ?hint_snapshot route loop
   in
   let hinted_dims = unique_ints hinted_dims in
   let strict =
@@ -1886,10 +2293,19 @@ let run_verified_hinted_multipar_parallel_optimization_with
         sequential_fallback route loop
 
 let run_verified_hinted_multipar_parallel_optimization route loop =
-  run_verified_hinted_multipar_parallel_optimization_with
-    try_verified_parallel_current_many_compile
-    verified_sequential_after_parallel_skip
-    route loop
+  Scheduler.with_checked_parallel_proposal (fun () ->
+    let hint_snapshot =
+      try Some (scheduled_scop_and_hints_of_route ParallelSchedule route loop)
+      with _ -> None in
+    match Option.bind hint_snapshot (fun snapshot ->
+      try_verified_scoped_hints ~hint_snapshot:snapshot route loop) with
+    | Some ((pl, _) as result) when parallel_candidate_is_potentially_nontrivial pl ->
+        accept_scoped_parallel_result result
+    | _ -> run_verified_hinted_multipar_parallel_optimization_with
+        ?hint_snapshot
+        try_verified_parallel_current_many_compile
+        verified_sequential_after_parallel_skip
+        route loop)
 
 let run_selected_parallel_optimization route loop =
   match route.SLoopRoute.execution_family with
@@ -2486,7 +2902,12 @@ let () =
         in
         if cfg.dump_input then print_section "Input Loop" (SLoopPretty.string_of_loop loop);
         if route.SLoopRoute.extract_only then begin
-          OpenScopPrinter.openscop_printer' stdout (extract_to_openscop loop);
+          let scop =
+            if cfg.extract_strengthened_only then
+              poly_to_openscop (extract_strengthened_poly loop)
+            else extract_to_openscop loop
+          in
+          OpenScopPrinter.openscop_printer' stdout scop;
           print_newline ();
           exit 0
         end;

@@ -154,6 +154,25 @@ Proof.
             as [st_mid [Hmid_sem Heq_mid]].
           exists st_mid. split; assumption. }
         { reject_tiling_contradiction Hopt. } }
+      { bind_imp_destruct Hopt wf_after_ok Hwf_check.
+        destruct wf_after_ok.
+        { apply mayReturn_pure in Hopt. subst pol_out.
+          pose proof
+            (Core.ValidatorCore.check_wf_polyprog_general_correct
+               pol_after true Hwf_check eq_refl)
+            as Hwf_after.
+          pose proof
+            (proj1 (PolyLang.instance_list_semantics_current_view_iff
+                      pol_after st st' Hwf_after) Hsem_out)
+            as Hsem_after.
+          destruct
+            (Core.TilingSched.checked_tiling_schedule_sourceb_first_runtime_validate_route_correct
+               pol_mid pol_after ws st st'
+               Core.TilingSched.GeneralScheduleAccepted
+               Hwf_mid Hwf_after Hroute eq_refl Hsem_after)
+            as [st_mid [Hmid_sem Heq_mid]].
+          exists st_mid. split; assumption. }
+        { reject_tiling_contradiction Hopt. } }
       { reject_tiling_contradiction Hopt. } }
     { reject_tiling_contradiction Hopt. } }
   { reject_tiling_contradiction Hopt. }
@@ -178,6 +197,18 @@ Proof.
     { cbn beta iota zeta in Hopt.
       bind_imp_destruct Hopt route Hroute.
       destruct route.
+      { bind_imp_destruct Hopt wf_after_ok Hwf_check.
+        destruct wf_after_ok.
+        { apply mayReturn_pure in Hopt. subst pol_out.
+          pose proof
+            (Core.ValidatorCore.check_wf_polyprog_general_correct
+               pol_after true Hwf_check eq_refl)
+            as Hwf_after.
+          pose proof
+            (PolyLang.wf_pprog_general_current_view_affine pol_after Hwf_after)
+            as Hwf_cur_aff.
+          eapply PolyLang.wf_pprog_affine_implies_wf_pprog_general; eauto. }
+        { reject_tiling_contradiction Hopt. } }
       { bind_imp_destruct Hopt wf_after_ok Hwf_check.
         destruct wf_after_ok.
         { apply mayReturn_pure in Hopt. subst pol_out.
@@ -395,6 +426,46 @@ Proof.
               ** reject_post_tiling_affine_contradiction Hopt.
            ++ reject_post_tiling_affine_contradiction Hopt.
         -- reject_tiling_contradiction Hopt.
+      * bind_imp_destruct Hopt wf_posttile_ok Hwf_posttile_check.
+        destruct wf_posttile_ok.
+        -- pose proof
+             (Core.ValidatorCore.check_wf_polyprog_general_correct
+                pol_posttile true Hwf_posttile_check eq_refl)
+             as Hwf_posttile.
+           destruct (PolyLang.from_openscop_schedule_only pol_posttile after_scop)
+             as [pol_after|msg_final] eqn:Hafter.
+           ++ bind_imp_destruct Hopt final_ok Hfinal.
+              destruct final_ok.
+              ** bind_imp_destruct Hopt wf_after_ok Hwf_check.
+                 destruct wf_after_ok.
+                 --- apply mayReturn_pure in Hopt. subst pol_out.
+                     pose proof
+                       (Core.ValidatorCore.check_wf_polyprog_general_correct
+                          pol_after true Hwf_check eq_refl)
+                       as Hwf_after.
+                     pose proof
+                       (proj1
+                          (PolyLang.instance_list_semantics_current_view_iff
+                             pol_after st st' Hwf_after)
+                          Hsem_out)
+                       as Hsem_after.
+                     destruct
+                       (Core.ValidatorCore.validate_general_correct
+                          pol_posttile pol_after st st'
+                          true Hfinal eq_refl Hsem_after)
+                       as [st_post [Hpost_sem Heq_post]].
+                     destruct
+                       (Core.TilingSched.checked_tiling_schedule_sourceb_first_runtime_validate_route_correct
+                          pol_mid pol_posttile ws st st_post
+                          Core.TilingSched.GeneralScheduleAccepted
+                          Hwf_mid Hwf_posttile Hroute eq_refl Hpost_sem)
+                       as [st_mid [Hmid_sem Heq_mid]].
+                     exists st_mid. split; auto.
+                     eapply State.eq_trans; eauto.
+                 --- reject_post_tiling_affine_contradiction Hopt.
+              ** reject_post_tiling_affine_contradiction Hopt.
+           ++ reject_post_tiling_affine_contradiction Hopt.
+        -- reject_tiling_contradiction Hopt.
       * reject_tiling_contradiction Hopt.
     + reject_tiling_contradiction Hopt.
   - reject_tiling_contradiction Hopt.
@@ -419,6 +490,29 @@ Proof.
     + cbn beta iota zeta in Hopt.
       bind_imp_destruct Hopt route Hroute.
       destruct route.
+      * bind_imp_destruct Hopt wf_posttile_ok Hwf_posttile_check.
+        destruct wf_posttile_ok.
+        -- destruct (PolyLang.from_openscop_schedule_only pol_posttile after_scop)
+             as [pol_after|msg_final] eqn:Hafter.
+           ++ bind_imp_destruct Hopt final_ok Hfinal.
+              destruct final_ok.
+              ** bind_imp_destruct Hopt wf_after_ok Hwf_check.
+                 destruct wf_after_ok.
+                 --- apply mayReturn_pure in Hopt. subst pol_out.
+                     pose proof
+                       (Core.ValidatorCore.check_wf_polyprog_general_correct
+                          pol_after true Hwf_check eq_refl)
+                       as Hwf_after.
+                     pose proof
+                       (PolyLang.wf_pprog_general_current_view_affine
+                          pol_after Hwf_after)
+                       as Hwf_cur_aff.
+                     eapply PolyLang.wf_pprog_affine_implies_wf_pprog_general;
+                       eauto.
+                 --- reject_post_tiling_affine_contradiction Hopt.
+              ** reject_post_tiling_affine_contradiction Hopt.
+           ++ reject_post_tiling_affine_contradiction Hopt.
+        -- reject_tiling_contradiction Hopt.
       * bind_imp_destruct Hopt wf_posttile_ok Hwf_posttile_check.
         destruct wf_posttile_ok.
         -- destruct (PolyLang.from_openscop_schedule_only pol_posttile after_scop)
@@ -649,9 +743,11 @@ Proof.
         -- pose proof
              (CoreOpt.check_wf_polyprog_affine_correct pol_iss _ Hiss_wf eq_refl)
              as Hwf_iss.
+           destruct (Core.CoreOpt.export_for_phase_scheduler pol_iss) as [iss_scop|].
+           2:{ reject_tiling_contradiction Hopt. }
            pose proof
-             (try_post_tiling_affine_phase_pipeline_from_source_pol_poly_with_iss_correct
-                pol_iss before_scop pol_out st st' Hwf_iss Hopt Hsem_out)
+             (try_post_tiling_affine_phase_pipeline_from_source_pol_poly_correct
+                pol_iss iss_scop pol_out st st' Hwf_iss Hopt Hsem_out)
              as Hiss_corr.
            destruct Hiss_corr as [st_iss [Hiss_sem Heq_iss]].
            pose proof
@@ -690,7 +786,9 @@ Proof.
         -- pose proof
              (CoreOpt.check_wf_polyprog_affine_correct pol_iss _ Hiss_wf eq_refl)
              as Hwf_iss.
-           eapply try_post_tiling_affine_phase_pipeline_from_source_pol_poly_with_iss_wf; eauto.
+           destruct (Core.CoreOpt.export_for_phase_scheduler pol_iss) as [iss_scop|].
+           2:{ reject_tiling_contradiction Hopt. }
+           eapply try_post_tiling_affine_phase_pipeline_from_source_pol_poly_wf; eauto.
         -- eapply try_post_tiling_affine_phase_pipeline_from_source_pol_poly_wf; eauto.
       * eapply try_post_tiling_affine_phase_pipeline_from_source_pol_poly_wf; eauto.
     + eapply try_post_tiling_affine_phase_pipeline_from_source_pol_poly_wf; eauto.
@@ -836,11 +934,13 @@ Proof.
         -- pose proof
              (CoreOpt.check_wf_polyprog_affine_correct pol_iss _ Hiss_wf eq_refl)
              as Hwf_iss.
+           destruct (Core.CoreOpt.export_for_phase_scheduler pol_iss) as [iss_scop|].
+           2:{ reject_tiling_contradiction Hopt. }
            pose proof
              (try_phase_pipeline_from_source_pol_poly_correct
                 pol_iss
-                CoreOpt.run_pluto_phase_pipeline_with_iss
-                before_scop
+                CoreOpt.run_pluto_phase_pipeline
+                iss_scop
                 pol_out st st' Hwf_iss Hopt Hsem_out)
              as Hiss_corr.
            destruct Hiss_corr as [st_iss [Hiss_sem Heq_iss]].
@@ -879,6 +979,8 @@ Proof.
         -- pose proof
              (CoreOpt.check_wf_polyprog_affine_correct pol_iss _ Hiss_wf eq_refl)
              as Hwf_iss.
+           destruct (Core.CoreOpt.export_for_phase_scheduler pol_iss) as [iss_scop|].
+           2:{ reject_tiling_contradiction Hopt. }
            eapply try_phase_pipeline_from_source_pol_poly_wf; eauto.
         -- eapply try_phase_pipeline_from_source_pol_poly_wf; eauto.
       * eapply try_phase_pipeline_from_source_pol_poly_wf; eauto.

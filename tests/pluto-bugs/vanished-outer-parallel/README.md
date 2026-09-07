@@ -1,4 +1,4 @@
-# Vanished outer parallel loop
+# Vanished Outer Parallel Loop
 
 Status: reproduced, minimized, validator-catches.
 
@@ -22,16 +22,21 @@ polycc --notile --nodiamond-tile --nointratileopt --noprevector \
   --nounrolljam --parallel vanished_outer_parallel.c
 ```
 
-With four OpenMP threads, the original program prints `10000`; the generated
-program prints a different value.  This is a silent miscompilation, not merely
-an imprecise hint or a missed optimization.
+The original program prints `10000`. The runner requires at least one of three
+four-thread executions of the generated program to differ from this reference.
+This is a silent miscompilation, not merely an imprecise hint or a missed
+optimization.
 
-PolCert handles both relevant boundaries defensively:
+With `--parallel --parallel-strict`, PolCert may accept a safe singleton hint
+or reject an uncertifiable hint without emitting optimized Loop. For accepted
+output, the runner compares every array cell with the source Loop's result
+and checks that each reached parallel loop executes at most one iteration.
+These checks allow the one-iteration outer coordinate to remain parallel but
+prevent its annotation from transferring to the dependent inner loop. They
+do not depend on generated iterator names or a fixed schedule layout.
 
-- `--parallel --parallel-strict` maps Pluto's `t1` metadata to its canonical
-  one-iteration coordinate and does not transfer the annotation inward.
-- `--notile --parallel-current 1` directly checks the actual inner loop chosen
-  by Pluto's AST fallback and rejects it because it carries a dependence.
+The separate `--notile --parallel-current 1` negative test directly requests
+parallelization of the dependent inner loop and requires validator rejection.
 
 Run the complete reproducer with:
 

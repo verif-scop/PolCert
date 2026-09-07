@@ -34,18 +34,14 @@ SUPPORTED_CASES: dict[str, dict[str, object]] = {
     "diamond-tile-example.c": {"kind": "diamond", "phase_ok": True},
     "fdtd-2d.c": {"kind": "diamond", "phase_ok": True},
     "heat-3d-imperfect.c": {"kind": "diamond", "phase_ok": True},
+    "jacobi-1d-imper.c": {"kind": "diamond", "phase_ok": True},
     "jacobi-2d-imper.c": {"kind": "diamond", "phase_ok": True},
     "jacobi-2d.c": {"kind": "diamond", "phase_ok": True},
     "multi-stmt-stencil-seq.c": {"kind": "no_effect", "phase_ok": True},
     "seidel.c": {"kind": "no_effect", "phase_ok": True},
 }
 
-PRODUCER_REJECTED_CASES = {
-    "jacobi-1d-imper.c": {
-        "returncode": 1,
-        "diagnostic": "final schedule violates a dependence; refusing code generation",
-    },
-}
+PRODUCER_REJECTED_CASES = {}
 
 UNSUPPORTED_CASES = [
     "heat-2d.c",

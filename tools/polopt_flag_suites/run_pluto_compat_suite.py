@@ -4,6 +4,7 @@ from __future__ import annotations
 import subprocess
 import sys
 import os
+import re
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -39,6 +40,7 @@ class Check:
     same_as_args: tuple[str, ...] | None = None
     native: bool = False
     second_level_markers: tuple[str, ...] | None = None
+    effect_patterns: tuple[str, ...] = ()
 
 
 FLAGS = ["--tile", "--smartfuse", "--nointratileopt", "--noprevector", "--nounrolljam", "--rar"]
@@ -1335,7 +1337,10 @@ CHECKS = [
         True,
         "== Optimized Loop ==",
         "parallel for",
-        effect_needles=("for i1 in range(0, 50)", "((2 * i1) + 1)"),
+        effect_patterns=(
+            r"for (?P<unrolled>i[0-9]+) in range\(0, 50\) \{"
+            r".*?\(\(2 \* (?P=unrolled)\) \+ 1\)",
+        ),
         env={"POLCERT_UNROLLJAM_POLICY": "checked-all-depths"},
     ),
     Check(
@@ -2177,6 +2182,9 @@ def run_check(check: Check, timeout: int) -> str | None:
         for needle in check.effect_needles:
             if needle not in optimized:
                 return f"{check.name}: missing optimization effect marker {needle!r}\n{output}"
+        for pattern in check.effect_patterns:
+            if re.search(pattern, optimized, re.DOTALL) is None:
+                return f"{check.name}: missing optimization effect pattern {pattern!r}\n{output}"
         for needle in check.effect_absent:
             if needle in optimized:
                 return f"{check.name}: unexpected optimization marker {needle!r}\n{output}"
@@ -2254,6 +2262,7 @@ def run_check(check: Check, timeout: int) -> str | None:
 def effect_contract_count(check: Check) -> int:
     contracts = (
         len(check.effect_needles)
+        + len(check.effect_patterns)
         + len(check.effect_absent)
         + len(check.scheduled_needles)
         + len(check.scheduled_absent)

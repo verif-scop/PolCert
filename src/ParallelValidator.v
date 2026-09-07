@@ -33,7 +33,10 @@ Module AffineCore := AffineValidator PolIRs.
     coordinates at [d], commute.  All statement schedules are padded to their
     program-wide maximum width, matching the coordinates introduced before
     code generation.  The checker expresses a violation as an affine schedule
-    reversal between two synthetic schedule views.  Affine-validator soundness
+    reversal from [prefix(d) ++ [d]] to [prefix(d)].  Thus only instances
+    in the same schedule prefix can form a reversed pair; sequentially
+    ordered prefixes do not impose an extra independence obligation.
+    Affine-validator soundness
     yields [parallel_safe_dim_pointwise]; the historical flattened-list
     property [parallel_safe_dim] follows as a compatibility corollary. *)
 
@@ -44,6 +47,89 @@ Record parallel_plan := {
 Record parallel_cert := {
   certified_dim : nat
 }.
+
+(** A local hint names statements as well as a schedule coordinate.  Its
+    lowering reserves a sequential and a parallel slot for each original
+    coordinate.  Only selected statements vary in the parallel slot.
+
+    This is a schedule proposal, not an unchecked parallel certificate:
+    affine validation must establish its order preservation before the
+    existing dimension validator and code-generation theorem apply. *)
+Record scoped_parallel_plan := {
+  scoped_dim : nat;
+  scoped_statements : list nat
+}.
+
+Definition scoped_parallel_memberb
+    (plans : list scoped_parallel_plan) (stmt dim : nat) : bool :=
+  existsb (fun plan => Nat.eqb dim plan.(scoped_dim) &&
+    existsb (Nat.eqb stmt) plan.(scoped_statements)) plans.
+
+Definition scoped_parallel_row
+    (selected : bool) (zero row : list Z * Z) : list (list Z * Z) :=
+  if selected then [zero; row] else [row; zero].
+
+Fixpoint scoped_parallel_rows_from
+    (plans : list scoped_parallel_plan) (stmt dim : nat)
+    (zero : list Z * Z) (rows : list (list Z * Z))
+    : list (list Z * Z) :=
+  match rows with
+  | [] => []
+  | row :: tail =>
+      scoped_parallel_row (scoped_parallel_memberb plans stmt dim) zero row ++
+      scoped_parallel_rows_from plans stmt (S dim) zero tail
+  end.
+
+Lemma scoped_parallel_rows_length :
+  forall rows plans stmt dim zero,
+    Datatypes.length (scoped_parallel_rows_from plans stmt dim zero rows) =
+    (2 * Datatypes.length rows)%nat.
+Proof.
+  induction rows as [|row rows IH]; intros; simpl; [reflexivity|].
+  rewrite app_length, IH.
+  unfold scoped_parallel_row.
+  destruct (scoped_parallel_memberb plans stmt dim); simpl; lia.
+Qed.
+
+Lemma scoped_parallel_rows_parallel_slot :
+  forall rows plans stmt dim zero k row,
+    nth_error rows k = Some row ->
+    nth_error (scoped_parallel_rows_from plans stmt dim zero rows) (2*k+1) =
+      Some (if scoped_parallel_memberb plans stmt (dim+k) then row else zero).
+Proof.
+  induction rows as [|head rows IH]; intros plans stmt dim zero k row Hnth;
+    destruct k; simpl in Hnth; try discriminate.
+  - inversion Hnth; subst. simpl.
+    replace (dim+0)%nat with dim by lia.
+    unfold scoped_parallel_row.
+    destruct (scoped_parallel_memberb plans stmt dim); reflexivity.
+  - replace (2 * S k + 1)%nat with (S (S (2*k+1))) by lia.
+    simpl scoped_parallel_rows_from.
+    unfold scoped_parallel_row.
+    pose proof (IH plans stmt (S dim) zero k row Hnth) as Htail.
+    replace (dim+S k)%nat with (S dim+k)%nat by lia.
+    destruct (scoped_parallel_memberb plans stmt dim); simpl; exact Htail.
+Qed.
+
+Lemma scoped_parallel_rows_sequential_slot :
+  forall rows plans stmt dim zero k row,
+    nth_error rows k = Some row ->
+    nth_error (scoped_parallel_rows_from plans stmt dim zero rows) (2*k) =
+      Some (if scoped_parallel_memberb plans stmt (dim+k) then zero else row).
+Proof.
+  induction rows as [|head rows IH]; intros plans stmt dim zero k row Hnth;
+    destruct k; simpl in Hnth; try discriminate.
+  - inversion Hnth; subst. simpl.
+    replace (dim+0)%nat with dim by lia.
+    unfold scoped_parallel_row.
+    destruct (scoped_parallel_memberb plans stmt dim); reflexivity.
+  - replace (2 * S k)%nat with (S (S (2*k))) by lia.
+    simpl scoped_parallel_rows_from.
+    unfold scoped_parallel_row.
+    pose proof (IH plans stmt (S dim) zero k row Hnth) as Htail.
+    replace (dim+S k)%nat with (S dim+k)%nat by lia.
+    destruct (scoped_parallel_memberb plans stmt dim); simpl; exact Htail.
+Qed.
 
 Definition pprog_pis (pp : PolyLang.t) : list PolyLang.PolyInstr :=
   let '(pis, _, _) := pp in pis.
@@ -74,6 +160,7 @@ Definition padded_pi_schedule
 
 Definition schedule_coord_old_schedule
   (env_dim width d : nat) (pi : PolyLang.PolyInstr) : list (list Z * Z) :=
+  firstn d (padded_pi_schedule env_dim width pi) ++
   [nth d (padded_pi_schedule env_dim width pi)
      (PolyLang.zero_affine_function (env_dim + pi.(PolyLang.pi_depth)))].
 
@@ -139,6 +226,7 @@ Local Definition parallel_point_ext
     PolyLang.ip_access_transformation_ext :=
       PolyLang.current_access_transformation_at env_dim old_pi;
     PolyLang.ip_time_stamp1_ext :=
+      firstn d (resize width tau.(PolyLang.ip_time_stamp)) ++
       [nth d (resize width tau.(PolyLang.ip_time_stamp)) 0%Z];
     PolyLang.ip_time_stamp2_ext :=
       firstn d (resize width tau.(PolyLang.ip_time_stamp));
@@ -405,10 +493,14 @@ Lemma affine_product_schedule_coord_old_schedule :
     (Datatypes.length pi.(PolyLang.pi_schedule) <= width)%nat ->
     (d < width)%nat ->
     affine_product (schedule_coord_old_schedule env_dim width d pi) idx =
+    firstn d (resize width (affine_product pi.(PolyLang.pi_schedule) idx)) ++
     [nth d (resize width (affine_product pi.(PolyLang.pi_schedule) idx)) 0%Z].
 Proof.
   intros env_dim width d pi idx Hlen Hd.
   unfold schedule_coord_old_schedule.
+  rewrite affine_product_app, affine_product_firstn.
+  rewrite affine_product_padded_pi_schedule by exact Hlen.
+  f_equal.
   simpl.
   rewrite <- (affine_product_padded_pi_schedule env_dim) by exact Hlen.
   unfold affine_product.
@@ -502,6 +594,8 @@ Proof.
       PolyLang.current_transformation_at, parallel_old_pi.
     simpl. rewrite Hwitness. reflexivity.
   - change (
+      firstn d (resize (schedule_width_of_pis pis)
+        tau.(PolyLang.ip_time_stamp)) ++
       [nth d (resize (schedule_width_of_pis pis)
         tau.(PolyLang.ip_time_stamp)) 0%Z] =
       affine_product
@@ -712,6 +806,10 @@ Proof.
   {
     unfold PolyLang.instr_point_ext_old_sched_lt.
     subst tau1_ext tau2_ext. simpl.
+    unfold same_prefix_before, padded_timestamp in Hprefix.
+    rewrite Hprefix.
+    rewrite lex_compare_app by reflexivity.
+    rewrite lex_compare_reflexive.
     apply lex_compare_singleton_lt. exact Hlt.
   }
   assert (Hnew : PolyLang.instr_point_ext_new_sched_ge tau1_ext tau2_ext).

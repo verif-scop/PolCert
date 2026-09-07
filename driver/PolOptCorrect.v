@@ -67,11 +67,13 @@ Proof.
         -- pose proof
              (Core.check_wf_polyprog_affine_correct pol_iss _ Hiss_wf eq_refl)
              as Hwf_iss.
+           destruct (Core.export_for_phase_scheduler pol_iss) as [iss_scop|].
+           2:{ apply res_to_alarm_correct in Hopt. discriminate. }
            pose proof
              (Core.try_phase_pipeline_from_source_pol_correct
                 pol_iss
-                Core.run_pluto_phase_pipeline_with_iss
-                before_scop
+                Core.run_pluto_phase_pipeline
+                iss_scop
                 st st'
                 Hwf_iss
                 loop'

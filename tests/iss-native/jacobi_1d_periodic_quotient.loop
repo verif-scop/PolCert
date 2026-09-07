@@ -1,0 +1,11 @@
+context(T, N);
+
+for t in range(1, T) {
+  for q in range(0, T) {
+    if ((2 * q) <= t && t <= (2 * q + 1)) {
+      for i in range(0, N) {
+        u[(t - 2 * q)][i] = ((i == 0) ? u[(1 - t + 2 * q)][(N - 1)] : u[(1 - t + 2 * q)][(i - 1)]) + u[(1 - t + 2 * q)][i] + ((i == (N - 1)) ? u[(1 - t + 2 * q)][0] : u[(1 - t + 2 * q)][(i + 1)]);
+      }
+    }
+  }
+}

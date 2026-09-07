@@ -326,8 +326,10 @@ let iss_split_codegen () =
   let (source_pis, ctxt), vars = source_pol in
   let split_pis =
     PhaseISS.reconstruct_after_pis bridge.PhaseISS.pib_after_domains
+      bridge.PhaseISS.pib_witness.ISSWitness.iw_cuts
       bridge.PhaseISS.pib_witness.ISSWitness.iw_stmt_witnesses
       source_pis
+      (fun source -> source.CBand.PolyLang.pi_poly)
       (fun source domain -> { source with CBand.PolyLang.pi_poly = domain })
   in
   let split_pol = ((split_pis, ctxt), vars) in

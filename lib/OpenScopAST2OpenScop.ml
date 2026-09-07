@@ -24,7 +24,7 @@ let type_check_relation (rel: coq_RelationLoc): unit =
   let local_dim_nb = List.nth meta 4 in 
   let param_nb = List.nth meta 5 in 
   (* rel => meta constraint *)
-  match relTy with
+  begin match relTy with
   | CtxtTy ->
       if out_dim_nb <> Z.zero (* out_dim should be 0 *)
         then type_error (Some metaLoc) "context relation should have 0 out dim%s\n" ""; 
@@ -43,24 +43,25 @@ let type_check_relation (rel: coq_RelationLoc): unit =
     (* TODO: loop iterators correspond to input dimensions.*)
   | WriteTy -> ()
   | MayWriteTy -> ()
-  ;
-  (* check each constr first elem is 0/1*)
-  List.iter (fun constr -> 
-    if (List.nth constr 0) <> Z.zero || (List.nth constr 0) <> Z.one 
-    then type_error (Some loc) "first elem of each constraint should be 0/1%s\n"  "" 
-  ) constrs;
+  end;
   (* meta => constr constraint*)
   (* 1. row_nb *)
   (* List.iter (fun l -> List.iter (fun n -> printf "%s\t" (Z.to_string n)) l; printf "\n") constrs; *)
   
-  if List.length constrs <> Z.to_int row_nb
+  if Z.of_sint (List.length constrs) <> row_nb
     then type_error (Some loc) "relation constrs should have %s rows\n" (Z.to_string row_nb);
   (* 2. col_nb *)
-  if List.exists (fun x -> List.length x <> Z.to_int col_nb) constrs
+  if List.exists (fun x -> Z.of_sint (List.length x) <> col_nb) constrs
     then type_error (Some loc) "relation constrs should have %s cols\n" (Z.to_string col_nb);
   (* 3. col_nb = 1 + out + in + loc + param + 1 *)
   if col_nb <> Z.add (Z.add (Z.add (Z.add out_dim_nb in_dim_nb) local_dim_nb) param_nb) (Z.of_sint 2)
-    then type_error (Some loc) "relation constrs cols not consistent%s\n" ""
+    then type_error (Some loc) "relation constrs cols not consistent%s\n" "";
+  (* All relation kinds use the same row format.  Check lengths before
+     inspecting the equality/inequality flag, including malformed empty rows. *)
+  List.iter (function
+    | flag :: _ when flag = Z.zero || flag = Z.one -> ()
+    | _ -> type_error (Some loc) "first elem of each constraint should be 0/1%s\n" ""
+  ) constrs
   (* 4. ... param_nb consistency should be check globally *)
   ;()  
 ;;
@@ -217,5 +218,4 @@ let convert_ast (ast: OpenScopAST.coq_OpenScopAST): OpenScop.coq_OpenScop =
 let convert (ast: OpenScopAST.coq_OpenScopAST) =
   type_check ast; 
   convert_ast ast
-;; 
-  
+;;

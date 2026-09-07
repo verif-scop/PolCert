@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import shutil
 import subprocess
@@ -13,7 +14,7 @@ from dataclasses import dataclass
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 POLOPT = ROOT / "polopt"
 POLCERT = ROOT / "polcert"
-PLUTO = pathlib.Path("/pluto/tool/pluto")
+PLUTO = pathlib.Path(os.environ.get("POLCERT_PLUTO", "/pluto/tool/pluto"))
 
 COMMON_DISABLED = [
     "--nointratileopt",

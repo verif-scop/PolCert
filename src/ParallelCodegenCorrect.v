@@ -1105,8 +1105,13 @@ Proof.
   intros pol cert pl st st' Hcodegen Hwf Hsem.
   destruct (checked_vector_annotated_codegen_ok_inv
               (PolyLang.current_view_pprog pol) cert pl Hcodegen)
-    as [[Hann [Hsafe _]] | [Hann [Hsafe _]]].
-  - eapply vector_annotated_codegen_correct_general; eauto.
+    as [[pl_raw [Hann [Hclean [Hstages Hinner]]]] | [Hann [Hsafe _]]].
+  - destruct pl_raw as [[s_raw ctxt_raw] vars_raw].
+    simpl in Hclean, Hstages. subst pl.
+    destruct Hstages as
+      [Hsafe0 [Hsafe1 [Hsafe2 [Hsafe3 [Hsafe4 Hsafe5]]]]].
+    eapply vector_annotated_codegen_raw_correct_general; eauto.
+    eapply ParallelLoop.full_cleanup_semantics_reflect; eauto.
   - eapply vector_annotated_codegen_raw_correct_general; eauto.
 Qed.
 

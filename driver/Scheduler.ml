@@ -40,12 +40,23 @@ type intra_tile_mode =
   | DisableIntraTile
   | EnableIntraTile
 
+type phase_pipeline_mode =
+  | StagedPhases
+  | SingleInvocationPhases
+
 let current_tiling_mode = ref OrdinaryTiling
 let current_schedule_mode = ref AffineSchedule
 let current_diamond_mode = ref NoDiamondTiling
 let current_intra_tile_mode = ref DisableIntraTile
+let current_phase_pipeline_mode = ref StagedPhases
 let current_pluto_extra_flags = ref []
 let current_pluto_control_files = ref []
+let current_checked_parallel_proposal = ref false
+
+let with_checked_parallel_proposal action =
+  let previous = !current_checked_parallel_proposal in
+  current_checked_parallel_proposal := true;
+  Fun.protect ~finally:(fun () -> current_checked_parallel_proposal := previous) action
 
 let set_tiling_mode mode =
   current_tiling_mode := mode
@@ -58,6 +69,9 @@ let set_diamond_mode mode =
 
 let set_intra_tile_mode mode =
   current_intra_tile_mode := mode
+
+let set_phase_pipeline_mode mode =
+  current_phase_pipeline_mode := mode
 
 let set_pluto_extra_flags flags =
   current_pluto_extra_flags := flags
@@ -262,7 +276,8 @@ let run_pluto_scop_with_phase_dumps flags inscop =
       None
   in
   match read_scop midscop_file, read_scop posttile_file, read_scop outscop_file with
-  | Some midscop, Some posttile_scop, Some outscop -> Okk (midscop, posttile_scop, outscop)
+  | Some midscop, Some posttile_scop, Some outscop ->
+      Okk (midscop, posttile_scop, outscop)
   | _ ->
       if exc <> 0 then (
         safe_remove midscop_file;
@@ -443,111 +458,6 @@ let map_parallel_hints_to_canonical_dims outscop hints =
           None)
     hints
 
-type pluto_stmt_loop_path = {
-  path_stmt_id : int;
-  path_iterators : string list;
-}
-
-let leading_spaces line =
-  let rec go idx =
-    if idx < String.length line && line.[idx] = ' ' then go (idx + 1)
-    else idx
-  in
-  go 0
-
-let for_iterator_of_line line =
-  let line = String.trim line in
-  let is_for =
-    String.length line >= 3
-    && String.sub line 0 3 = "for"
-    && (String.length line = 3 || line.[3] = ' ' || line.[3] = '\t' || line.[3] = '(')
-  in
-  if not is_for then None
-  else
-    try
-      let left = String.index line '(' in
-      let right = String.index_from line (left + 1) '=' in
-      let iterator =
-        String.sub line (left + 1) (right - left - 1) |> String.trim
-      in
-      if iterator = "" || String.contains iterator ' ' then None
-      else Some iterator
-    with Not_found -> None
-
-let stmt_id_of_line line =
-  let line = String.trim line in
-  if String.length line < 3 || line.[0] <> 'S' then None
-  else
-    let rec digits_end idx =
-      if idx < String.length line && line.[idx] >= '0' && line.[idx] <= '9'
-      then digits_end (idx + 1)
-      else idx
-    in
-    let stop = digits_end 1 in
-    if stop = 1 || stop >= String.length line || line.[stop] <> '(' then None
-    else
-      try Some (int_of_string (String.sub line 1 (stop - 1)))
-      with Failure _ -> None
-
-let pluto_c_stmt_loop_paths pluto_c_file =
-  let rec scan stack paths = function
-    | [] -> List.rev paths
-    | line :: rest ->
-        let indent = leading_spaces line in
-        let stack = List.filter (fun (loop_indent, _) -> loop_indent < indent) stack in
-        begin match for_iterator_of_line line, stmt_id_of_line line with
-        | Some iterator, _ -> scan (stack @ [(indent, iterator)]) paths rest
-        | None, Some stmt_id ->
-            let iterators = List.map snd stack in
-            scan stack ({ path_stmt_id = stmt_id; path_iterators = iterators } :: paths) rest
-        | None, None -> scan stack paths rest
-        end
-  in
-  try
-    read_file pluto_c_file
-    |> String.split_on_char '\n'
-    |> scan [] []
-  with Sys_error _ -> []
-
-let map_vector_hints_to_c_loop_dims pluto_c_file hints =
-  let paths = pluto_c_stmt_loop_paths pluto_c_file in
-  let rec find_index iterator idx = function
-    | [] -> None
-    | current :: rest ->
-        if String.equal iterator current then Some idx
-        else find_index iterator (idx + 1) rest
-  in
-  let add_unique value values =
-    if List.mem value values then values else value :: values
-  in
-  List.filter_map
-    (fun hint ->
-      let dims =
-        List.fold_left
-          (fun dims path ->
-            if hint.raw_hint_stmt_ids <> []
-               && not (List.mem path.path_stmt_id hint.raw_hint_stmt_ids)
-            then dims
-            else
-              match find_index hint.raw_hint_iterator 0 path.path_iterators with
-              | None -> dims
-              | Some dim -> add_unique dim dims)
-          []
-          paths
-      in
-      match dims with
-      | [dim] ->
-          Some
-            {
-              hint_iterator = hint.raw_hint_iterator;
-              hint_stmt_ids = hint.raw_hint_stmt_ids;
-              hint_raw_dim = hint.raw_hint_dim;
-              hint_current_dim = dim;
-              hint_directive = hint.raw_hint_directive;
-            }
-      | _ -> None)
-    hints
-
 let run_pluto_scop_with_loop_hint extractor map_hints flags inscop =
   match implicit_pluto_control_file_error () with
   | Some msg -> Err msg
@@ -596,7 +506,7 @@ let run_pluto_scop_with_parallel_hint flags inscop =
 let run_pluto_scop_with_vector_hint flags inscop =
   run_pluto_scop_with_loop_hint
     extract_vector_hints_from_outscop
-    (fun _ pluto_c_file hints -> map_vector_hints_to_c_loop_dims pluto_c_file hints)
+    (fun outscop _ hints -> map_parallel_hints_to_canonical_dims outscop hints)
     flags
     inscop
 
@@ -698,14 +608,18 @@ let tile_only_parallel_flags () =
   [
     "--identity";
     "--tile";
-    (* Keep parallelization inside the chosen tile.  The post-tiling affine
-       route separately validates any requested intra-tile rescheduling. *)
-    "--innerpar";
+    (* Parallel tile scheduling may add a wavefront.  The hinted consumer
+       validates that actual schedule through the post-tiling affine pass.
+       An explicit --innerpar request is forwarded with the extra flags. *)
     "--nodiamond-tile";
     "--noprevector";
     "--nounrolljam";
     "--parallel";
-  ] @ intra_tile_flags ()
+  ]
+  (* Legacy consumers certify a separately generated pure-tile program.
+     Only the actual-proposal consumer can accept a tile wavefront here. *)
+  @ (if !current_checked_parallel_proposal then [] else ["--innerpar"])
+  @ intra_tile_flags ()
 
 let tile_only_vector_flags () =
   [
@@ -807,8 +721,18 @@ let iss_identity_bridge_flags =
     "--silent";
   ]
 
+let affine_candidate :
+    (OpenScop.coq_OpenScop -> OpenScop.coq_OpenScop result) option ref = ref None
+
+let with_affine_candidate candidate action =
+  let previous = !affine_candidate in
+  affine_candidate := Some candidate;
+  Fun.protect ~finally:(fun () -> affine_candidate := previous) action
+
 let affine_only_scop_scheduler inscop =
-  run_pluto_scop (with_pluto_extra_flags affine_only_flags) inscop
+  match !affine_candidate with
+  | Some candidate -> candidate inscop
+  | None -> run_pluto_scop (with_pluto_extra_flags affine_only_flags) inscop
 
 let tile_only_scop_scheduler inscop =
   let flags =
@@ -860,35 +784,58 @@ let affine_only_scop_scheduler_with_iss_with_vector_hint inscop =
 let iss_identity_bridge_from_scop inscop =
   run_pluto_bridge iss_identity_bridge_flags inscop
 
-let run_pluto_phase_pipeline inscop =
+let normalize_phase_tiling_result midscop outscop =
+  if second_level_tiling_enabled () then
+    begin
+      try
+        let artifact =
+          PlutoTilingValidator.extract_phase_artifact_from_scops
+            ~tiling_mode:PlutoTilingValidator.SecondLevel
+            ~before_path:"mid_affine"
+            ~after_path:"after_tiled"
+            midscop outscop
+        in
+        Okk (midscop, artifact.artifact_after_scop)
+      with
+      | PlutoTilingValidator.ValidationError msg ->
+          Err (coqstring_of_camlstring msg)
+      | exn -> Err (coqstring_of_camlstring (Printexc.to_string exn))
+    end
+  else Okk (midscop, outscop)
+
+let run_pluto_phase_pipeline_staged inscop =
   match affine_only_scop_scheduler inscop with
   | Err msg -> Err msg
   | Okk midscop ->
       begin
         match tile_only_scop_scheduler midscop with
         | Err msg -> Err msg
-        | Okk outscop ->
-            if second_level_tiling_enabled () then
-              begin
-                try
-                  let artifact =
-                    PlutoTilingValidator.extract_phase_artifact_from_scops
-                      ~tiling_mode:PlutoTilingValidator.SecondLevel
-                      ~before_path:"mid_affine"
-                      ~after_path:"after_tiled"
-                      midscop
-                      outscop
-                  in
-                  Okk (midscop, artifact.artifact_after_scop)
-                with
-                | PlutoTilingValidator.ValidationError msg ->
-                    Err (coqstring_of_camlstring msg)
-                | exn ->
-                    Err (coqstring_of_camlstring (Printexc.to_string exn))
-              end
-            else
-              Okk (midscop, outscop)
+        | Okk outscop -> normalize_phase_tiling_result midscop outscop
       end
+
+let single_invocation_tiling_flags () =
+  List.filter (fun flag -> flag <> "--notile") affine_only_flags
+  @ ["--tile"] @ second_level_tiling_flags ()
+
+(* Re-importing the affine midpoint can change Pluto's dependence decomposition
+   and hence its selected band.  For a plain sequential tiling request, retain
+   the two actual phases from the same invocation.  Their existing verified
+   consumer still validates affine scheduling and tiling separately. *)
+let run_pluto_phase_pipeline inscop =
+  match !current_phase_pipeline_mode, !affine_candidate with
+  | SingleInvocationPhases, None
+      when not (identity_schedule_enabled ()) && not (post_tiling_affine_enabled ()) ->
+      begin
+        match run_pluto_scop_with_phase_dumps
+                (with_pluto_extra_flags (single_invocation_tiling_flags ())) inscop with
+        | Err msg -> Err msg
+        | Okk (midscop, tiledscop, finalscop) ->
+            if tiledscop <> finalscop then
+              Err (coqstring_of_camlstring
+                "plain tiling producer changed the post-tile schedule; a checked post-tiling route is required")
+            else normalize_phase_tiling_result midscop tiledscop
+      end
+  | _ -> run_pluto_phase_pipeline_staged inscop
 
 let run_pluto_identity_tiling_pipeline inscop =
   match tile_only_scop_scheduler inscop with
@@ -920,11 +867,27 @@ let run_pluto_post_tiling_affine_pipeline inscop =
     (with_pluto_extra_flags (post_tiling_affine_flags ()))
     inscop
 
+(* An alternative untrusted proposal, consumed by the same verified three-stage
+   pipeline.  The dynamic extent prevents a failed candidate from changing a
+   later normal or strict compilation. *)
+let post_tiling_affine_candidate :
+    (OpenScop.coq_OpenScop ->
+      (OpenScop.coq_OpenScop * (OpenScop.coq_OpenScop * OpenScop.coq_OpenScop)) result)
+    option ref = ref None
+
+let with_post_tiling_affine_candidate candidate action =
+  let previous = !post_tiling_affine_candidate in
+  post_tiling_affine_candidate := Some candidate;
+  Fun.protect ~finally:(fun () -> post_tiling_affine_candidate := previous) action
+
 let run_pluto_post_tiling_affine_pipeline_nested inscop =
-  match run_pluto_post_tiling_affine_pipeline inscop with
-  | Err msg -> Err msg
-  | Okk (midscop, posttile_scop, after_scop) ->
-      Okk (midscop, (posttile_scop, after_scop))
+  match !post_tiling_affine_candidate with
+  | Some candidate -> candidate inscop
+  | None ->
+      match run_pluto_post_tiling_affine_pipeline inscop with
+      | Err msg -> Err msg
+      | Okk (midscop, posttile_scop, after_scop) ->
+          Okk (midscop, (posttile_scop, after_scop))
 
 let run_pluto_post_tiling_affine_pipeline_with_iss inscop =
   run_pluto_scop_with_phase_dumps

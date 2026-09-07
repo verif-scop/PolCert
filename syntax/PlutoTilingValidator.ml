@@ -203,6 +203,29 @@ let ensure_stmt_iterators statement_index stmt =
     failf "statement %d: missing iterator names in statement extensions" statement_index;
   iters
 
+(* The exporter represents an iterator expression as [ArrAtom (AVar name)],
+   while the text reader parses every bare identifier as a zero-index access.
+   Normalize this syntactic distinction without changing names or operations. *)
+let rec normalize_body_expr = function
+  | ArrAtom (AVar name) -> ArrAccessAtom (ArrAccess (name, []))
+  | ArrAtom _ as expr -> expr
+  | ArrAccessAtom _ as expr -> expr
+  | ArrAdd (a, b) -> ArrAdd (normalize_body_expr a, normalize_body_expr b)
+  | ArrMinus (a, b) -> ArrMinus (normalize_body_expr a, normalize_body_expr b)
+  | ArrMulti (a, b) -> ArrMulti (normalize_body_expr a, normalize_body_expr b)
+  | ArrDiv (a, b) -> ArrDiv (normalize_body_expr a, normalize_body_expr b)
+  | ArrLt (a, b) -> ArrLt (normalize_body_expr a, normalize_body_expr b)
+  | ArrLe (a, b) -> ArrLe (normalize_body_expr a, normalize_body_expr b)
+  | ArrEq (a, b) -> ArrEq (normalize_body_expr a, normalize_body_expr b)
+  | ArrAnd (a, b) -> ArrAnd (normalize_body_expr a, normalize_body_expr b)
+  | ArrCond (c, a, b) ->
+      ArrCond (normalize_body_expr c, normalize_body_expr a, normalize_body_expr b)
+  | ArrCall (name, args) -> ArrCall (name, List.map normalize_body_expr args)
+
+let normalize_stmt_body = function
+  | ArrAssign (lhs, rhs) -> ArrAssign (lhs, normalize_body_expr rhs)
+  | ArrSkip -> ArrSkip
+
 let require_same_shape before_scop after_scop =
   let before_params = relation_param_names before_scop in
   let after_params = relation_param_names after_scop in
@@ -217,7 +240,8 @@ let require_same_shape before_scop after_scop =
   List.iteri
     (fun idx (before_stmt, after_stmt) ->
       match (stmt_body before_stmt, stmt_body after_stmt) with
-      | Some body1, Some body2 when body1 <> body2 ->
+      | Some body1, Some body2
+        when normalize_stmt_body body1 <> normalize_stmt_body body2 ->
           failf "statement %d: statement body changed across tiling" (idx + 1)
       | _ -> ())
     (List.combine before_stmts after_stmts)

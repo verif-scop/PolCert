@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import re
 import subprocess
 
 
@@ -142,6 +143,7 @@ def evaluate_check(
     if "needle" in spec:
         needles.append(str(spec["needle"]))
     needles.extend(string_list_field(spec, "needles"))
+    stdout_regexes = string_list_field(spec, "stdout_regexes")
     absent_needles = string_list_field(spec, "absent_needles")
     stdout_min_counts = string_count_field(spec, "stdout_min_counts")
     stderr_needles = string_list_field(spec, "stderr_needles")
@@ -160,6 +162,9 @@ def evaluate_check(
         for needle in needles:
             if needle not in optimized:
                 return f"{spec['name']}: missing {needle!r} in stdout\nstdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        for pattern in stdout_regexes:
+            if re.search(pattern, optimized) is None:
+                return f"{spec['name']}: missing stdout pattern {pattern!r}\nstdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
         for needle in absent_needles:
             if needle in optimized:
                 return f"{spec['name']}: unexpected {needle!r} in stdout\nstdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
@@ -272,6 +277,7 @@ def expectation_summary(spec: dict[str, object]) -> str:
     marker_count = (
         (1 if "needle" in spec else 0)
         + len(string_list_field(spec, "needles"))
+        + len(string_list_field(spec, "stdout_regexes"))
         + len(string_list_field(spec, "absent_needles"))
         + len(string_count_field(spec, "stdout_min_counts"))
         + len(string_list_field(spec, "stderr_needles"))
@@ -291,6 +297,7 @@ def effect_assertion_count(spec: dict[str, object]) -> int:
     return (
         (1 if "needle" in spec else 0)
         + len(string_list_field(spec, "needles"))
+        + len(string_list_field(spec, "stdout_regexes"))
         + len(string_list_field(spec, "absent_needles"))
         + len(string_count_field(spec, "stdout_min_counts"))
         + (1 if args_list_field(spec, "differs_from_args") is not None else 0)

@@ -90,6 +90,11 @@ Proof.
            ++ intro wf_after. destruct wf_after.
               ** apply impeq_refl.
               ** apply reject_tiling_impeq_generic.
+        -- apply bind_eq_compat.
+           ++ apply impeq_refl.
+           ++ intro wf_after. destruct wf_after.
+              ** apply impeq_refl.
+              ** apply reject_tiling_impeq_generic.
         -- apply reject_tiling_impeq_generic.
     + apply reject_tiling_impeq_generic.
   - apply reject_tiling_impeq_generic.
@@ -118,6 +123,24 @@ Proof.
       * intro route.
         rewrite SBandTilingOpt.observe_tiling_validation_route_eq.
         destruct route; simpl.
+        -- apply bind_eq_compat.
+           ++ apply impeq_refl.
+           ++ intro wf_posttile. destruct wf_posttile.
+              ** destruct
+                   (BandGeneric.PolyLang.from_openscop_schedule_only
+                      pol_posttile after_scop)
+                   as [pol_after|msg_after].
+                 --- apply bind_eq_compat.
+                     +++ apply impeq_refl.
+                     +++ intro final_ok. destruct final_ok.
+                         *** apply bind_eq_compat.
+                             ---- apply impeq_refl.
+                             ---- intro wf_after. destruct wf_after.
+                                  ++++ apply impeq_refl.
+                                  ++++ apply impeq_refl.
+                         *** apply impeq_refl.
+                 --- apply impeq_refl.
+              ** apply reject_tiling_impeq_generic.
         -- apply bind_eq_compat.
            ++ apply impeq_refl.
            ++ intro wf_posttile. destruct wf_posttile.
@@ -260,7 +283,9 @@ Proof.
       * apply bind_eq_compat.
         -- apply impeq_refl.
         -- intro iss_wf. destruct iss_wf.
-           ++ apply try_phase_pipeline_from_source_pol_band_impeq_generic.
+           ++ destruct (BandGeneric.BaseOpt.export_for_phase_scheduler pol_iss).
+              ** apply try_phase_pipeline_from_source_pol_band_impeq_generic.
+              ** apply reject_tiling_impeq_generic.
            ++ apply try_phase_pipeline_from_source_pol_band_impeq_generic.
       * apply try_phase_pipeline_from_source_pol_band_impeq_generic.
     + apply try_phase_pipeline_from_source_pol_band_impeq_generic.
@@ -403,8 +428,9 @@ Proof.
       * apply bind_eq_compat.
         -- apply impeq_refl.
         -- intro iss_wf. destruct iss_wf.
-           ++ apply
-                try_post_tiling_affine_phase_pipeline_from_source_pol_band_with_iss_impeq_generic.
+           ++ destruct (BandGeneric.BaseOpt.export_for_phase_scheduler pol_iss).
+              ** apply try_post_tiling_affine_phase_pipeline_from_source_pol_band_impeq_generic.
+              ** apply reject_tiling_impeq_generic.
            ++ apply try_post_tiling_affine_phase_pipeline_from_source_pol_band_impeq_generic.
       * apply try_post_tiling_affine_phase_pipeline_from_source_pol_band_impeq_generic.
     + apply try_post_tiling_affine_phase_pipeline_from_source_pol_band_impeq_generic.

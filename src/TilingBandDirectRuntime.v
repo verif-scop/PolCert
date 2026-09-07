@@ -15,12 +15,14 @@ Module Type TILING_BAND_DIRECT_RUNTIME_API (P: POLIRS).
 
 Inductive tiling_band_validation_route : Type :=
 | DirectBandAccepted
+| GeneralScheduleAccepted
 | Rejected.
 
 Definition tiling_band_validation_route_acceptsb
     (route: tiling_band_validation_route) : bool :=
   match route with
   | DirectBandAccepted => true
+  | GeneralScheduleAccepted => true
   | Rejected => false
   end.
 
@@ -58,19 +60,22 @@ Open Scope impure_scope.
 
 (** * Proof map
 
-    This module is the fail-closed dispatcher for the proved direct tiling
-    layouts.  Each successful branch provides both a semantic band certificate
-    and its layout-specific reversal bridge.  The dispatcher accepts only
-    [DirectBandAccepted]; an unmatched or unproved case returns [Rejected]. *)
+    Specialized layout checks provide a semantic band certificate and a
+    layout-specific reversal bridge.  When these sufficient conditions fail,
+    the generic tiling validator checks the actual old and new schedules over
+    the witnessed domain correspondence.  The two successful proof paths have
+    distinct route tags; either check may reject, and alarms remain failures. *)
 
 Inductive tiling_band_validation_route : Type :=
 | DirectBandAccepted
+| GeneralScheduleAccepted
 | Rejected.
 
 Definition tiling_band_validation_route_acceptsb
     (route: tiling_band_validation_route) : bool :=
   match route with
   | DirectBandAccepted => true
+  | GeneralScheduleAccepted => true
   | Rejected => false
   end.
 
@@ -122,7 +127,7 @@ Definition checked_tiling_sourceb_complete_direct_band_check
     if scalar_aware_ok then pure true
     else
       BIND phase_semantic_ok <-
-        Legacy.checked_tiling_sourceb_phase_semantic_band_direct
+        Legacy.checked_tiling_sourceb_phase_semantic_extended_direct
           before after ws -;
       if phase_semantic_ok then pure true
       else
@@ -131,7 +136,7 @@ Definition checked_tiling_sourceb_complete_direct_band_check
         if phase_ordinary_ok then pure true
         else
           BIND phase_scalar_ok <-
-            PhaseScalar.checked_tiling_sourceb_phase_scalar_direct
+            PhaseScalar.checked_tiling_sourceb_phase_scalar_extended_direct
               before after ws -;
           if phase_scalar_ok then pure true
           else
@@ -185,7 +190,7 @@ Proof.
     + bind_imp_destruct Hcheck phase_semantic_ok Hphase_semantic.
       destruct phase_semantic_ok.
       * eapply
-          Legacy.checked_tiling_sourceb_phase_semantic_band_direct_sourceb_true.
+          Legacy.checked_tiling_sourceb_phase_semantic_extended_direct_sourceb_true.
         exact Hphase_semantic.
       * bind_imp_destruct Hcheck phase_ordinary_ok Hphase_ordinary.
         destruct phase_ordinary_ok.
@@ -199,14 +204,8 @@ Proof.
            exact Hsource.
         -- bind_imp_destruct Hcheck phase_scalar_ok Hphase_scalar.
            destruct phase_scalar_ok.
-           ++ destruct before as [[before_pis before_ctxt] before_vars].
-              destruct after as [[after_pis after_ctxt] after_vars].
-              destruct
-                (PhaseScalar.checked_tiling_sourceb_phase_scalar_direct_true_inv
-                   before_pis before_ctxt before_vars
-                   after_pis after_ctxt after_vars ws Hphase_scalar)
-                as [entries [Hsource _]].
-              exact Hsource.
+           ++ eapply PhaseScalar.checked_tiling_sourceb_phase_scalar_extended_direct_sourceb_true.
+              exact Hphase_scalar.
            ++ bind_imp_destruct Hcheck semantic_ok Hsemantic.
               destruct semantic_ok.
               ** destruct
@@ -447,7 +446,7 @@ Proof.
       destruct phase_semantic_ok.
       * eapply
           Legacy
-            .checked_tiling_sourceb_phase_semantic_band_direct_correct_same_ctxt;
+            .checked_tiling_sourceb_phase_semantic_extended_direct_correct_same_ctxt;
           eauto.
       * bind_imp_destruct Hcheck phase_ordinary_ok Hphase_ordinary.
         destruct phase_ordinary_ok.
@@ -458,7 +457,7 @@ Proof.
            destruct phase_scalar_ok.
            ++ eapply
                 PhaseScalar
-                  .checked_tiling_sourceb_phase_scalar_direct_correct_same_ctxt;
+                  .checked_tiling_sourceb_phase_scalar_extended_direct_correct_same_ctxt;
                 eauto.
            ++ bind_imp_destruct Hcheck semantic_ok Hsemantic.
               destruct semantic_ok.
@@ -594,10 +593,57 @@ Proof.
     discriminate.
 Qed.
 
-Definition checked_tiling_schedule_sourceb_first_runtime_validate_route :=
-  checked_tiling_schedule_sourceb_first_direct_runtime_validate_route.
+(** A requested tiling must introduce at least one witnessed tile coordinate.
+    In particular, the general checker must not turn an unchanged program into
+    a successful tiling route merely because identity is a refinement. *)
+Definition has_tiling_coordinatesb (ws: list statement_tiling_witness) : bool :=
+  existsb (fun w => match stw_links w with [] => false | _ :: _ => true end) ws.
 
-Definition checked_tiling_schedule_sourceb_first_runtime_validate_route_correct :=
-  checked_tiling_schedule_sourceb_first_direct_runtime_validate_route_correct.
+Definition checked_tiling_schedule_sourceb_first_runtime_validate_route
+    (before after: PolyLang.t)
+    (ws: list statement_tiling_witness) : imp tiling_band_validation_route :=
+  BIND direct_ok <-
+    checked_tiling_sourceb_complete_direct_band_check
+      (Legacy.Base.outer_to_tiling_pprog before)
+      (Legacy.Base.outer_to_tiling_pprog after)
+      ws -;
+  if direct_ok then pure DirectBandAccepted
+  else
+    if has_tiling_coordinatesb ws then
+      BIND schedule_ok <- Legacy.Base.checked_tiling_validate_outer before after ws -;
+      pure (if schedule_ok then GeneralScheduleAccepted else Rejected)
+    else pure Rejected.
+
+Lemma checked_tiling_schedule_sourceb_first_runtime_validate_route_correct :
+  forall before after ws st1 st2 route,
+    PolyLang.wf_pprog_affine before ->
+    PolyLang.wf_pprog_general after ->
+    mayReturn
+      (checked_tiling_schedule_sourceb_first_runtime_validate_route
+         before after ws)
+      route ->
+    tiling_band_validation_route_acceptsb route = true ->
+    PolyLang.instance_list_semantics after st1 st2 ->
+    exists st2',
+      PolyLang.instance_list_semantics before st1 st2' /\
+      State.eq st2 st2'.
+Proof.
+  intros before after ws st1 st2 route Hwf_before Hwf_after
+         Hroute Haccept Hsem_after.
+  unfold checked_tiling_schedule_sourceb_first_runtime_validate_route in Hroute.
+  bind_imp_destruct Hroute direct_ok Hdirect.
+  destruct direct_ok.
+  - apply mayReturn_pure in Hroute. subst route.
+    eapply checked_tiling_sourceb_complete_direct_band_check_outer_correct;
+      eauto.
+  - destruct (has_tiling_coordinatesb ws).
+    + bind_imp_destruct Hroute schedule_ok Hschedule.
+      destruct schedule_ok.
+      * apply mayReturn_pure in Hroute. subst route.
+        eapply Legacy.Base.checked_tiling_validate_outer_correct; eauto.
+      * apply mayReturn_pure in Hroute. subst route.
+        discriminate Haccept.
+    + apply mayReturn_pure in Hroute. subst route. discriminate Haccept.
+Qed.
 
 End TilingBandDirectRuntime.
