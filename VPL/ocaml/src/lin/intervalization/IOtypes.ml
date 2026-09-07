@@ -19,7 +19,7 @@ module Term
 	
 	let one = ASTerm.BasicZTerm.Cte (PedraQOracles.zToCoqZ Coeff.u)
 
-	(* Développement *)
+	(* Expansion. *)
 	let rec (to_polynomial: t -> Poly.t)
 		= fun t -> 
 		match t with 
@@ -103,7 +103,7 @@ module Term
 		t2])
 		tlist1 tlist2)
 	
-	(* on ne translate que la variable qu'on garde*)
+	(* Translate only the variable being kept. *)
 	let rec (translate : Poly.Monomial.t -> Var.t -> BinNums.coq_Z -> ASTerm.BasicZTerm.term * Poly.Monomial.t)
 		= fun (m,c) vToKeep coeff ->
 		let l = Misc.pop (Var.equal) m vToKeep in
@@ -119,7 +119,7 @@ module Term
 				(of_monomialBasis l)),
 		(l,Coeff.mul c (coeff |> PedraQOracles.coqZToZ |> Scalar.RelInt.toInt |> Coeff.mk1)))
 	
-	(* Renvoie une partie affine en enlevant les annotations affines *)
+	(* Return an affine part after removing affine annotations. *)
 	let (get_affine_part : t -> t)
 		= let rec(get_affine_part_rec : t -> t option)
 			= fun t ->
@@ -147,7 +147,7 @@ module Term
   		| Some x -> x
   		| None -> Stdlib.raise Not_found
   	
-  	(* remarque : retire les annotations interv*)
+	(* Note: removes interv annotations. *)
 	let (get_interv_part : t -> t)
 		= let rec(get_interv_part_rec : t -> t option)
 			= fun t ->
@@ -179,7 +179,7 @@ module Term
 end
 
 
-(* les annotations autorisées sont Interv et Static*)
+(* Allowed annotations: Interv and Static. *)
 module AnnotedVar
 	= struct
 	
@@ -211,8 +211,8 @@ module AnnotedVar
 	| AVar (ASTerm.TopLevelAnnot.INTERV, aV') -> String.concat "" ["INTERV(" ; to_string aV' ; ")"]
 	| _ -> Stdlib.invalid_arg "IOtypes.AnnotedVar.to_string"
 	
-	(* utile pour prendre en compte les variables éliminées pour un monôme
-	il faut prendre garde à ce que le pattern fournisse le monome original cependant *)
+	(* Account for variables eliminated from a monomial.
+    The pattern must still provide the original monomial. *)
 	let (update_monomial : Poly.MonomialBasis.t -> (t list) MapMonomial.t -> Poly.MonomialBasis.t)
 		= fun m mapNKeep ->
 		try List.fold_left 
@@ -302,8 +302,8 @@ module Itv
 		= fun m env-> 
 		let l = List.filter (fun x -> Var.toInt x > 0) m in		
 		 List.map (fun x -> of_var env x |> range) l
-		|> List.combine l (*liste de paire (variable, range de l'intervalle)*)
-		|> List.filter (fun (v,x) -> x >= 0) (* on ne garde que les ranges positives (les négatives étant des itv non bornés) *)
+		|> List.combine l (* List of (variable, interval range) pairs. *)
+		|> List.filter (fun (v,x) -> x >= 0) (* Keep only positive ranges; negative ranges represent unbounded intervals. *)
 		|> List.fast_sort (fun (v1,x1) (v2,x2) -> Stdlib.compare x1 x2)
 		|> fun l -> List.nth l ((List.length l )-1) 
 		|> fun (l1,l2) -> l1
@@ -333,4 +333,3 @@ module Itv
 			| _ -> Stdlib.failwith "Itv.get_translation_bound"
 			
 end
-

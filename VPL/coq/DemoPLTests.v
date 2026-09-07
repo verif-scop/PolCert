@@ -364,9 +364,7 @@ Definition itv_tests_ok : list (string * statement) :=
        Assume (1 <= x /\ x <= 0)-;
        x::=y*x -;
        Assert "post" false)
-(* remarque: on est sensible au signe du au caractere non-symetrique du test de signe 
-   cf skip1_2
-*)
+(* Note: the result depends on the sign because the sign test is asymmetric; see skip1_2. *)
     ::("nonlin_skip1_1_ok",
        Assume (y < x /\ 1 <= r)-;
        Assume (x * r <= y) -;
@@ -411,7 +409,7 @@ Definition itv_tests_ok : list (string * statement) :=
       Assume (5 <= x /\ 1 <= y /\ y <= 3)-;
        y::=(y+2)*(x*3) -;
        Assert "post" (5 <= x /\ x*9 <= y /\ y <= x*15))
-(* NB: pas precis... voir assign3_ko ci-dessous ! *)
+(* Note: imprecise; see assign3_ko below. *)
     ::("nonlin_assign3_ok",
        Assume (1 <= x /\ x <= 4 /\ 0 <= y)-;
        x::=((x-1)*x)*(x+y-1) -;
@@ -421,7 +419,7 @@ Definition itv_tests_ok : list (string * statement) :=
        Assume (1 <= x /\ x <= 10 /\ y=x-1)-;
        r::=INTERV (x*(y-x)) -;
        Assert "post" (r<=10))
-(* Linearisation avec statique versus dynamique + decoupage au milieu *)
+(* Static versus dynamic linearization, with midpoint splitting. *)
     ::("nonlin_assign5_0_ok",
        Assume (1 <= x /\ x <= 10 /\ y=5)-;
        r::=x*(y-x) -;
@@ -565,4 +563,3 @@ Definition tests_ok := basic_tests_ok ++ itv_tests_ok.
 Definition tests_ko := basic_tests_ko ++ itv_tests_ko.
 
 End Examples.
-

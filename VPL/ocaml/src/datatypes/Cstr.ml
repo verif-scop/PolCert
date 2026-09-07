@@ -209,7 +209,7 @@ module Cstr (Vec : Vector.Type) = struct
 		v = Vec.add c1.v c2.v;
 		c = Coeff.add c1.c c2.c }
 
-	(* XXX: c'est vraiment ce qu'on veut?*)
+	(* XXX: is this the intended behavior? *)
 	let mulc : Coeff.t -> t -> t
 		= fun c cstr ->
 		if cstr.typ <> Eq && Coeff.le c Coeff.z
@@ -385,7 +385,7 @@ module Cstr (Vec : Vector.Type) = struct
     		cstr
     		(getVars [cstr] |> Vec.V.Set.elements)
 
-	(* TODO: vérifier la présence de x? *)
+	(* TODO: check whether x is present? *)
 	let change_variable : Vec.V.t -> Vec.t -> Coeff.t -> t -> t
 		= fun x lin c cstr ->
 		let v = get_v cstr in
@@ -405,7 +405,7 @@ end
 
 module Rat = struct
 
-	(* XXX: Comment faire pour éviter de redéfinir tout? *)
+	(* XXX: how can redefining everything be avoided? *)
 	(** This module type is the same as {!modtype:Cstr.Type} but where {!module:Cstr.Type.Vec} is restricted to {!modtype:Vector.Rat.Type}. *)
 	module type Type = sig
 		module Vec : Vector.Rat.Type

@@ -109,7 +109,7 @@ module Polyhedron (F : Factory.Type) = struct
 			let p' = Pol.widen F.factory p1' p2' in
 			check (NonBot p')
 
-	(* TODO: lever une exception spécifique*)
+	(* TODO: raise a specific exception. *)
 	let check_incl : F.t list -> t -> unit
 		= fun rel -> function
 		| Bottom -> ()

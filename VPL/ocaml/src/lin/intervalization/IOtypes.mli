@@ -44,7 +44,7 @@ module Term
 
 end
 
-(* les annotations autorisées sont Interv et Static*)
+(* Allowed annotations: Interv and Static. *)
 module AnnotedVar
 	: sig
 	
@@ -60,8 +60,8 @@ module AnnotedVar
 		
 	val to_string : t -> string
 	
-	(* utile pour prendre en compte les variables éliminées pour un monôme
-	il faut prendre garde à ce que le pattern fournisse le monome original cependant *)
+	(* Account for variables eliminated from a monomial.
+    The pattern must still provide the original monomial. *)
 	val update_monomial : Poly.MonomialBasis.t -> (t list) MapMonomial.t -> Poly.MonomialBasis.t
 	
 	val apply : Term.t -> t list -> Term.t

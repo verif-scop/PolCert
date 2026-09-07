@@ -10,7 +10,7 @@ type assign = string*poly
 
 type stmt = |Constraints of contrainte list |Assigns of assign list
 
-(** renvoie le polynome multiplié par -1 *)
+(** Return the polynomial multiplied by -1. *)
 let rec neg : poly -> poly
 	= fun p -> match p with
 				|Leaf(l,nb) -> Leaf(l,Q.mul Q.minus_one nb)
@@ -20,7 +20,7 @@ let rec neg : poly -> poly
 
 
 
-(** récurrence pour getCoeff **)
+(** Recursion for getCoeff. *)
 let rec getC (s:string) (n:int):string =
 if n = String.length s
 then
@@ -35,14 +35,10 @@ else begin
 		else try String.sub s 0 n with Invalid_argument _ -> "1"  
 end
 
-(**
-Semantique
-string -> string
-getCoeff (s) renvoie 1 si la string entrée ne commence pas par un nombre, sinon elle renvoie le nombre dans une string. (Elle sert à extraire le coefficient dans les cas 5x, 1234y, etc...
-Exemples:
-getCoeff "123x2" renvoie "123"
-getCoeff "x3" renvoie  "1" (car x3 = x3*1)
-**)
+(** Semantics: string -> string.
+getCoeff returns "1" if the input has no leading number; otherwise it returns
+the leading number as a string. This extracts coefficients from 5x, 1234y, etc.
+Examples: getCoeff "123x2" returns "123"; getCoeff "x3" returns "1". *)
 
 let getCoeff (s:string):string =
 	if String.length s >= 2 && s.[0] = '-'
@@ -55,14 +51,9 @@ let getCoeff (s:string):string =
 	else
 		getC s 0
 
-(**
-Semantique
-string -> string
-getName (s) renvoie le nom de la variable
-Exemples:
-getNom "123x2" renvoie "x2"
-getCoeff "x3" renvoie  "x3"
-**)
+(** Semantics: string -> string.
+getName returns the variable name.
+Examples: getName "123x2" returns "x2"; getName "x3" returns "x3". *)
 let rec getNm (s:string) (n:int):string =
 if n= String.length s then ""
 else
@@ -76,4 +67,3 @@ let getName (s:string):string =
 if String.length s > 1 && s.[0] = '-'
 then getNm s 1
 else getNm s 0
-

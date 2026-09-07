@@ -219,7 +219,7 @@ module Map =
 			(* rem : indexes for which next_ind is a predecessor
 			   keep : others *)
 			let (rem,keep) = List.partition (Index.Int.is_pred next_ind) il in
-			let subs = List.map (fun j -> Index.Int.sub j next_ind) rem in (* différences de rem avec next_ind*)
+			let subs = List.map (fun j -> Index.Int.sub j next_ind) rem in (* Differences between rem and next_ind. *)
 			let keep' =
 				(if Index.Int.is_unitary next_ind then [] else [next_ind])
 			  @
@@ -293,7 +293,7 @@ module Map =
 			|> List.map (fun j -> (j, Index.Int.value j))
 			|> fun l -> if List.length l = 0
 				then init
-				else Misc.max (fun (j1,v1) (j2,v2) -> if v1 > v2 then -1 else 1) l (* on cherche le min des valeurs*)
+				else Misc.max (fun (j1,v1) (j2,v2) -> if v1 > v2 then -1 else 1) l (* Find the minimum value. *)
 				|> Stdlib.fst
 
 	let rec (compute_from_map : Index.Int.t -> t -> (Liste.t * t))

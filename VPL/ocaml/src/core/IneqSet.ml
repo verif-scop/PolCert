@@ -322,9 +322,9 @@ let simpl: 'c Cert.t -> V.t -> 'c EqSet.t -> 'c t -> 'c simpl_t
 	in
 	filter [] (List.rev s)
 
-(* XXX: À revoir?
-Cette fonction n'est utilisée que dans la projection?
-A priori, si synIncl renvoie Check c, c n'aura pas été réécrit car il vient d'une contrainte déjà présente dans le polyèdre.*)
+(* XXX: review this function. Is it used only for projection?
+If synIncl returns Check c, c should not have been rewritten because it comes
+from a constraint already present in the polyhedron. *)
 let synAdd : 'c Cert.t -> 'c EqSet.t -> 'c t -> 'c Cons.t -> 'c t
 	= fun factory es s cons ->
 	match synIncl factory es s (Cons.get_c cons) with
@@ -347,7 +347,7 @@ let subst: 'c Cert.t -> V.t -> 'c EqSet.t -> V.t -> 'c Cons.t -> 'c t -> 'c t
 	trimSet nxt s'
 
 
-(* XXX: le new_horizon renvoyé devrait être la nouvelle next variable *)
+(* XXX: the returned new_horizon should be the new next variable. *)
 let pProj : 'c Cert.t -> V.t -> 'c t -> Flags.scalar -> 'c t
 	= fun factory x s scalar_type ->
 	Proj.proj factory scalar_type [x] s

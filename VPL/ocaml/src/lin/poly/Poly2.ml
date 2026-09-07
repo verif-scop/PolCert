@@ -57,7 +57,7 @@ module type Type = sig
 		(** [mk m c] builds a monomial from monomialBasis [m] and coefficient [c] *)
 		val mk : MonomialBasis.t -> Coeff.t -> t
 		
-		(** [mk2 m c] builds a monomial from a list of variables * exposant and coefficient [c] *)
+		(** [mk2 m c] builds a monomial from variable/exponent pairs and coefficient [c]. *)
 		val mk2 : (V.t * int) list -> Coeff.t -> t
 		
 		(** [mk2 m c] builds a monomial from V.t list [m] and coefficient [c] *)
@@ -507,7 +507,7 @@ module Poly (Vec : Vector.Type) = struct
 
 	let rec(isZ : t -> bool)
 		= fun p ->
-		if p = [] then true (* nécessaire? *)
+		if p = [] then true (* Necessary? *)
 		else if List.length p = 1 
 			then let (mono,coeff) = List.hd p in
 				MonomialBasis.compare mono MonomialBasis.null = 0 && Coeff.equal coeff Coeff.z
@@ -545,7 +545,7 @@ module Poly (Vec : Vector.Type) = struct
 		in fun p1 p2 -> 
 		mul_rec p1 p2 |> canon
 	
-	(* XXX: naïve implem*)
+	(* XXX: naive implementation. *)
 	let (mulc : t -> Coeff.t -> t) 
 		= fun p c ->
 		mul p (cste c)
@@ -554,7 +554,7 @@ module Poly (Vec : Vector.Type) = struct
 		= fun p ->
 		mulc p Coeff.negU 
 	
-	(* XXX: naïve implem *)
+	(* XXX: naive implementation. *)
 	let (sub : t -> t -> t)
 		= fun p1 p2 ->
 		add p1 (mul negU p2)
@@ -722,4 +722,3 @@ module Poly (Vec : Vector.Type) = struct
 end
 
 module RelInt = Poly(Vector.RelInt.Int)
-

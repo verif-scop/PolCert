@@ -1,7 +1,6 @@
 open IOtypes
-(*	Règles pour créer une heuristique : 
-	- Heuristique visant à supprimer un monôme : s'assurer qu'on prenne bien en compte les annotations contenues dans la map mapNKeep
-*)
+(* Rule for a heuristic that removes a monomial:
+    account for the annotations in mapNKeep. *)
 	type prophecy = ASTerm.BasicZTerm.term list;;
 	
 	type t = Poly.t -> env -> mode -> Var.t MapMonomial.t -> (AnnotedVar.t list) MapMonomial.t -> IPattern.t -> (prophecy * Var.t MapMonomial.t * (AnnotedVar.t list) MapMonomial.t * Poly.t)
@@ -29,4 +28,3 @@ open IOtypes
 	val nulScalar : t
 		
 	val of_pattern : t
-

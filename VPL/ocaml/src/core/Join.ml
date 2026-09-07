@@ -101,7 +101,7 @@ module Build (Min : Min.Type) = struct
 				| Some param -> Cons.get_c cons |> Cs.get_v |> fun vec -> Cs.Vec.get vec param)
 			p1)
 		@
-		(* Si la contrainte concerne les constantes : -1, sinon 0*)
+		(* -1 if the constraint concerns constants; otherwise 0. *)
 		(match param with
 		| Some param -> [Scalar.Rat.z]
 		| None -> [Scalar.Rat.negU])
@@ -113,12 +113,12 @@ module Build (Min : Min.Type) = struct
 				| Some param -> Cons.get_c cons |> Cs.get_v |> fun vec -> Cs.Vec.get vec param |> Scalar.Rat.neg)
 			p2)
 		@
-		(* Si la contrainte concerne les constantes : 1, sinon 0*)
+		(* 1 if the constraint concerns constants; otherwise 0. *)
 		(match param with
 		| Some param -> [Scalar.Rat.z]
 		| None -> [Scalar.Rat.u])
 		@
-		[Scalar.Rat.z] (* constante de l'égalité*)
+		[Scalar.Rat.z] (* Constant of the equality. *)
 
 	let build_norm_from_point : Cs.Vec.t -> 'c1 Cons.t list -> 'c2 Cons.t list -> Tableau.Vector.t
 		= fun init_point p1 p2 ->
@@ -264,9 +264,9 @@ module Build (Min : Min.Type) = struct
 		function
 		| None -> [],[]
 		| Some sols ->
-			(* Colonnes correspondant au premier polyèdre*)
+			(* Columns for the first polyhedron. *)
 			let p1_col_min = 0 and p1_col_max = List.length p1
-			(* Colonnes correspondant au second polyèdre*)
+			(* Columns for the second polyhedron. *)
 			and p2_col_min = (List.length p1) + 1 and p2_col_max = (List.length p1) + 1 + (List.length p2)
 			in
 			List.map
@@ -284,7 +284,7 @@ module Build (Min : Min.Type) = struct
 						then let cstr' = {cstr with Cs.typ = Cstr.Lt} in
 							((cstr', get_cert_p1 factory1 arg1 map),
 						 	 (cstr', get_cert_p2 factory2 arg2 map))
-						else (* TODO: dans ce cas, il faut élargir les deux certificats*)
+						else (* TODO: extend both certificates in this case. *)
 							((cstr, get_cert_p1 factory1 arg1 map |> factory1.Cert.to_le),
 						 	 (cstr, get_cert_p2 factory2 arg2 map |> factory2.Cert.to_le)))
 				sols
@@ -301,7 +301,7 @@ module Build (Min : Min.Type) = struct
 		= fun params ->
 		function
 		| None -> ()
-		| Some sols -> PLP.Plot.plot' "/home/amarecha/verasco/vpl2/exp/logs/plot.sage"
+		| Some sols -> PLP.Plot.plot' "plot.sage"
 			params (List.length params)
 			(List.filter (fun (_,cons) -> Cs.tellProp (Cons.get_c cons) <> Cs.Trivial) sols)
 

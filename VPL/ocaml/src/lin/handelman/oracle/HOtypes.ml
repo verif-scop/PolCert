@@ -302,7 +302,7 @@ module Pneuma
 		(MapIndexP.to_string pn.mapIP |> Misc.add_tab 2)
 		(IndexBuild.Map.to_string pn.mapI |> Misc.add_tab 2)
 	
-	(* l'oracle traite les polynômes sous la forme p >= 0 *)
+	(* The oracle handles polynomials in the form p >= 0. *)
 	let neg_poly : CstrPoly.Positive.t -> Poly.t list
 		= fun cp ->
 		let p = cp.CstrPoly.Positive.p in
@@ -311,8 +311,9 @@ module Pneuma
 		| Cstr.Lt -> [Poly.neg p]
 		| Cstr.Eq -> p :: [Poly.neg p]
 			
-	(* On initialise uniquement avec les inégalités du polyèdre.
-	Les polynômes à linéariser ont été réécris pour ne plus parler des variables définies par des égalités. *)
+	(* Initialize using only the inequalities of the polyhedron.
+    The polynomials to linearize have been rewritten to eliminate variables
+    defined by equalities. *)
 	let (init : Poly.t -> 'c HPol.t -> t)
 		= fun p ph ->
 		let cl = List.fold_left 
@@ -367,5 +368,3 @@ module Pneuma
 			(Poly.mul pi (computeVarIndex j pn.vl), mapIP', mapI')
 		| Hi.VarBounds (j,b) -> (Poly.mul (computeBoundIndexList b pn.ph) (computeVarIndex j pn.vl), pn.mapIP, pn.mapI)
 end
-
-

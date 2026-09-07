@@ -343,8 +343,8 @@ Module AffineDecompose(N: NumSig) (Import Affine: AffineTermSig N) (Import Term:
 
   Hint Rewrite fromLin_correct: linterm.
 
-  (* This function decomposes a polynom "te" into the sum of an affine term and 
-     a polynome which is either nul or with all its monome of degre >= 2 
+  (* This function decomposes a polynomial "te" into the sum of an affine term and
+     a polynomial that is either zero or has only monomials of degree >= 2.
 
    NB: in the correctness proof, we only show that the source polynom is preserved by the
        decomposition.
@@ -769,5 +769,3 @@ Record linearizeContext: Type := {
   source: ZTerm.t;        (* source = nonaffine + affine *) 
   cmp: cmpG               (* guard: "0 cmp source" *)
 }.
-
-

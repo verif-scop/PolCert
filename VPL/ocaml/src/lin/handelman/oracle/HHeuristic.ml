@@ -3,7 +3,7 @@ open HPattern
 
 type t = Pneuma.t -> HPattern.t -> Pneuma.t
 
-(* XXX: devrait updater les maps? *)
+(* XXX: should the maps be updated? *)
 let exposantDegree : Pneuma.t -> Poly.t -> Pneuma.t
 	= fun pn p ->
 	let n_cstrs = Pneuma.n_cstrs pn in

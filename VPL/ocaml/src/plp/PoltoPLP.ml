@@ -9,7 +9,7 @@ module B = Join.Build(MinFloat)
 include B
 
 	(*
-	(* À priori inutile *)
+	(* Probably unnecessary *)
 	(** [computePoints x0 cstrs x'] takes the result of a minimization and the inner point on which it was done.
 	It attaches to each constraint a new point within the polyhedron. *)
 	let computePoints : Vec.t -> (Cs.t * Vec.t) list -> Vec.t -> (Cs.t * Vec.t) list
@@ -136,7 +136,7 @@ let to_plp : 'c Cert.t -> Vec.t -> ('c Cons.t * Vec.t) list -> 'c regionsT
 
 let minimize_and_plp : 'c Cert.t -> Vec.t -> 'c Cons.t list -> 'c regionsT
 	= fun factory init_point conss ->
-	(* TODO: ces étapes devraient être évitée, la minimization devrait pouvoir gérer des Cons.t directement*)
+	(* TODO: avoid these steps by letting minimization handle Cons.t directly. *)
 	MinFloat.minimize init_point (List.map Cons.get_c conss)
 	|> List.map (fun (cstr,point) ->
 		let cons = List.find (fun cons -> Cs.equalSyn (Cons.get_c cons) cstr) conss in
@@ -173,7 +173,7 @@ module ReNormalize = struct
 		|> Vec.divr point
 		|> fun point -> Vec.set point additional_var Vec.Coeff.z
 		*)
-		(* TODO faut il diviser tous les coefficients par le coefficient de la variable additionnelle? *)
+		(* TODO: divide all coefficients by the coefficient of the additional variable? *)
 
 	let renormalize_vec : Vec.Coeff.t -> Vec.V.t -> Vec.t -> Vec.t -> Vec.t -> Vec.t
 		= fun denominator additional_var new_point polyhedron_face vec ->

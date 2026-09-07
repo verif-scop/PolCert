@@ -388,7 +388,7 @@ module VectorMap (Coeff : Scalar.Type)(V : Var.Type) = struct
 
 	let divr v q = map (fun n -> Coeff.divr n q) v
 	
-	(* XXX: besoin de supprimer les 0 comme dans la version Rtree?*)
+	(* XXX: remove zeros as in the Rtree version? *)
 	let toList : t -> (V.t * Coeff.t) list
 		= fun v -> (M.toList v)
 

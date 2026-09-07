@@ -23,8 +23,8 @@ module type Type = sig
 		type t = {
 			id : int;
 			r : (Boundary.t * int option) list;
-			point : Minimization.Vec.t; (* Un point dans la région *)
-			sx : PSplx.t option(* Tableau de simplexe dont l'objectif a donné cette région *)
+			point : Minimization.Vec.t; (* A point in the region. *)
+			sx : PSplx.t option(* Simplex tableau whose objective produced this region. *)
 		}
 	end
 

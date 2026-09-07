@@ -245,7 +245,7 @@ Module CsImpl(Cstr: CstrSig).
    unfold sat2 in * |-; intuition.
   Qed.
   
-  (* Ajout pour Handelman *)
+  (* Addition for Handelman. *)
   Definition geti (i:nat) (l:t) (d:Cstr.t) : Cstr.t :=
   (nth i l d).
   
@@ -273,7 +273,7 @@ Module CsImpl(Cstr: CstrSig).
   Qed.
 
   Definition default : Cstr.t := Cstr.top.
-  (* Fin ajout pour Handelman *)
+  (* End of the Handelman addition. *)
 
   Global Hint Unfold sat2: pedraQ.
 
@@ -283,7 +283,7 @@ End CsImpl.
 Module Cs.
   Include CsImpl Cstr.
   
-  (* Ajout pour Handelman *)
+  (* Addition for Handelman. *)
   Require Import QArith.
   Require Import Ring_polynom_AddOnQ.
   Require Import Qop.
@@ -348,4 +348,3 @@ Module Cs.
   Qed.
 
 End Cs.
-

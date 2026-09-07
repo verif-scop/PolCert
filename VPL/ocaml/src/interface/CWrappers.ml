@@ -2,21 +2,14 @@
     as interfaces of "VPLInterface2"
 *)
 
-(* NB: ci-dessous, je = Sylvain !
-
-Je ne vois pas bien comment rentrer dans le moule de "VPLInterface2".
-
-J'essaie de proposer qqchose d'analogue, en modifiant ce qui me gène.
-But: lifter les modules "FullDom"
-        de "src/coq/extract/PedraQ"
-     et de "src/coq/extract/PedraZ"
-*)
+(* This interface adapts VPLInterface2 to lift the FullDom modules
+from src/coq/extract/PedraQ and src/coq/extract/PedraZ. *)
 
 module Var = Var.Positive
-  (* type des variables: pour l'utilisateur du "int" serait plus simple ? *)
+  (* Variable type: would int be simpler for users? *)
 
 module Annot = struct
-    (* type des annotations possibles: à compléter ! *)
+    (* Possible annotation types: extend this list. *)
   	type t =
 	| Old (* used in assign / guassign *)
 	| Unused (* a default unused case representing future annotations *)
@@ -104,7 +97,7 @@ end
 module Interface (Coeff: Scalar.Type) = struct
 
 	module Term = struct
-	(* copié de VPLInterface2 *)
+	(* Copied from VPLInterface2. *)
 
 		type t =
 		| Var of Var.t
@@ -191,7 +184,7 @@ module Interface (Coeff: Scalar.Type) = struct
 			(Basic true)
   end
 
-  (* je coupe "Type" en 2 (avec renommage en Domain) *)
+  (* Split Type into two parts and rename it Domain. *)
 
   module type LowLevelDomain = LowLevelDomain with module Term = Term
 

@@ -88,7 +88,7 @@ module VarMap (V : Var.Type) = struct
 
 	let equal = M.equal 
 
-	(* XXX: est-ce mieux de faire map.mem puis map.find ou bien map.find en catchant l'exception? *)
+	(* XXX: is map.mem followed by map.find preferable to catching the exception from map.find? *)
 	let get: 'n -> 'n t -> V.t -> 'n
 		= fun z map v ->
 		if M.mem v map
@@ -129,7 +129,7 @@ module VarMap (V : Var.Type) = struct
 		= fun f base map ->
 		M.fold (fun key elt res -> f key res elt) map base
 	
-	(* XXX: tester l'existence avant toList?*)
+	(* XXX: test for existence before toList? *)
 	let find: ('a -> 'b option) -> 'a t -> (V.t * 'b) option
 		= fun f map ->
 		try
@@ -148,7 +148,7 @@ module VarMap (V : Var.Type) = struct
 		= fun f map nap ->
 		M.merge f map nap
 	
-	(* nap et map doivent comporter les mêmes bindings*)
+	(* nap and map must contain the same bindings. *)
 	let fold2_strict: ('a -> 'n -> 'm -> 'a) -> 'a -> 'n t -> 'm t -> 'a
 		= fun f base nap map ->
 		List.fold_left2
@@ -172,7 +172,7 @@ module VarMap (V : Var.Type) = struct
 				| (Some m, Some n) -> f v res m n)
 			base
 
-	(* XXX: à implémenter? *)
+	(* XXX: implement this? *)
 	let fold2_opt: (V.t -> 'a -> 'm option -> 'n option -> 'a) -> 'a -> 'm t -> 'n t -> 'a
 		= fun f base map nap ->
 		merge
@@ -183,7 +183,7 @@ module VarMap (V : Var.Type) = struct
 			(fun v res (mopt, nopt) -> f v res mopt nopt)
 			base
 
-	(* XXX: à corriger -> prendre en compte f_left et f_right?*)
+	(* XXX: fix this by accounting for f_left and f_right? *)
 
 	(*let find2 : ('m -> 'n -> 'b option) -> ('b option -> 'b option) -> ('b option -> 'b option) -> 'm t -> 'n t -> 'b option 
 		= fun f f_left f_right map nap ->
@@ -303,7 +303,7 @@ module VarMap (V : Var.Type) = struct
 		|>
 		M.for_all (fun _ (m,n) -> f m n)
 	
-	(* XXX: à implémenter*)
+	(* XXX: implement this. *)
 	let merge3 : (V.t -> 'a option -> 'b option -> 'c option -> 'res option) -> 'a t -> 'b t -> 'c t -> 'res t
 		= fun f r1 r2 r3 ->
 		M.empty

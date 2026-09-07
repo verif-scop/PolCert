@@ -1,10 +1,10 @@
 module Debug = DebugTypes.Debug(struct let name = "Handelman" end)
 
-(* cIndex (1, 0, 3) représente C_1^1 * C_2^0 * C_3^3 *)
+(* cIndex (1, 0, 3) represents C_1^1 * C_2^0 * C_3^3. *)
 type cIndex = Index.Int.t
-(* varIndex (1, 0, 3) représente x_1^1 * x_2^0 * x_3^3 *)
+(* varIndex (1, 0, 3) represents x_1^1 * x_2^0 * x_3^3. *)
 type varIndex = Index.Int.t
-(* boundIndex (1, 0, 3) représente 1xC_1 + 0xC_2 + 3xC_3 *)
+(* boundIndex (1, 0, 3) represents 1xC_1 + 0xC_2 + 3xC_3. *)
 type boundIndex = Index.Rat.t
 
 type t =

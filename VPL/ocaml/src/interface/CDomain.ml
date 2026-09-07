@@ -53,7 +53,7 @@ module PedraQWrapper: QInterface.HighLevelDomain = struct
       let itv = getItvMode BOTH (import_QTerm t) p in
       { Pol.low = export_QbndT itv.QItv.lower ; Pol.up = export_QbndT itv.QItv.upper }
 
-    (* TODO: getItvMode va t'il renvoyer un intervalle vide? Faut-il lever une exception dans getItvMode plutôt?*)
+    (* TODO: can getItvMode return an empty interval? Should getItvMode raise an exception instead? *)
     let getUpperBound p t =
     	let itv = getItvMode UP (import_QTerm t) p in
     	if QItv.is_bot itv

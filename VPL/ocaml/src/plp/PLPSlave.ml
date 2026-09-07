@@ -1,6 +1,6 @@
 let nb_message_sent : int ref = ref 0
 
-(* TODO: mettre à jour pour les nouveaux ExplorationPoint.t *)
+(* TODO: update for the new ExplorationPoint.t. *)
 
 module Slave (Minimization : Min.Type) = struct
 
@@ -76,7 +76,7 @@ module Slave (Minimization : Min.Type) = struct
 		  		(* taken from add_region*)
 		  		let id = get_id() in
 				let regs = MapV.add id reg MapV.empty in
-				(* XXX:  vérifier les points rendus! (voir addRegion)*)
+				(* XXX: check the returned points; see addRegion. *)
 				let todo = extract_points reg id in
 				res_slave := {!res_slave with regs = regs};
 				let todo' = adjust_points todo in
@@ -237,7 +237,7 @@ let rec more_whip : unit -> unit
 	Printf.sprintf "nb_message_sent = %i" !nb_message_sent
 		|> prerr_endline;
 	match !SlaveRat.res_slave.SlaveRat.todo with
-	| [] -> begin (* Plus de point à traiter. *)
+	| [] -> begin (* No points remain to process. *)
 		SlaveRat.Write.ask_for_work();
 		let s = read_wait() in
 		SlaveRat.Read.run s;
@@ -245,7 +245,7 @@ let rec more_whip : unit -> unit
 		end
 	| _ :: _ -> begin
 		match read() with
-		| None -> begin (* Rien à lire *)
+		| None -> begin (* Nothing to read. *)
 			SlaveRat.Steps.run();
 			more_whip()
 			end
@@ -266,4 +266,3 @@ let first_whip : unit -> unit
 ;;
 	
 first_whip();;
-

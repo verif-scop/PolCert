@@ -1,7 +1,7 @@
 (** We provide here a basic interval abstract domain
     for polynomial expressions over Z.
 
-  Authors: Alexandre Maréchal et Sylvain Boulmé.
+  Authors: Alexandre Maréchal and Sylvain Boulmé.
  *)
 
 Require Import NumC.
@@ -581,4 +581,3 @@ Module NAItv.
   Hint Rewrite cte_correct add_correct opp_correct mulZ_correct mulP1_correct mulN_correct: linterm.
 
 End NAItv.
-

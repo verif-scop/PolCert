@@ -1,4 +1,4 @@
-(** Test de Calculatrice avec la nouvelle UserInterface.ml*)
+(** Calculator test using the new UserInterface.ml. *)
 module CP = CstrPoly.Positive
 module Poly = CP.Poly
 
@@ -6,7 +6,7 @@ include UserInterface.Interface(Scalar.Rat)
 
 let folder = "/tmp/"
 
-(** Donne le nombre d'occurence d'une string dans une string list **)
+(** Count the occurrences of a string in a string list. *)
 let nbOcc (s:string) (sl:string list):int
 	= List.fold_left
 		(fun n s' -> if (String.compare s s') = 0 then 1 + n else n)
@@ -213,8 +213,7 @@ module Print = struct
 	  close_out oc              (* flush and close the channel *)
 end
 
-(**
-affiche le polyhedre avec comme argument optionnel les variables à regarder **)
+(** Display the polyhedron, optionally selecting the variables to view. *)
 let show ?vars:(vars = "") (po:VPL.t) : unit =
 	let (body_string,nb_dim) = (Print.to_plot_for_show ~vars:vars po) in
 	let u = Print.write_file (folder ^ "/pol.sage") (Print.sage_beginning_string^body_string) in
@@ -229,9 +228,7 @@ let show_regions : unit -> unit
 		("sage < " ^ folder ^ "/launch_command") in
 	()
 
-(**
-affiche toutes les contraintes et affectations du polyhèdre
-**)
+(** Display all constraints and assignments of the polyhedron. *)
 let print : VPL.t -> unit
 	= fun p ->
 	VPL.to_string Ident.get_string p

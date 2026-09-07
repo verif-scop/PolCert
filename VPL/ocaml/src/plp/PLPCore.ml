@@ -156,8 +156,8 @@ module PLP(Minimization : Min.Type) = struct
 		type t = {
 			id : int;
 			r : (Boundary.t * int option) list;
-			point : Vec.t; (* Un point dans la région *)
-			sx : PSplx.t option (* Tableau de simplexe dont l'objectif a donné cette région *)
+			point : Vec.t; (* A point in the region. *)
+			sx : PSplx.t option (* Simplex tableau whose objective produced this region. *)
 		}
 
 		let mk : int -> Boundary.t list -> Vec.t -> PSplx.t -> t
@@ -327,7 +327,7 @@ module PLP(Minimization : Min.Type) = struct
 			  		:: l)
 			 	sx.PSplx.obj
 			 	[]
-			(* XXX: ça serait bien d'avoir une forme canonique des contraintes pour pourvoir remplacer equal par equalSyn*)
+			(* XXX: a canonical constraint form would allow replacing equal with equalSyn. *)
 		  	|> Misc.rem_dupl (fun c c' -> Cs.equal c c')
 		  	|> List.filter (fun c -> is_trivial c |> not)
 
@@ -678,7 +678,7 @@ module PLP(Minimization : Min.Type) = struct
 				in
 				match eval_i with
 				| [] ->
-					if List.length evals = (i+1) (* il n'y a pas d'élément après cstr dans la liste*)
+					if List.length evals = (i+1) (* No element follows cstr in the list. *)
 					then None
 					else let (_,(_,v2)) = List.nth evals (i+1) |> List.hd in
 					Some v2
@@ -708,17 +708,17 @@ module PLP(Minimization : Min.Type) = struct
 				Debug.log DebugTypes.Detail (lazy(Printf.sprintf "evals = %s"
 					(eval_to_string evals)));
 				try
-					(* XXX: que se passe t-il si i n'est pas 0? *)
+					(* XXX: what happens if i is not 0? *)
 					let i = Misc.findi (List.exists (fun ((_,cstr'),_) -> Cs.equal cstr cstr')) evals in
 					let evals =
 						if List.length (List.nth evals i) > 1
-						then (* On a trouvé des candidat adjacents, il faut vérifier qu'ils sont bien adjacents *)
+						then (* Check whether the candidate regions are actually adjacent. *)
 							match Adjacency.adjacent id cstr (List.nth evals i) regMap with
 							| None -> begin match reg_t with
 								| Cone -> (Misc.sublist evals 0 i) @ [[(id,cstr), (dir_type, v1)]] @ (Misc.sublist evals (i+1) (List.length evals))
 								| NCone -> evals
 							end
-							| Some id_adj -> Stdlib.raise (Adjacent id_adj) (* un des candidats était bien adjacent *)
+							| Some id_adj -> Stdlib.raise (Adjacent id_adj) (* One candidate was actually adjacent. *)
 						else evals
 					in
 					match compute_next_point cstr evals with
@@ -857,7 +857,7 @@ module PLP(Minimization : Min.Type) = struct
 				in
 				match eval_i with
 				| [] ->
-					if List.length evals = (i+1) (* il n'y a pas d'élément après cstr dans la liste*)
+					if List.length evals = (i+1) (* No element follows cstr in the list. *)
 					then None
 					else let (_,(_,v2)) = List.nth evals (i+1) |> List.hd in
 					Some v2
@@ -888,17 +888,17 @@ module PLP(Minimization : Min.Type) = struct
 				Debug.log DebugTypes.Detail (lazy(Printf.sprintf "evals = %s"
 					(eval_to_string evals)));
 				try
-					(* XXX: que se passe t-il si i n'est pas 0? *)
+					(* XXX: what happens if i is not 0? *)
 					let i = Misc.findi (List.exists (fun ((_,cstr'),_) -> Cs.equal cstr cstr')) evals in
 					let evals =
 						if List.length (List.nth evals i) > 1
-						then (* On a trouvé des candidat adjacents, il faut vérifier qu'ils sont bien adjacents *)
+						then (* Check whether the candidate regions are actually adjacent. *)
 							match Adjacency.adjacent id cstr (List.nth evals i) regMap with
 							| None -> begin match reg_t with
 								| Cone -> (Misc.sublist evals 0 i) @ [[(id,cstr), (dir_type, v1)]] @ (Misc.sublist evals (i+1) (List.length evals))
 								| NCone -> evals
 							end
-							| Some id_adj -> Stdlib.raise (Adjacent id_adj) (* un des candidats était bien adjacent *)
+							| Some id_adj -> Stdlib.raise (Adjacent id_adj) (* One candidate was actually adjacent. *)
 						else evals
 					in
 					match compute_next_point cstr evals with
@@ -1075,7 +1075,7 @@ module PLP(Minimization : Min.Type) = struct
 				end
 		*)
 
-		(* XXX: faut-il remettre la version ci-dessus pour les floats? *)
+		(* XXX: restore the preceding version for floats? *)
 
 		(** [correct_point names cstrs point] returns a point that lies in [cstrs]'s interior.
 			If no such point exists, [None] is returned.
@@ -1164,7 +1164,7 @@ module PLP(Minimization : Min.Type) = struct
 		regions : Region.t list;
 		}
 
-	(* TODO : tirer parti des égalités! *)
+	(* TODO: exploit equalities. *)
 	module Add_Region = struct
 
 		(** [should_explore_again reg1 cstr reg2] checks whether the point that has been explored should be explored again.
@@ -1265,7 +1265,7 @@ module PLP(Minimization : Min.Type) = struct
 				| None ->
 					let newPointToExplore = find_new_point reg.Region.point pointToExplore in
 					let newExplorationPoint = ExplorationPoint.Direction(id, (cstr, newPointToExplore)) in
-					(* on remplace l'ancien ExplorationPoint.t de todo par le nouveau *)
+					(* Replace the old ExplorationPoint.t in todo with the new one. *)
 					exec config {plp' with todo = List.tl plp'.todo @ [newExplorationPoint]}
 				| Some reg' -> exec config (Add_Region.add config (Some reg) reg' explorationPoint plp')
 				end
@@ -1353,7 +1353,7 @@ module PLP(Minimization : Min.Type) = struct
 		let results = extract_sols get_cert regs in
 		Debug.log DebugTypes.MOutput
 			(lazy(result_to_string (Some results)));
-		(*check_redundancies results;*) (* XXX: pour tests seulement! *)
+		(*check_redundancies results;*) (* XXX: for testing only. *)
 		Some results
 
 	(* also initializes the fresh region id *)

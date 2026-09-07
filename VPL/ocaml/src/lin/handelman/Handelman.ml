@@ -188,7 +188,7 @@ module Handelman (Minimization : Min.Type) = struct
 		  |> Poly.mul Poly.negU in
 		  obj_buildOfPoly lin cst
 
-		(* data/mk à améliorer *)
+		(* Improve data/mk. *)
 		(** row_from_constraint p mb converts the Poly.t p into a row*)
 		let rec (row_from_constraint : Poly.t -> Poly.V.t list -> Tableau.Vector.t)
 		  = fun p vars ->
@@ -349,14 +349,14 @@ module Handelman (Minimization : Min.Type) = struct
 			(fun i -> Var.Positive.fromInt i)
 			(Misc.range n (nb_h + n))
 		in
-		(* le ième Hi est associé à la variable numéro i*)
+		(* The ith Hi corresponds to variable i. *)
 		let flin = 	(List.fold_right
 				(fun i p -> Poly.add
 					(Poly.mul
 						(Poly.mk2 [([List.nth lpvars i], Scalar.Rat.u)])
 						(List.nth his_p i))
 					p)
-				(Misc.range 0 nb_h) (* le premier indice est associé à la contrainte triviale*)
+				(Misc.range 0 nb_h) (* The first index corresponds to the trivial constraint. *)
 				f)
 		in
 		let simplex_equalities = get_non_linear_coeffs flin variables in
@@ -444,7 +444,7 @@ module Handelman (Minimization : Min.Type) = struct
 			(Misc.list_to_string Hi.to_string his " ; ")
 			(Misc.list_to_string Poly.to_string his_poly " ; ")
 			(Poly.to_string g)));
-		(* XXX: faut il ajuster les comparaisons avec -1* les contraintes? *)
+		(* XXX: should comparisons account for constraints multiplied by -1? *)
 		match handelman Obj.Bland ph his_poly g with
 		| None -> None
 		| Some regs -> begin
@@ -726,7 +726,7 @@ module Float = Handelman(Min.Classic(Vector.Float.Positive))
 			let ineqs = List.map (fun c -> {c with Cs.typ = Cstr.Lt}) (ph#get_ineqs()) in
 			Debug.log DebugTypes.Detail
 				(lazy (Printf.sprintf "get : ineqs = %s" (Cs.list_to_string ineqs)));
-			(*List.map (Cs.mulc Scalar.Rat.negU) (ph#get_ineqs())*) (* XXX: mais purkwa? *)
+			(*List.map (Cs.mulc Scalar.Rat.negU) (ph#get_ineqs())*) (* XXX: why? *)
 			let pointInside = getPointInside ineqs (ph#get_vars) in
 			let res = Poly.sub
 				(Poly.eval_partial objective pointInside)

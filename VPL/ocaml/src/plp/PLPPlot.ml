@@ -20,9 +20,9 @@ def monomial_image(m,variables,nb_var):
     except ValueError:
         return vector(QQ, nb_var)
 
-#Projète le polyèdre suivant la variable
-# variables doit contenir la liste des variables, y compris celle qui va être projetée
-#P doit avoir la même dimension que variables
+# Project the polyhedron along variable.
+# variables includes every variable, including the one being projected out.
+# P and variables must have the same dimension.
 def proj(P,variable, variables, ring, nb_dim):
 	monomials = [ring(x) for x in variables]
 	vertices = P.vertices()
@@ -33,12 +33,12 @@ def proj(P,variable, variables, ring, nb_dim):
 	proj_vertices = [(v.vector()*projection)[0:len(new_variables)] for v in vertices]
 	return Polyhedron(vertices = proj_vertices)
 
-#On va projeter toutes les variables sauf variable pour obtenir l'intervalle de variable
+# Project out every other variable to obtain the interval for variable.
 def get_itv_from_poly(P,variable,variables,ring, nb_dim):
 	i = variables.index(variable)
-	new_variables = variables[0:i] + variables[i+1:] #on enlève variable de variables
+	new_variables = variables[0:i] + variables[i+1:] # Remove variable from variables.
 	variables_inter = variables
-	for v in new_variables:	#on parcourt toutes les variables sauf variable	
+	for v in new_variables:	# Iterate over every other variable.
 		P = proj(P,v,variables_inter,ring, nb_dim)
 		i = variables_inter.index(v)
 		variables_inter = variables_inter[0:i] + variables_inter[i+1:]
@@ -143,7 +143,7 @@ let str_plot_regions =
 "
 
 let str_def_regions = 
-"#arbre = liste de [region, solution]
+"# arbre is a list of [region, solution] pairs.
 def regions_from_tree(arbre, ring, variables, nb_dim):
 	regions = []
 	lines = []

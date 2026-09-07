@@ -627,7 +627,7 @@ Notation "x '='' y" := (@eq' _ x y)
     and it is able to instantiate existentials when required. *)
 
 Tactic Notation "rapply" constr(t) :=
-  first  (* todo: les @ sont inutiles *)
+  first  (* TODO: the @ markers are unnecessary *)
   [ eexact (@t)
   | refine (@t)
   | refine (@t _) 
@@ -4080,4 +4080,4 @@ Module LibTacticsCompatibility.
     subst; auto_star.
 End LibTacticsCompatibility.
 
-Open Scope nat_scope.  
+Open Scope nat_scope.

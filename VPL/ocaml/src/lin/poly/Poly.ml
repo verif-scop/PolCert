@@ -492,7 +492,7 @@ module Poly_ (Vec : Vector.Type) = struct
 
 	let rec(isZ : t -> bool)
 		= fun p ->
-		if p = [] then true (* nécessaire? *)
+		if p = [] then true (* Necessary? *)
 		else if List.length p = 1
 			then let (mono,coeff) = List.hd p in
 				MonomialBasis.compare mono MonomialBasis.null = 0 && Vec.Coeff.equal coeff Vec.Coeff.z
@@ -534,7 +534,7 @@ module Poly_ (Vec : Vector.Type) = struct
 		in fun p1 p2 ->
 		mul_rec p1 p2 |> canon
 
-	(* XXX: naïve implem*)
+	(* XXX: naive implementation. *)
 	let (mulc : t -> Vec.Coeff.t -> t)
 		= fun p c ->
 		mul p (cste c)
@@ -543,7 +543,7 @@ module Poly_ (Vec : Vector.Type) = struct
 		= fun p ->
 		mulc p Vec.Coeff.negU
 
-	(* XXX: naïve implem *)
+	(* XXX: naive implementation. *)
 	let (sub : t -> t -> t)
 		= fun p1 p2 ->
 		add p1 (mul negU p2)

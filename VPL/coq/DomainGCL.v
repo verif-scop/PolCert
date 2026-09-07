@@ -3,17 +3,14 @@ Require Import Impure.
 Require Import PredTrans.
 Require Export DomainInterfaces.
 
-  (*
-    on donne une description de plus haut niveau des operateurs des domaines abstraits.
-    un opérateur d'un domaine "implémente" un transformateur de prédicats.
+  (* Higher-level description of abstract-domain operators.
+    A domain operator implements a predicate transformer.
 
-    Intérêt:
-    1. on peut raisonner sur le niveau "transfo de predicat" sans redescendre au niveau domaine abstrait...
-    2. utiliser la tactique "Program" pour définir l'implem et la spec en même temps (surmonter des limites de 
-       VPLAsimplify)...
+    This supports reasoning about predicate transformers without returning to
+    the abstract-domain level. Program defines the implementation and its
+    specification together, overcoming limitations of VPLAsimplify.
 
-    NB: on utilise des transfo de prédicat en backward, car bien compatibles avec CPS.
-   *)
+    Backward predicate transformers work well with continuation-passing style. *)
 
 Module GeneralizedBasicGCL (Export Imp: FullImpureMonad) (N: NumSig) (D: BasicDomainG Imp N).
 
@@ -26,7 +23,7 @@ Module GeneralizedBasicGCL (Export Imp: FullImpureMonad) (N: NumSig) (D: BasicDo
       impl_correct: 
         forall a, WHEN a' <- impl a THEN forall m, gamma a m -> spec m (gamma a')
     }.
-  (* NB sur l'extraction: MP n'est pas eliminé bien que non-informatif ! *)
+  (* Extraction note: MP is not eliminated even though it is non-informative. *)
   *)
 
   (** We inline MP definition, but emulate the constructor and the spec projection of the initial version ! *)

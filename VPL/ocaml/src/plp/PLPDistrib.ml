@@ -10,7 +10,7 @@ module PLP(Minimization : Min.Type) = struct
 	
 	type explorationPoint = int * Boundary.t
 	
-	(*XXX : le parsing ne fonctionne pas quand il n'y a pas de paramètres *)
+	(* XXX: parsing does not work without parameters. *)
 	module Distributed = struct
 		(*
 		(** index of the process in the list of processes.*)
@@ -308,7 +308,7 @@ module PLP(Minimization : Min.Type) = struct
 				List.iter
 					(fun com -> 
 						Debug.log DebugTypes.Normal
-							(lazy ("Fermeture du processus " ^ (string_of_int com.pid)));
+							(lazy ("Closing process " ^ (string_of_int com.pid)));
 						Unix.kill com.pid Sys.sigkill;
 						Stdlib.close_in com.in_ch;
 						Stdlib.close_out com.out_ch;
@@ -319,7 +319,7 @@ module PLP(Minimization : Min.Type) = struct
 		
 		
 			let obj_path : string Stdlib.ref 
-				= Stdlib.ref "/home/amarecha/verasco/vpl2/"
+				= Stdlib.ref "/path/to/vpl/"
 		
 			let n_processes : int Stdlib.ref
 				= Stdlib.ref 1
@@ -337,7 +337,7 @@ module PLP(Minimization : Min.Type) = struct
 						[|(!obj_path ^ "PLPSLave.native")|] 
 						p1_exit p2_ent Unix.stderr in
 					Debug.log DebugTypes.Normal
-						(lazy ("Création du processus " ^ (string_of_int pid)));
+						(lazy ("Creating process " ^ (string_of_int pid)));
 					pipes := !pipes @ 
 						[{pid=pid ; 
 						  in_ch=in_ch ; 
@@ -353,11 +353,11 @@ module PLP(Minimization : Min.Type) = struct
 			
 			let write : com -> string -> unit
 				= fun com s ->
-				(* écriture dans le pipe *)
+				(* write to the pipe *)
 				Debug.log DebugTypes.Detail
 					(lazy (Printf.sprintf "Writing for slave %i message\n%s"
 						com.pid s));
-				(* marque de fin de communication : 'w' *)
+				(* end-of-message marker: 'w' *)
 				output_string com.out_ch (s ^ "w\n");
 				Stdlib.flush com.out_ch
 		
@@ -399,7 +399,7 @@ module PLP(Minimization : Min.Type) = struct
 				  		let c = read_char com.in_fd in
 				  		if c = 'w'
 				  		then begin
-				  			let _ = read_char com.in_fd in (* on saute le \n qui suit*)
+							let _ = read_char com.in_fd in (* skip the following \n*)
 				  			Stdlib.raise End_of_file
 				  		end
 				  		else s := !s ^ (String.make 1 c)
@@ -432,7 +432,7 @@ module PLP(Minimization : Min.Type) = struct
 						 	|> Parse.slave)
 				end
 				
-			(* problème avec select : lorsqu'on lit sur le input_channel, comme il est bufferisé, on peut lire plus que souhaité. *)
+			(* Problem with select: a buffered input_channel may read more data than intended. *)
 			let rec wait_res : unit -> resT
 				= fun () ->
 				if !is_reading >= 0
@@ -545,7 +545,7 @@ module PLP(Minimization : Min.Type) = struct
 			let str : process_idT -> string
 				= fun pr_id ->
 				let loc_id = get_region_id pr_id glob_id in
-				Printf.sprintf "problem\nregion %i\n%sno point\ntodo 0\n" (* 0 est le nombre de travail restant (inutile dans cette communication) *)
+				Printf.sprintf "problem\nregion %i\n%sno point\ntodo 0\n" (* 0 is the remaining work count, unused in this message *)
 				loc_id
 				(Print.region reg)
 			in

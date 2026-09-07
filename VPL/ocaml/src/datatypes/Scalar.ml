@@ -532,7 +532,7 @@ module Symbolic = struct
 		= fun v ->
 		mulr Rat.negU v
 
-	(* On triche en négligeant les delta^2 *)
+	(* Ignore delta^2 terms. *)
 	let mul : t -> t -> t
 		= fun v1 v2 ->
 		add
@@ -550,7 +550,7 @@ module Symbolic = struct
 			u
 			(Misc.range 0 exp)
 
-	(* On triche en négligeant les delta^2 *)
+	(* Ignore delta^2 terms. *)
 	let div : t -> t -> t
 		= fun v1 v2 ->
 		let a1 = get_v v1 and

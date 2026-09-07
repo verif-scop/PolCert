@@ -112,7 +112,7 @@ end
 		
 module PSplx (Cs : Cstr.Rat.Type) = struct
 	
-	(* On fait un second foncteur pour forcer Cs et Vec à avoir le même type de variables *)
+	(* Use a second functor to force Cs and Vec to share the variable type. *)
 	module PSplx(Vec : Vector.Type with module M = Cs.Vec.M) = struct
 		module type VecType = Vector.Type with module M = Cs.Vec.M
 		module Cs = Cs
@@ -218,7 +218,7 @@ module PSplx (Cs : Cstr.Rat.Type) = struct
 								(fun i' -> if i' = i then Scalar.Rat.u else Scalar.Rat.z)
 					 ) idx;
 			 basis = sx.basis @ [idx];
-			 names = Naming.allocAt Naming.Slack (Vec.V.fromInt (i+1)) idx sx.names (* +1 car on compte les slack à partir de 1*)
+			 names = Naming.allocAt Naming.Slack (Vec.V.fromInt (i+1)) idx sx.names (* Add 1 because slack numbering starts at 1. *)
 		  }
 
 		let addSlacks : int -> t -> t

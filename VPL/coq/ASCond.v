@@ -439,7 +439,7 @@ For the AND we do not loose precision.
 
 For the OR, we can not test if one of the branch is implied:
   x <= 2  implies  "x < 2" OR "0 < x < 3"
-                  (i.e. "x <= 1" OR "1 <= x <= 2" sur Z !)
+                  (i.e. "x <= 1" OR "1 <= x <= 2" over Z!)
 But it does not implies neither of these alternatives !
 
 
@@ -447,7 +447,7 @@ But, by going into negation:
 
  assert "x < 2  \/ (0 < x /\ x < 3)"
  
- devient
+ becomes
 
  assume "x >= 2 /\ ( x <= 0 \/ x >= 3)" in "x <= 2"
 
@@ -512,4 +512,3 @@ Module NaiveRename (Import BasicD: BasicDomain ZNum) (Import D: HasAssume ZNum Z
 End NaiveRename.
 
 Close Scope impure.
-

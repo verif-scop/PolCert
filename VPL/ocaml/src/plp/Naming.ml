@@ -203,7 +203,7 @@ module Naming (Vec : Vector.Type) = struct
 	  then Stdlib.invalid_arg "Naming.allocAt"
 	  else alloc t x m
 
-	(* il s'agit de la variable d'ajout, qui fait parti des slacks*)
+	(* This is the additional variable, which is a slack variable. *)
 	let allocSlackShift : V.t -> t -> t
 		= fun x m ->
 		if UserMap.mem (Slack,x) m.usrMap

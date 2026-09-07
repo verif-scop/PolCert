@@ -1,5 +1,5 @@
 open IOtypes
-(* choix d'une variable à garder par monome *)
+(* Choose one variable to keep per monomial. *)
 val choose_var: Poly.t -> env -> mode -> IHeuristic.prophecy
 	
 val factorize : IHeuristic.prophecy -> ASTerm.BasicZTerm.term

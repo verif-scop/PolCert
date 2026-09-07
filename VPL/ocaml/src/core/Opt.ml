@@ -225,7 +225,7 @@ let getAsg_and_value : V.t -> (int * Cs.t) list -> (Vector.Symbolic.Positive.t *
 			let epsilon = horizon in
 			let obj = Cs.Vec.mk [Cs.Vec.Coeff.u, epsilon] in
 			let cstrs' =
-				(2500, Cs.le [Scalar.Rat.u, epsilon] (Scalar.Rat.of_float 100000.)):: (* TODO : changer ça! *)
+				(2500, Cs.le [Scalar.Rat.u, epsilon] (Scalar.Rat.of_float 100000.)):: (* TODO: change this. *)
 				(List.map
 					(fun (i,cstr) ->
 						i,
@@ -238,7 +238,7 @@ let getAsg_and_value : V.t -> (int * Cs.t) list -> (Vector.Symbolic.Positive.t *
 	in
 	fun horizon cstrs ->
 	let (cstrs', obj) = build_epsilon horizon cstrs in
-	let horizon' = V.next horizon in (* car on a ajouté la variable epsilon *)
+	let horizon' = V.next horizon in (* Account for the added epsilon variable. *)
 	let sx = mk horizon' cstrs' in
 	match max' sx obj with
 	| IsUnsat _ -> None

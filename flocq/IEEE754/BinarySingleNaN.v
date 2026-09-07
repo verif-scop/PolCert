@@ -1552,7 +1552,7 @@ Definition Bmult m x y :=
     SF2B _ (proj1 (Bmult_correct_aux m sx mx ex Hx sy my ey Hy))
   end.
 
-(* TODO: lemme d'equivalence *)
+(* TODO: equivalence lemma *)
 
 Theorem Bmult_correct :
   forall m x y,
@@ -1658,7 +1658,7 @@ rewrite <- H1.
 now rewrite mag_F2R_Zdigits.
 Qed.
 
-(* TODO: lemme equivalence pour le cas mode_NE *)
+(* TODO: equivalence lemma for the mode_NE case *)
 Definition binary_round m sx mx ex :=
   let '(mz, ez) := shl_align_fexp mx ex in binary_round_aux m sx (Zpos mz) ez loc_Exact.
 
@@ -1708,7 +1708,7 @@ unfold binary_overflow in H.
 now destruct overflow_to_inf.
 Qed.
 
-(* TODO: lemme equivalence pour le cas mode_NE *)
+(* TODO: equivalence lemma for the mode_NE case *)
 Definition binary_normalize mode m e szero :=
   match m with
   | Z0 => B754_zero szero

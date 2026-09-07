@@ -93,8 +93,8 @@ polynomial:
    | polynomial LESS element {PolyParserBuild.Sub($1,PolyParserBuild.Leaf(fst $3, snd $3))}
    | polynomial LESS PARBEG polynomial PAREND {PolyParserBuild.Sub($1,$4)}
 	| polynomial TIMES polynomial {PolyParserBuild.Mul($1,$3)}
-/* | element TIMES polynomial{PolyParserBuild.Mul(PolyParserBuild.Leaf(fst $1, snd $1),$3)}*/ /* cas inutile  */
-   | PARBEG polynomial PAREND polynomial {PolyParserBuild.Mul($2,$4)} /* Pour les cas (1 + x1)x2 */
+/* | element TIMES polynomial{PolyParserBuild.Mul(PolyParserBuild.Leaf(fst $1, snd $1),$3)}*/ /* Unnecessary case. */
+   | PARBEG polynomial PAREND polynomial {PolyParserBuild.Mul($2,$4)} /* Handle cases such as (1 + x1)x2. */
 ;
 one_poly:
 	| polynomial EOF {$1}

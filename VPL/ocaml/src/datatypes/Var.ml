@@ -304,7 +304,7 @@ module type Type = sig
 	val next: t -> t
 
 	(**/**)
-	(* utilisé dans Splx.ml *)
+	(* Used in Splx.ml. *)
 	val fromLeft : t -> t
 
 	val fromRight : t -> t

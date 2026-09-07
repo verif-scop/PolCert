@@ -157,7 +157,7 @@ Qed.
 
 (** * MAIN THEOREM *)
 
-(* TODO: ajouter une projection dans Alarm... *)
+(* TODO: add a projection to Alarm. *)
 
 Definition verifier (s: statement) : Core.Base.imp bool :=
    BIND p <- G.impl (postfinderX s) FullDom.top -;
@@ -188,4 +188,3 @@ Proof.
   intros H4; generalize (H4 _ H3); clear H4;
   destruct m'; simpl; congruence.
 Qed.
-

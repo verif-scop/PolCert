@@ -71,7 +71,7 @@ module Build = struct
 			(Poly.MonomialBasis.to_string (Poly.MonomialBasis.mk vars))
 			(LPMaps.mapDB_to_string mapDB)));
 
-		(* la variable max+1 correspond à k et sert à fixer la parité *)
+		(* Variable max+1 corresponds to k and fixes the parity. *)
 		let k = V.next (Misc.max V.cmp vars) in
 		let lpvars = vars @ [k] in
 		let lp_eq = build_equalities vars pos k in

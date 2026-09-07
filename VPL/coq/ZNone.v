@@ -7,7 +7,7 @@
   When [None] is involved in comparisons (e.g. [<=]),
   it can thus be considered as a kind of infinite.
 
-  Authors: Alexandre Maréchal et Sylvain Boulmé
+  Authors: Alexandre Maréchal and Sylvain Boulmé
 
  *) 
 

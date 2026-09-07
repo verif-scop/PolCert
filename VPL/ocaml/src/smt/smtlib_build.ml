@@ -1,4 +1,4 @@
-(** /!\ Cas non géré : let x = <contrainte> in ...*)
+(** Unsupported case: let x = <constraint> in ... *)
 module type Type = sig
 	module CP : CstrPoly.Type
 	module Cs = CP.Cs
@@ -313,5 +313,3 @@ module Positive = struct
 
 	end
 end
-
-

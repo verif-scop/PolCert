@@ -382,7 +382,7 @@ Module LinQ <: LinSig QNum.
 
   Include PositiveMapVec QNum.
   
-  (* Ajout pour Handelman *)
+  (* Addition for Handelman. *)
   Local Open Scope list_scope.
   Import List.ListNotations.
 
@@ -415,7 +415,7 @@ Module LinQ <: LinSig QNum.
     apply QOp.Qcanon_distrib_Q2Qc.
   Qed.
 
-  (* Fin ajout pour Handelman *)
+  (* End of the Handelman addition. *)
 
   Definition import: exportT -> t
     := fun l => List.fold_left (fun lt p => add (single (fst p) (snd p)) lt) l nil.
@@ -544,4 +544,3 @@ Module QAffTerm <: AffineTermSig QNum.
   Hint Rewrite lift_correct: linterm.
 
 End QAffTerm.
-

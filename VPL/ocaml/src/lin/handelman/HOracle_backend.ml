@@ -76,7 +76,7 @@ module Translation = struct
 				}))
 
 
-	(* TODO : la traduction de cp terme est elle bonne? *)
+	(* TODO: is the translation from cp to a term correct? *)
 	let cert_trans : IndexBuild.Map.t -> (CP.t * Hi.Cert.schweighofer list) list -> Map_poly.Handelman_compute.certif list
 		= fun map l ->
 		List.map
@@ -96,7 +96,7 @@ let get_indexes : (CP.t * Hi.Cert.schweighofer list) list -> IndexBuild.Liste.t
 		certs
 	|> List.concat
 
-(* TODO : la traduction de poly à cp est elle bonne? *)
+(* TODO: is the translation from poly to cp correct? *)
 let oracle : PedraQBackend.t -> NumC.cmpG -> ASTerm.BasicQTerm.t -> Map_poly.Handelman_compute.certif list
 	= fun pol cmp qt ->
     let poly = Translation.term_to_poly qt in

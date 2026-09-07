@@ -29,34 +29,34 @@ open IOtypes
 	end
 	
 	type t = 
-	  UnboundedVar of Poly.Monomial.t * Var.t (* une seule variable est non-bornée dans le monôme *)
-	| UnboundedVarmode of Poly.Monomial.t * Var.t (* variable non bornée mais du bon côté par rapport au mode *)
-	| GreatestItv of Poly.Monomial.t * Var.t (* toutes les variables sont bornées et on garde la variable qui possède le plus grand intervalle *)
-	| VarCte of Poly.Monomial.t * Var.t (* cette variable est cste *)
+	  UnboundedVar of Poly.Monomial.t * Var.t (* Exactly one variable in the monomial is unbounded. *)
+	| UnboundedVarmode of Poly.Monomial.t * Var.t (* The variable is unbounded on the side allowed by the mode. *)
+	| GreatestItv of Poly.Monomial.t * Var.t (* All variables are bounded; keep the variable with the largest interval. *)
+	| VarCte of Poly.Monomial.t * Var.t (* This variable is constant. *)
 	| MonomialCte of Poly.Monomial.t (* the monomial is a constant *)
-	| LinearMonomial of Poly.Monomial.t * Var.t (* monôme linéaire *)
-	| CenterZero of Poly.Monomial.t (* on réécrit le monôme pour centrer les variables non gardées en 0 *)
-	| Translation of Poly.Monomial.t (* on réécrit le monôme en translatant des variables *)
-	| Screwed (* toute intervalization STATIQUE du monôme donne [None, None], on appelle directement Default pour en finir plus rapidement *)
-	| FirstUnbounded of Poly.Monomial.t * Var.t (* Garde la première variable non-bornée. S'il n'y en a pas, garde la variable avec le plus grand intervalle*)
-	| NulScalar of Poly.Monomial.t (* le scalaire du monôme est nul *)
-	| Multiplicity of (Poly.Monomial.t * int)list * Var.t (* la variable a une grande multiplicité *)
-	| Default of Poly.t (* On garde la première variable du monôme *)
+	| LinearMonomial of Poly.Monomial.t * Var.t (* Linear monomial. *)
+	| CenterZero of Poly.Monomial.t (* Rewrite the monomial to center variables not being kept at zero. *)
+	| Translation of Poly.Monomial.t (* Rewrite the monomial by translating variables. *)
+	| Screwed (* Every STATIC intervalization gives [None, None]; call Default directly to finish sooner. *)
+	| FirstUnbounded of Poly.Monomial.t * Var.t (* Keep the first unbounded variable, or the variable with the largest interval if all are bounded. *)
+	| NulScalar of Poly.Monomial.t (* The monomial coefficient is zero. *)
+	| Multiplicity of (Poly.Monomial.t * int)list * Var.t (* The variable has high multiplicity. *)
+	| Default of Poly.t (* Keep the first variable of the monomial. *)
 
 	type matcher = (Poly.t -> env -> mode -> Var.t MapMonomial.t -> (AnnotedVar.t list) MapMonomial.t -> t option)
 	
-	(* Marque une variable 'to_keep' *)
+	(* Mark a variable 'to_keep'. *)
 	let unboundedVar : matcher
 		= fun p env mode mapKeep mapNKeep -> 
 		try let (m,c) = (List.find 
 			(fun (m',_) -> 
-				not (MapMonomial.mem m' mapKeep) (* si le monôme n'a pas déjà de variable gardée *)
+				not (MapMonomial.mem m' mapKeep) (* If the monomial does not already have a variable to keep. *)
 				&& 
 				(let l = List.find_all 
-					(fun v -> (* MAJ:not (Var.equal v Var.null) &&*) Itv.of_var env v |> Itv.is_bounded |> not)
+					(fun v -> (* Update:not (Var.equal v Var.null) &&*) Itv.of_var env v |> Itv.is_bounded |> not)
 					(AnnotedVar.update_monomial m' mapNKeep)
 				 in
-				 List.length l >= 1)) (* si le nombre de variable non bornée est 1*)
+				 List.length l >= 1)) (* If exactly one variable is unbounded. *)
 			p)
 			in Some (UnboundedVar ((m,c), 
 			let l = (AnnotedVar.update_monomial m mapNKeep) in 
@@ -64,17 +64,17 @@ open IOtypes
 			with Not_found -> List.find (fun v -> Itv.of_var env v |> Itv.is_bounded |> not) l))
 		with Not_found -> None
 	
-	(* Marque une variable 'to_interv' *)
+	(* Mark a variable 'to_interv'. *)
 	let unboundedVarmode : matcher
 		= fun p env mode mapKeep mapNKeep -> 
 		match mode with
 		| Both -> None
 		| _ -> begin
 			try 
-				let (m,c) = (List.find (* premier cas *)
+				let (m,c) = (List.find (* First case. *)
 				(fun (m',c') -> 
 					let m'' = (AnnotedVar.update_monomial m' mapNKeep) in
-					List.length m'' > 0 (* il reste plus d'une variable *) (* MAJ: 0 au lieu de 1 *) 
+					List.length m'' > 0 (* At least one variable remains. *) (* Update: 0 instead of 1. *)
 				&& 
 					not (Misc.is_unbounded m'' env) 
 				&& 
@@ -94,10 +94,10 @@ open IOtypes
 			
 			with Not_found ->
 			try 
-				let (m,c) = (List.find (* second cas *)
+				let (m,c) = (List.find (* Second case. *)
 				(fun (m',c') -> 
 					let m'' = (AnnotedVar.update_monomial m' mapNKeep) in
-					List.length m'' > 0 (* il reste une variable *) (* MAJ: 0 au lieu de 1 *) 
+					List.length m'' > 0 (* At least one variable remains. *) (* Update: 0 instead of 1. *)
 				&& 
 					not (Misc.is_unbounded m'' env) 
 				&& 
@@ -117,27 +117,27 @@ open IOtypes
 			with Not_found -> None
 			end
 	
-	(* Marque une variable 'to_keep' *)
+	(* Mark a variable 'to_keep'. *)
 	let greatestItv : matcher
 		= fun p env mode mapKeep mapNKeep -> 
 		try let (m,c) = (List.find 
 			(fun (m',_) -> 
 				not (MapMonomial.mem m' mapKeep) 
-			&& (* si le monôme n'a pas déjà de variable gardée *)
+			&& (* If the monomial does not already have a variable to keep. *)
 				List.for_all 
 				(fun v -> (* Var.equal v Var.null ||*) Itv.of_var env v |> Itv.is_bounded) 
 				(AnnotedVar.update_monomial m' mapNKeep)
-			&& (* il faut qu'il y ait au moins une constante *)
+			&& (* At least one constant is required. *)
 				(AnnotedVar.update_monomial m' mapNKeep) <> []
-			(* MAJ : 
-				List.exists (* il faut qu'il y ait au moins une constante *)
+			(* Update:
+				List.exists (* at least one constant is required *)
 				(fun v -> Var.toInt v <> 0)
 				(AnnotedVar.update_monomial m' mapNKeep) *))
 			p)
 			in Some (GreatestItv ((m,c), Itv.greatest (AnnotedVar.update_monomial m mapNKeep) env))
 		with Not_found -> None
 	
-	(* Marque une variable 'to_interv' *)
+	(* Mark a variable 'to_interv'. *)
 	let varCte : matcher
 		= fun p env mode mapKeep mapNKeep -> 
 		try let (m,c) = (List.find 
@@ -153,7 +153,7 @@ open IOtypes
 				(AnnotedVar.update_monomial m mapNKeep)))
 		with Not_found -> None
 	
-	(* Marque une variable 'to_interv' *)
+	(* Mark a variable 'to_interv'. *)
 	let multiplicity : matcher
 		= let get_monomial_multiplicity : Poly.MonomialBasis.t -> Var.t -> int
 				= fun m v -> 
@@ -179,36 +179,36 @@ open IOtypes
 			in Some (Multiplicity (List.filter (fun ((m,c),i) -> i > 0) l,v))
 		with Not_found -> None
 	
-	(* Marque une variable 'to_keep' *)
+	(* Mark a variable 'to_keep'. *)
 	let linearMonomial : matcher
 		= fun p env mode mapKeep mapNKeep -> 
 		try let (m,c) = (List.find 
 			(fun (m',_) -> 
 				not (MapMonomial.mem m' mapKeep) 
-			&& (* si le monôme n'a pas déjà de variable gardée *)
+			&& (* If the monomial does not already have a variable to keep. *)
 				Poly.MonomialBasis.isLinear (AnnotedVar.update_monomial m' mapNKeep)) 
 			p)
 			in Some (LinearMonomial((m,c),List.hd (AnnotedVar.update_monomial m mapNKeep)))
 		with Not_found -> None
 	
-	(* Supprime un monôme qui est constant
-		A utiliser de paire avec centerZero qui risque de générer des monômes constants *)
+	(* Remove a constant monomial.
+        Use with centerZero, which may generate constant monomials. *)
 	let monomialCte : matcher
 		= fun p env mode mapKeep mapNKeep -> 
 		try let (m,c) = (List.find Poly.Monomial.isConstant p)
 			in Some (MonomialCte(m,c))
 		with Not_found -> None
 		
-	(* Réécrit le polynôme *)
+	(* Rewrite the polynomial. *)
 	let centerZero : matcher
 		= fun p env mode mapKeep mapNKeep -> 
 		try let (m,c) = (List.find 
-			(fun (m',_) -> (MapMonomial.mem m' mapKeep)) (* si le monôme a déjà une variable gardée *)
+			(fun (m',_) -> (MapMonomial.mem m' mapKeep)) (* If the monomial already has a variable to keep. *)
 			p)
 			in Some (CenterZero(m,c))
 		with Not_found -> None
 
-	(* Réécrit le polynôme *)
+	(* Rewrite the polynomial. *)
 	let translation : matcher
 		= fun p env mode mapKeep mapNKeep -> 
 		try let (m,c) = (List.find 
@@ -222,23 +222,21 @@ open IOtypes
 			in Some (Translation(m,c))
 		with Not_found -> None
 			
-	(* What's the point of even being alive?
-		KILL THEM ALL!!
-		Utile pour gagner du temps *)
+	(* Remove all remaining monomials to save time. *)
 	let screwed : matcher
 		= fun p env mode mapKeep mapNKeep -> 
 		if (List.exists 
-			(fun (m',_) -> not (MapMonomial.mem m' mapKeep) && (* si le monôme n'a pas déjà de variable gardée *)
+			(fun (m',_) -> not (MapMonomial.mem m' mapKeep) && (* If the monomial does not already have a variable to keep. *)
 			Misc.is_unbounded (AnnotedVar.update_monomial m' mapNKeep) env)
 			p)
 		then Some Screwed
 		else None
 	
-	(* Marque une variable 'to_keep' *)
+	(* Mark a variable 'to_keep'. *)
 	let firstUnbounded : matcher
 		= fun p env mode mapKeep mapNKeep -> 
 		try let (m,c) = (List.find 
-			(fun (m',_) -> not (MapMonomial.mem m' mapKeep))(* si le monôme n'a pas déjà de variable gardée *)
+			(fun (m',_) -> not (MapMonomial.mem m' mapKeep))(* If the monomial does not already have a variable to keep. *)
 			p)
 			in Some (FirstUnbounded((m,c),
 			let m' = (AnnotedVar.update_monomial m mapNKeep) in
@@ -246,17 +244,16 @@ open IOtypes
 				with Not_found -> Itv.greatest m' env))
 		with Not_found -> None
 	
-	(* supprime le monôme
-		inutile à priori *)
+	(* Remove the monomial; probably unnecessary. *)
 	let nulScalar : matcher
 		= fun p env mode mapKeep mapNKeep -> 
 		try let (m,c) = (List.find 
-			(fun (m',c') -> Coeff.equal c' Coeff.z)(* si le monôme n'a pas déjà de variable gardée *)
+			(fun (m',c') -> Coeff.equal c' Coeff.z)(* If the monomial does not already have a variable to keep. *)
 			p)
 			in Some (NulScalar(m,c))
 		with Not_found -> None
 	
-	(* Ordre de matching!! ne doit pas contenir Default qui est par défaut dans matching*)
+	(* Matching order: exclude Default, which matching already uses as its default. *)
 	let matching_order = [monomialCte ; linearMonomial ; varCte ; unboundedVar ; unboundedVarmode ; multiplicity ; greatestItv ; firstUnbounded ;
 	centerZero]
 
@@ -270,4 +267,3 @@ open IOtypes
 				| None -> find_first p env mode tl mapKeep mapNKeep in
 		fun p env mode mapKeep mapNKeep -> 
 		find_first p env mode matching_order mapKeep mapNKeep
-

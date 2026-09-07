@@ -100,7 +100,7 @@ module EqSet(Cs : Cstr.Rat.Type) = struct
 		else
 			false
 	
-	(* L'ordre fold_right est important pour les réécritures *)
+	(* The fold_right order matters for rewriting. *)
 	let filter : 'c Cert.t -> 'c t -> 'c Cons.t -> 'c Cons.t
 		= fun factory s c ->
 		let filter1 (x, (c2,cert2)) (c1,cert1) =
@@ -227,7 +227,7 @@ module EqSet(Cs : Cstr.Rat.Type) = struct
 	| Added of 'c t
 	| Bot of 'c
 	
-	(* XXX: doit on comparer les certificats? *)
+	(* XXX: should certificates be compared? *)
 	let meetEq: 'c meetT -> 'c meetT -> bool
 		= fun ar ar' ->
 		match ar, ar' with

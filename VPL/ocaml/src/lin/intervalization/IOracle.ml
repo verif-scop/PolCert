@@ -6,7 +6,7 @@ let (map_to_string : 'a MapMonomial.t -> ('a -> string) -> string)
 		(fun (k,a) -> String.concat "" ["("; Poly.MonomialBasis.to_string k ;" -> "; to_string a ;")"]) 
 		(MapMonomial.bindings m)))
 			
-(* choix d'une variable à garder par monome *)
+(* Choose one variable to keep per monomial. *)
 let (choose_var: Poly.t -> env -> mode -> IHeuristic.prophecy)
 	= let rec (choose_var_rec: Poly.t -> IHeuristic.prophecy -> Var.t MapMonomial.t -> (AnnotedVar.t list) MapMonomial.t -> env -> mode -> IHeuristic.prophecy)
 		= fun p pro mapKeep mapNKeep env mode -> 
@@ -27,9 +27,8 @@ let (choose_var: Poly.t -> env -> mode -> IHeuristic.prophecy)
 	fun p env mode ->
 	choose_var_rec p [] MapMonomial.empty MapMonomial.empty env mode
 
-(* Pour que la factorisation fonctionne : 
-	Chaque terme doit être de la forme interv(...)*...*interv(...)*affine(cste * variable à guarder + cste)
-*)
+(* For factorization, each term must have the form
+    interv(...)*...*interv(...)*affine(constant * variable_to_keep + constant). *)
 let rec(factorize : IHeuristic.prophecy -> ASTerm.BasicZTerm.term)
 	= fun pro ->
 	if List.length pro = 0 
@@ -148,4 +147,3 @@ let (oracle: ASTerm.linearizeContext -> ASTerm.ZTerm.t ImpureConfig.Core.Base.im
 		(lazy (Printf.sprintf "polynomial : %s" 
 		(Term.to_string result)));
 	result
-

@@ -52,7 +52,7 @@ module Classic (Vec : Vector.Type with module M = Cstr.Rat.Positive.Vec.M) = str
 		match sx with
 		| Splx.IsUnsat _ -> None
 		| Splx.IsOk sx ->
-			(* On vérifie si le point obtenu va saturer cstr0 *)
+			(* Check whether the resulting point saturates cstr0. *)
 			if Cs.get_typ cstr0 = Cstr.Le
 			then Some (ofSymbolic (Splx.getAsg sx))
 			else
@@ -65,7 +65,7 @@ module Classic (Vec : Vector.Type with module M = Cstr.Rat.Positive.Vec.M) = str
 				| Splx.IsUnsat _ -> Some (ofSymbolic (Splx.getAsg sx))
 				| Splx.IsOk sx' -> Some (ofSymbolic (Splx.getAsg sx'))
 
-	(* XXX: pas optimal, peut-on réutiliser les simplexes précédents? *)
+	(* XXX: suboptimal; can the previous simplexes be reused? *)
 	let correct_point : Vec.V.t -> ((int * Cs.t) * Vec.t) -> (int * Cs.t) list -> (Cs.t * Vec.t)
 		= fun horizon ((i0,cstr0),point) cstrs ->
 		match Splx.mk horizon ((i0, strict_comp cstr0) :: cstrs)
@@ -286,7 +286,7 @@ module Min (VecInput : Vector.Type)(Vec : Vector.Type)(CsInput : Cstr.Type)(LP :
 		let sort : ('a * direction) list -> ('a * direction) list
 			= fun dirs ->
 				dirs
-			|> List.filter (fun (_,(dir,v)) -> Cs.Vec.Coeff.well_formed v && Cs.Vec.Coeff.le Cs.Vec.Coeff.z v) (* XXX: le ou lt?*)
+			|> List.filter (fun (_,(dir,v)) -> Cs.Vec.Coeff.well_formed v && Cs.Vec.Coeff.le Cs.Vec.Coeff.z v) (* XXX: le or lt? *)
 			|> List.sort (fun (_,(dir1,v1)) (_,(dir2,v2)) -> Cs.Vec.Coeff.cmp v1 v2)
 
 		(** Resulting type of a sorting. *)
@@ -347,7 +347,7 @@ module Min (VecInput : Vector.Type)(Vec : Vector.Type)(CsInput : Cstr.Type)(LP :
 					else updateOne cstr cstr_to_add map)
 				map (List.concat l)
 
-		(* on prend tous les prédecesseurs dans la liste*)
+		(* Take all predecessors in the list. *)
 		let updateMap_v1 : map_t -> frontier list -> (Cs.t * eval) list -> map_t
 			= fun map frontiers evals ->
 			List.fold_left
@@ -367,7 +367,7 @@ module Min (VecInput : Vector.Type)(Vec : Vector.Type)(CsInput : Cstr.Type)(LP :
 					else updateOne cstr cstr_to_add map)
 				map cstrs_to_add
 
-		(* ne prend que les vraies frontières de la liste (plusieurs s'il y a égalité)*)
+		(* Take only actual boundaries from the list, including ties. *)
 		let updateMap_v2 : map_t -> frontier list -> (Cs.t * eval) list -> map_t
 			= fun map frontiers evals ->
 			List.fold_left
@@ -406,7 +406,7 @@ module Min (VecInput : Vector.Type)(Vec : Vector.Type)(CsInput : Cstr.Type)(LP :
 					else updateOne cstr cstr_to_add map)
 				map cstrs_to_add
 
-		(* heuristique zarbi de Michaël *)
+		(* Michaël's heuristic. *)
 		let updateMap_v3 : map_t -> frontier list -> (Cs.t * eval) list -> map_t
 			= fun map frontiers evals ->
 			List.fold_left
@@ -428,7 +428,7 @@ module Min (VecInput : Vector.Type)(Vec : Vector.Type)(CsInput : Cstr.Type)(LP :
 					else updateOne cstr cstr_to_add map)
 				map cstrs_to_add
 
-		(* heuristique du desespoir *)
+		(* Last-resort heuristic. *)
 		let updateMap_desespoir : map_t -> frontier list -> (Cs.t * eval) list -> map_t
 			= fun map frontiers evals ->
 			List.fold_left
@@ -445,8 +445,8 @@ module Min (VecInput : Vector.Type)(Vec : Vector.Type)(CsInput : Cstr.Type)(LP :
 			 	then updateMap_v2
 			 	else Stdlib.invalid_arg "Min.updateMap: name"
 
-		(* Evalue chaque contrainte dans la direction de la normale de cstr.
-			Trie les résultats et accumule les égalités. *)
+		(* Evaluate each constraint along the normal to cstr.
+            Sort the results and collect ties. *)
 		let init_one : Vec.t -> Cs.t list -> Cs.t -> eval
 			= fun x0 cstrs cstr ->
 			let normal = normal cstr in
@@ -556,8 +556,8 @@ module Min (VecInput : Vector.Type)(Vec : Vector.Type)(CsInput : Cstr.Type)(LP :
 				| LP.IsOk lp' -> let sol = LP.get_solution lp'
 					|> !conv.csVec_Vec in
 					Some (sol, lp')
-						(* XXX: potentiellement ajouté plusieurs fois : à optimiser *)
-					(* XXX: faut il renvoyer lp pour ne pas rendre unsat des problèmes sat? *)
+						(* XXX: possibly added several times; optimize this *)
+					(* XXX: return lp to avoid making satisfiable problems unsatisfiable? *)
 			end
 		| LP.IsUnsat -> None
 	*)
@@ -774,12 +774,12 @@ module Min (VecInput : Vector.Type)(Vec : Vector.Type)(CsInput : Cstr.Type)(LP :
 		else begin
 			conv := conversion;
 			mapLP := LP.MapC.empty;
-			let cstrs = Misc.rem_dupl CsInput.equalSyn cstrs in (* XXX: faire une autre fonction sans ça? *)
+			let cstrs = Misc.rem_dupl CsInput.equalSyn cstrs in (* XXX: provide another function without this step? *)
 			let vars = CsInput.getVars cstrs
 				|> CsInput.Vec.V.Set.elements
 				|> List.map (fun v -> CsInput.Vec.V.toPos v |> Cs.Vec.V.fromPos)
 			in
-			(* map_binding contient une conversion des cstrs (en CsInput) en Cs *)
+			(* map_binding converts constraints from CsInput to Cs. *)
 			let (map_bindings, cstrs') =
 			List.fold_left
 				(fun (map,l) c -> let c' = !conv.csInput_Cs c in
@@ -792,7 +792,7 @@ module Min (VecInput : Vector.Type)(Vec : Vector.Type)(CsInput : Cstr.Type)(LP :
 			List.map
 				(fun (cstr,p) -> let cstr' = LP.MapC.find cstr map_bindings in
 					(cstr',p))
-				frontiers' (* frontiers' contient frontiers*)
+				frontiers' (* frontiers' contains frontiers. *)
 		end
 
 	let minimize : conversion -> VecInput.t -> CsInput.t list -> (CsInput.t * VecInput.t) list
@@ -900,7 +900,7 @@ module Glpk(Vec : Vector.Type with module M = Cstr.Rat.Positive.Vec.M) = struct
     List.iteri (set_coeffs poly vars) cstrs;
     set_central_point poly vars point;
 		if Wrapper.is_empty(poly)
-		then [] (* XXX: que faire dans ce cas?*)
+		then [] (* XXX: how should this case be handled? *)
 		else begin
 			Wrapper.minimize poly;
 			let cstrs' = Misc.fold_right_i

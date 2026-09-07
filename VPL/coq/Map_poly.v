@@ -64,7 +64,7 @@ Module MapPoly.
     reflexivity.
   Qed.
 
-  (* Ce résultat est trop fort et est probablement inutile *)
+  (* This result is stronger than needed and is probably unnecessary. *)
   Lemma maps_to_compat : forall P : Cs.t, forall k:M.key, forall p:PExpr, forall d:Cstr.t,
   M.MapsTo k p (init P d) -> exists i:nat, Peano.lt i (length P) /\ (Cstr.to_PExpr (Cs.geti i P d)) = p.
   Proof.
@@ -659,5 +659,3 @@ Module Handelman_compute.
   Qed.
 
 End Handelman_compute.
-
-

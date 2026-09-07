@@ -320,8 +320,6 @@ Definition mk_instr_point (i : instr) (es : list expr) (env : list Z) : InstrPoi
   end.
 
 (** loop_instance_list_semantics: loop semantics with instance list *)
-(**没有办法完美变成instance list, 因为expr不一定变成matrix*)
-(**所以extractor其实是partial的*)
 Inductive loop_instance_list_semantics : stmt -> list Z -> list InstrPoint -> mem -> mem -> Prop :=
 | LILInstr : forall i es env iv mem1 mem2 wcs rcs,
     iv = map (eval_expr env) es ->

@@ -355,7 +355,7 @@ let chkFeasibility: Var.t -> (int * Cs.t) list -> satChkT
 
 let rec extract_implicit_eqs' : 'c Cert.t -> Var.t -> 'c logT -> (('c logT, 'c) mayBotT) * (Scalar.Symbolic.t Rtree.t) option
 	= fun factory nvar lp ->
-	(* TODO: peut-on factoriser le calcul des Is et Js?*)
+	(* TODO: can the computations of Is and Js be factored? *)
 	let compute_Is : 'c Cons.t list -> (int * Cs.Vec.Coeff.t) list -> (int * 'c Cons.t) list
 		= fun conss wit ->
 		let (i0, coeff0) = List.hd wit in
@@ -565,7 +565,7 @@ let projectMSubPLP: 'c Cert.t -> Var.t -> 'c t -> Var.t list -> Flags.scalar -> 
 			| None -> findEq tl eqs1 ineqs
 	in
 	let (eqs1, ineqs1) = findEq l p.eqs p.ineqs in
-	(* XXX: Comment actualiser les variables à projeter après réécriture des égalités?*)
+	(* XXX: how should the variables to project be updated after rewriting equalities? *)
 	let ineqs2 = IneqSet.pProjM factory l ineqs1 scalar_type in
 	{ineqs = ineqs2;eqs = eqs1}
 
@@ -701,7 +701,7 @@ module Join_PLP = struct
 			[]
 			p.eqs
 
-	(* Version spéciale pour extract_implicit_eq*)
+	(* Special version for extract_implicit_eq. *)
 	let logOut: ('c logT, 'c) mayBotT -> 'c t
 		= function
 			| Bot ce -> Stdlib.failwith "Pol.join:extract_implicit_eq"

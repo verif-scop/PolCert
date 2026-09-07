@@ -47,9 +47,7 @@ Extract Constant getUpperBound => "(fun x -> Core.Base.pure (PedraQOracles.getUp
 Axiom getLowerBound: forall {C}, (pedraCert C) * LinQ.t -> imp (bndT C).
 Extract Constant getLowerBound => "(fun x -> Core.Base.pure (PedraQOracles.getLowerBound x))".
 
-(* TODO: en toute rigueur, il faut ajouter un "imp" ici !
-   A remplacer par un affichage plutôt que retourner une chaine ?
-*)
+(* TODO: strictly speaking, an imp is needed here.
+   Should this print its result instead of returning a string? *)
 Axiom pr: t -> string. (* not used in proofs (debugging only) *)
 Extract Constant pr => "PedraQOracles.pr".
-

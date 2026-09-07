@@ -205,7 +205,7 @@ let to_string : string -> ('a -> string -> string) -> (V.t -> string) -> 'a t ->
 	let nodeList = List.map (fun (p, a) -> nodePr a (pathPr p)) (toList tree) in
 	String.concat sep (List.filter (fun s -> String.length s <> 0) nodeList)
 
-(* XXX: est-ce vraiment le comportement souhaité?*)
+(* XXX: is this the intended behavior? *)
 let rec merge_rec : V.t -> (V.t -> 'a option -> 'b option -> 'c option) -> 'a t -> 'b t -> 'c t
 	= fun v f r1 r2 ->
 	match r1,r2 with

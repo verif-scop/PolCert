@@ -754,7 +754,7 @@ Qed.
       PositiveSetDecide.fsetdec.
   Qed.
 
- (* widening (calqué sur le join) *)
+ (* Widening, following the join implementation. *)
   Definition widen (a1 a2:t) : imp t :=
     let r1 := (PositiveSet.diff (renaming a1) (renaming a2)) in
     let r2 := (PositiveSet.diff (renaming a2) (renaming a1)) in 
@@ -883,5 +883,3 @@ Module AssignSimplePrinting (N: NumSig) (Cond: ASCondSig N) (D: AbstractDomain N
   Qed.
 
 End AssignSimplePrinting.
-
-

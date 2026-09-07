@@ -95,9 +95,9 @@ let get_join_cert : 'c1 Cert.t -> 'c2 Cert.t ->  'c1 regionsT  -> 'c2 regionsT
     fun factory1 factory2 p1 p2 map sols ->
     let p1 = p1.mapping
     and p2 = p2.mapping in
-    (* Colonnes correspondant au premier polyèdre*)
+    (* Columns for the first polyhedron. *)
     let p1_col_min = 0 and p1_col_max = List.length p1
-    (* Colonnes correspondant au second polyèdre*)
+    (* Columns for the second polyhedron. *)
     and p2_col_min = (List.length p1) + 1 and p2_col_max = (List.length p1) + 1 + (List.length p2)
     in
     List.map
@@ -114,7 +114,7 @@ let get_join_cert : 'c1 Cert.t -> 'c2 Cert.t ->  'c1 regionsT  -> 'c2 regionsT
                     then let cstr' = {cstr with Cs.typ = Cstr.Lt} in
                         ((cstr', get_cert_p1 factory1 arg1 map),
                          (cstr', get_cert_p2 factory2 arg2 map))
-                    else (* TODO: dans ce cas, il faut élargir les deux certificats*)
+                    else (* TODO: extend both certificates in this case. *)
                         ((cstr, get_cert_p1 factory1 arg1 map |> factory1.Cert.to_le),
                          (cstr, get_cert_p2 factory2 arg2 map |> factory2.Cert.to_le)))
         sols

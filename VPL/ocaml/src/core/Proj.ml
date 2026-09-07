@@ -5,7 +5,7 @@ module Cons = PLP.Cons
 module Cert = Cons.Cert
 module V = Cs.Vec.V
 
-(* x+1 car les identifiants commencent à 0 *)
+(* x+1 because identifiers start at 0. *)
 let varEncode : int -> Cs.Vec.V.t
   = fun x -> Cs.Vec.V.fromInt (x+1)
 
@@ -46,7 +46,7 @@ module Proj (Min : Min.Type) = struct
 					  (fun n ->
 						if Scalar.Symbolic.hasDelta n
 						then Scalar.Symbolic.toQ n
-							(* XXX: tenter de sélectionner un point à l'intérieur *)
+							(* XXX: try selecting an interior point. *)
 							(*Stdlib.failwith "Build.Norm.buildInterior: extract"*)
 						else Scalar.Symbolic.get_v n)
 					in
@@ -225,7 +225,7 @@ module Proj (Min : Min.Type) = struct
 				stgy = strgy;}
 			in
 			match PLP.run config tab (PLP.get_cert_default factory map) with
-			| None -> ([],[])(*XXX: faut il lever une exception?  Stdlib.failwith "Sxproj.projectDicho" *)
+			| None -> ([],[])(* XXX: should this raise an exception? Stdlib.failwith "Sxproj.projectDicho" *)
 			| Some regs -> regsToCs regs
 		in
 		let init_map : 'c Cons.t list -> PSplx.t -> 'c PLP.mapVar_t

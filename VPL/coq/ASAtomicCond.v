@@ -176,10 +176,7 @@ End QAtomicCondAssume.
 
 
 
-(* 
- * Atomic Conditions on Z (with linearization a la Miné)
- *
- *)
+(* Atomic conditions on Z (with linearization following Miné). *)
 
 
 Module ZAtomicCond <: AtomicCondSig ZNum ZTerm.
