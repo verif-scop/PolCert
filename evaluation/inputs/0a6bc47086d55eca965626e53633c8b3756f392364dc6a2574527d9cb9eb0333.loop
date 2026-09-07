@@ -1,0 +1,6 @@
+for x in range(0, 100) {
+  A[(2 * x)] = 1;
+}
+for x in range(0, 100) {
+  B[(2 * x)] = A[((2 * x) + 2)];
+}

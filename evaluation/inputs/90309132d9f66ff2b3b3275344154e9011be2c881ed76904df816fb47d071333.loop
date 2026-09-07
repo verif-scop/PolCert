@@ -1,0 +1,8 @@
+context(N, M);
+
+for n in range(0, N) {
+  autocorr = (autocorr + 1);
+}
+for n in range(0, M) {
+  temp3 = (temp3 + 1);
+}

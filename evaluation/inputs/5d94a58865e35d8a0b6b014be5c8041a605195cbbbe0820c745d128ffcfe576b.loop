@@ -1,0 +1,15 @@
+context(N);
+
+for r in range(0, N) {
+  for q in range(0, N) {
+    for p in range(0, N) {
+      sum[r][q][p] = 0;
+      for s in range(0, N) {
+        sum[r][q][p] = (sum[r][q][p] + (A[r][q][s] * C4[s][p]));
+      }
+    }
+    for p in range(0, N) {
+      A[r][q][p] = sum[r][q][p];
+    }
+  }
+}

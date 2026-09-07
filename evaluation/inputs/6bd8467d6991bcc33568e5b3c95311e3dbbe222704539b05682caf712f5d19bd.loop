@@ -1,0 +1,17 @@
+context(N);
+
+for i in range(0, N) {
+  for j in range(0, N) {
+    y[i] = (y[i] + (a[i][j] * x[j]));
+  }
+}
+for i in range(0, N) {
+  for j in range(0, N) {
+    z[i] = (z[i] + (b[i][j] * y[j]));
+  }
+}
+for i in range(0, N) {
+  for j in range(0, N) {
+    w[i] = (w[i] + (b[i][j] * z[j]));
+  }
+}

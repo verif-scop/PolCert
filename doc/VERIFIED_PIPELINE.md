@@ -2,7 +2,7 @@
 
 This note records the current theorem-facing `polopt` pipeline. It is a compact
 orientation document; detailed flag coverage lives in
-`doc/pluto-polopt-compatibility.md` and `doc/POLOPT_FLAG_GUIDE.md`.
+[POLOPT.md](../POLOPT.md) and the [flag guide](POLOPT_FLAG_GUIDE.md).
 
 ## Current contract
 
@@ -12,7 +12,7 @@ The main compiler wrapper is the extracted Coq compiler:
 VerifiedParallelCompilerConfig.compile : raw_config -> Loop.t -> imp ParallelLoop.t
 ```
 
-The paper-level theorem is `VerifiedParallelCompilerConfig.compile_correct`.
+The main theorem is `VerifiedParallelCompilerConfig.compile_correct`.
 For any accepted `raw_config`, if the compiler returns a `ParallelLoop.t` target,
 every terminating target execution is matched by a source `Loop.t` execution with
 `State.eq` final states. `compile_verified_correct` is the corresponding theorem
@@ -123,23 +123,18 @@ current SCoP extractor rejects; vector output also remains unsupported. This
 narrow route does not claim certificate transport through arbitrary annotated
 loop nests.
 
-`--multipar` is no longer a side printer path. The driver parses Pluto's
+For `--multipar`, the driver parses Pluto's
 parallel-loop hints, builds a list of candidate padded schedule coordinates, and calls a
 `RawParallelCurrentMany*` config in the verified wrapper. It submits every
-dimension in the finite candidate list constructed for that route; no
-two-element truncation remains. Vector routes are
+dimension in the finite candidate list constructed for that route. Vector routes are
 innermost-only: hinted mode does not search other dimensions, and explicit
 `--vector-current` rejects a non-innermost selection.
 
-## Proof and artifact evidence
+## Build and regression checks
 
-The direct-band integration is not represented by the older May 2026 artifact
-record. The release procedure must run all seven CI shards for the exact final
-release commit and run `artifact-check-full` without a bind mount in the tagged
-release image. It records the commit, image digest, route summary, complete raw
-artifact output directory, CI run URL, and CI logs. Neither gate substitutes
-for the other. A pre-freeze integration run passed the 171-case Pluto
-compatibility suite; it is not a substitute for the final image review.
+[Testing](TESTING.md) describes the clean proof build, extraction checks, and
+regression suites. [Evaluation](EVALUATION.md) provides separate manual
+experiments for optimization retention and compilation overhead.
 
 ## Boundary
 

@@ -1,45 +1,9 @@
-# Proof Reading Guide
+# Proof reading guide
 
-This guide is for a reader who knows Rocq and compiler correctness but has not
-recently worked on PolCert. It explains what each proof layer establishes, how
-the layers compose, and which declarations carry the main argument. It follows
-the checked pipeline after the parallel-certificate repair and the subsequent
-proof-readability pass; older declaration-level baselines remain identified in
-the linked audit reports.
-
-Generate the browsable Rocq site with `make proof-documentation`, then open
-`doc/proof-html/index.html`.  Its landing page maps paper arguments to the
-module pages below; coqdoc supplies the section table of contents and the
-cross-module declaration index.
-
-## Version note for paper readers
-
-This guide describes the
-`artifact/verified-compilation-v9-candidate` branch being prepared for the CPP
-2027 artifact.  The previously reviewed v8 tag remains the baseline for older
-quantitative evidence, but it is not the intended final paper artifact.  The
-candidate retains the extraction, ISS, affine, and tiling semantic spine while
-factoring proof ownership and removing dead compatibility routes.
-
-The candidate also corrects one material theorem boundary.  `ParMode` now uses
-the raw order-preserving `interleave_family` semantics rather than the v8
-commutation-filtered trace relation.  Checked code generation consumes the
-eligibility certificate and constructs an `ordered_semantics` proof companion
-for each actual target execution.  The certificate denotes the canonical
-coordinate of the globally padded affine schedule used by raw code generation,
-removing the old unproved current-coordinate-to-generated-loop identification.
-The paper narrative is being aligned with this candidate before the final
-annotated artifact tag is created.
-
-The cleanup preserved the names and types of live theorem entry points.  It did
-remove repository-unreferenced legacy declarations, so this branch is not a
-promise of compatibility for arbitrary out-of-tree users of those dead names.
-The `Extractor` and `ParallelCodegen` facades preserve the live module paths.
-
-The declaration-level ownership and long-proof review is indexed in
-[`proof-audits/README.md`](proof-audits/README.md).  Its parallel-semantics
-section records the original certificate-to-execution defect and the branch
-that resolves it.
+This guide follows the verified compiler from its semantic contract through
+extraction, transformation validation, and code generation. Generate browsable
+Rocq documentation with `make proof-documentation`, then open
+`doc/proof-html/index.html`.
 
 ## Which `compile` theorem is which?
 
@@ -65,13 +29,13 @@ The complete endpoint matrix is:
 
 | Correctness theorem | Executable it specifies | Target semantics | Use |
 | --- | --- | --- | --- |
-| `VerifiedCompilerConfig.compile_verified_correct` | generic `VerifiedCompilerConfig.compile_verified` | `Loop.semantics` | Generic 14-route sequential dispatcher, after config checking |
+| `VerifiedCompilerConfig.compile_verified_correct` | generic `VerifiedCompilerConfig.compile_verified` | `Loop.semantics` | Generic sequential dispatcher, after config checking |
 | `VerifiedCompilerConfig.compile_correct` | generic `VerifiedCompilerConfig.compile` | `Loop.semantics` | Generic sequential dispatcher from `raw_config` |
-| `VerifiedParallelCompilerConfig.compile_verified_correct` | generic `VerifiedParallelCompilerConfig.compile_verified` | `ParallelLoop.semantics` | Generic 31-constructor unified dispatcher, after config checking |
-| `VerifiedParallelCompilerConfig.compile_correct` | generic `VerifiedParallelCompilerConfig.compile` | `ParallelLoop.semantics` | Paper-facing generic theorem from `raw_config` |
-| `ExtractedPipelineCorrect.extracted_sequential_compile_verified_correct` | `SVerifiedCompilerConfig.compile_verified` | concrete `SPolIRs.Loop.semantics` | Extracted 14-route sequential dispatcher, after config checking |
+| `VerifiedParallelCompilerConfig.compile_verified_correct` | generic `VerifiedParallelCompilerConfig.compile_verified` | `ParallelLoop.semantics` | Generic unified dispatcher, after config checking |
+| `VerifiedParallelCompilerConfig.compile_correct` | generic `VerifiedParallelCompilerConfig.compile` | `ParallelLoop.semantics` | Main generic theorem from `raw_config` |
+| `ExtractedPipelineCorrect.extracted_sequential_compile_verified_correct` | `SVerifiedCompilerConfig.compile_verified` | concrete `SPolIRs.Loop.semantics` | Extracted sequential dispatcher, after config checking |
 | `ExtractedPipelineCorrect.extracted_sequential_compile_correct` | `SVerifiedCompilerConfig.compile` | concrete `SPolIRs.Loop.semantics` | Extracted sequential dispatcher from `raw_config` |
-| `ExtractedPipelineCorrect.extracted_parallel_compile_verified_correct` | `SVerifiedParallelCompilerConfig.compile_verified` | concrete `ParallelLoop.semantics` | Extracted 31-constructor unified dispatcher, after config checking |
+| `ExtractedPipelineCorrect.extracted_parallel_compile_verified_correct` | `SVerifiedParallelCompilerConfig.compile_verified` | concrete `ParallelLoop.semantics` | Extracted unified dispatcher, after config checking |
 | `ExtractedPipelineCorrect.extracted_parallel_compile_correct` | `SVerifiedParallelCompilerConfig.compile` | concrete `ParallelLoop.semantics` | Closest theorem to the extracted CLI pipeline |
 
 Two similarly named lemmas are internal glue rather than alternative final
@@ -80,12 +44,12 @@ result can be checked-lifted into `ParallelLoop`; the concrete counterpart is
 `extracted_parallel_compile_seq_verified_correct`.  Start with one of the eight
 matrix rows, and open these lift lemmas only when reading its `VSeq` branch.
 
-The 31 constructors of the unified dispatcher are also regular rather than 31
+The constructors of the unified dispatcher are also regular rather than 31
 different proof ideas:
 
 | Constructor prefix | Payload | Meaning |
 | --- | --- | --- |
-| `VSeq` | one of 14 sequential configs | Run the Loop-to-Loop dispatcher, then checked-lift the result |
+| `VSeq` | a sequential config | Run the Loop-to-Loop dispatcher, then checked-lift the result |
 | `VParallelCurrent*` | one schedule coordinate `d` | Produce one certified `ParMode` loop |
 | `VVectorCurrent*` | one schedule coordinate `d` | Produce one checked innermost `VecMode` loop; its formal semantics is sequential |
 | `VParallelCurrentMany*` | coordinate list `dims` | Certify and annotate every accepted coordinate |
@@ -94,40 +58,6 @@ Within the last three families, `Identity`, `IdentityTiled`, `Affine`,
 `Default`, and `Diamond` choose the preprocessing route; an `ISS` suffix chooses
 its ISS-aware variant.  `Current` is a retained API name: on this branch `d`
 denotes the canonical padded schedule coordinate used by raw code generation.
-
-### Reading budget
-
-The following counts use the current source and count nonempty lines strictly
-between `Proof.` and `Qed.`.  They are a reading estimate, not a code-size
-metric.  The table chooses one ordinary tiling route and excludes the concrete
-extraction mirror, so no semantic argument is counted twice.
-
-| Area | Included core proofs | Proof-body lines |
-| --- | --- | ---: |
-| Extraction | main mutual reconstruction plus `extractor_correct` | 700 |
-| ISS | partition obligations, point injectivity, flatten bridge, semantic endpoint, checked wrapper | 376 |
-| Affine scheduling | collision-to-commutativity, pair checker, pointwise/list lift, semantic endpoint | 410 |
-| Tiling representation | flattened permutation reconstruction, poly semantic core, instance endpoint | 332 |
-| Ordinary tiling band | direct component checker, ordinary reversal bridge, semantic kernel, checked/runtime endpoints | 1,246 |
-| Parallel annotation and codegen | interleaving serialization, checker soundness, raw origin, actual-trace ordering, cleanup and checked endpoint | 725 |
-| Preparation, driver composition, final generic dispatch | one prepared-codegen endpoint, two composition helpers, one public route, generic `compile` pair | 105 |
-| **One complete ordinary route** | | **3,894** |
-
-The largest individual proof bodies on that route are the ordinary tiling
-reversal bridge (1,019 lines), extractor mutual reconstruction (674), ISS point
-injectivity (198), actual-trace ordering mutual proof (151), generated root
-origin (137), and generated ordered semantics (122).  The names that prompted
-this section are much smaller: generic unified `compile_verified_correct` is 40
-proof-body lines, and the concrete extracted 31-case bridge is 100.  They are
-coverage tables, not the mathematical bottleneck.
-
-A paper-first pass can focus on the approximately 2,850 lines in those
-mathematical bottlenecks and skim the transport wrappers.  Reading every major
-specialized tiling bridge adds about 3,688 lines: second-level (1,330),
-scalar-aware (113), phase ordinary (899), phase second-level (991), and
-phase-scalar class reversal (355).  Thus a one-route deep read is roughly 3,900
-proof lines; a broad all-layout read is roughly 7,600 before optional library
-lemmas and compatibility APIs.
 
 ## 1. Start from the Contract
 
@@ -208,10 +138,6 @@ Primary files:
 - `src/ExtractorFacts.v`: flattening, prefix slices, ordering, and partitions;
 - `src/ExtractorCorrect.v`: semantic reconstruction and the public theorem;
 - `src/Extractor.v`: compatibility facade only.
-
-For declaration ownership, repository reachability, and the proof-by-proof
-cleanup rationale, see
-[`proof-audits/EXTRACTOR_AUDIT.md`](proof-audits/EXTRACTOR_AUDIT.md).
 
 The extractor accepts the bounded affine fragment of the structured loop
 language. It converts expressions to affine rows, accumulates loop and guard
@@ -472,8 +398,9 @@ corollaries.
 
 `check_pprog_parallel_currentb` reduces this property to an affine validation
 query between two synthetic schedule views built from the actual padded
-schedule rows: one orders only by coordinate `d`, and the other orders by the
-prefix before `d`. Its pointwise soundness theorem is
+schedule rows: one orders by the prefix followed by coordinate `d`, and the other
+retains only the prefix. Dropping `d` exposes pairs in different iterations
+of the same enclosing loop execution, without comparing different prefixes. Its pointwise soundness theorem is
 `check_pprog_parallel_currentb_pointwise_sound`;
 `checked_parallelize_current_pointwise_sound` packages the certificate. The
 range theorem additionally proves that `d` is one of the schedule coordinates
@@ -562,34 +489,7 @@ Then descend into the component whose premise is least clear. In particular:
 - Skim the many route-specific `Opt_*_correct` wrappers after checking one
   example; they instantiate the same composition argument.
 
-## 9. Paper-to-proof crosswalk
-
-The paper sources live in the separate `paper-local` checkout.  Read the
-following rows horizontally: first the prose contract, then the named Rocq
-entry point, and only then its supporting long proof.
-
-| Paper section | Current proof entry | What to inspect next |
-| --- | --- | --- |
-| `semantics.tex`, refinement contract and occurrence order | `PolyLang.instance_list_semantics`, `PolyLang.poly_instance_list_semantics` | `InstanceListSema.Permutable`, stable sorting and list-semantics transport in `PolyLang.v` |
-| `problem.tex`, end-to-end refinement | `VerifiedParallelCompilerConfig.compile_correct` | `compile_verified_correct`, then only the constructor for the route being read |
-| `composition.tex`, verified extraction | `ExtractorCorrect.extractor_correct` | `core_sched_stmt_stmts_constrs_prefix_mutual`; use `ExtractorFacts.v` only when a slice or partition premise appears |
-| `transformations.tex`, index-set splitting | `ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct` | checker soundness in `ISSBoolChecker.v`, then coverage/disjointness in `ISSRefinement.v` and semantic mapping in `ISSCutSemantics.v` |
-| inherited affine rescheduling argument | `AffineValidator.validate_correct` | `validate_two_instrs_implies_no_write_collision`, `validate_implies_permutability`, and the stable-sort semantic bridge |
-| `tiling.tex`, exact realization | `TilingRelation.tiling_retiled_old_to_before_instance_correct_source` | source-point reconstruction, injectivity, flattening correspondence |
-| `tiling.tex`, permutable-band checker | `TilingBandScheduleValidator.semantic_componentwise_permutable_implies_reordering_safe` | one direct component-checker soundness theorem and one layout reversal bridge |
-| `tiling.tex`, tiling refinement | `TilingBandDirectRuntime.checked_tiling_sourceb_complete_direct_band_check_correct` | the selected layout-class endpoint, then `TilingValidator.tiling_validate_correct` |
-| `transformations.tex`, dimension eligibility | `ParallelValidator.checked_parallelize_current_pointwise_sound` | the two synthetic schedules and `parallel_safe_dim_pointwise` |
-| historical v8 restricted annotation semantics | v8 `ParallelLoop.interleave_safe_refines_concat` | use `git show 0661fe0a:polygen/ParallelLoop.v`; this is the exact v8 argument |
-| current strengthened annotation semantics | `ParallelCodegenCorrect.checked_annotated_codegen_correct_general` | `RawCodegenOrigin.complete_generate_many_event_source`, `actual_multi_ordered_mutual`, then `ParallelLoop.semantics_refines_erased` |
-| `composition.tex`, complete route composition | `ParallelPolOptCorrect.Opt_parallel_current_correct` and `VerifiedParallelCompilerConfig.compile_verified_correct` | certificate transport, frontend lifting, and the two explicit `State.eq_trans` compositions |
-
-For the first pass, skip definitions whose names end in `_inv`, `_nth_error`,
-or `_length` unless a main theorem uses that exact fact.  On the second pass,
-read one witness-recovery proof per representation change and one reversal
-bridge per layout family.  Reading every route wrapper adds coverage detail but
-does not add a new semantic argument.
-
-## 10. Maintenance Invariants
+## 9. Maintenance Invariants
 
 Future proof cleanup should preserve these boundaries:
 

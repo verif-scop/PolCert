@@ -1,0 +1,1428 @@
+{
+  "cases": [
+    {
+      "c_sha256": "80ca39d7bec93192dab9d7123c86e832c225373d1046dc4b1625520380334de9",
+      "c_source": "inputs/80ca39d7bec93192dab9d7123c86e832c225373d1046dc4b1625520380334de9.c",
+      "configuration": "rectangular",
+      "id": "1dloop-invar--rectangular",
+      "kernel": "1dloop-invar",
+      "loop_input": "inputs/6b65b2406fc2b4d11056f2f6f7a99ff2262884385404b25968ae12e15415b46e.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/1dloop-invar.loop",
+      "source_sha256": "6b65b2406fc2b4d11056f2f6f7a99ff2262884385404b25968ae12e15415b46e"
+    },
+    {
+      "c_sha256": "41e8ef08044a8eb0be0fc43ab177136e4c2c05ce2760b4b45c4663ae490143f1",
+      "c_source": "inputs/41e8ef08044a8eb0be0fc43ab177136e4c2c05ce2760b4b45c4663ae490143f1.c",
+      "configuration": "rectangular",
+      "id": "adi--rectangular",
+      "kernel": "adi",
+      "loop_input": "inputs/7400dea8dc3ce03a2f9db6a6260d2250623496a74591d8432a249d0a5615700f.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/adi.loop",
+      "source_sha256": "7400dea8dc3ce03a2f9db6a6260d2250623496a74591d8432a249d0a5615700f"
+    },
+    {
+      "c_sha256": "2d47fed4aea89f6972abb670b0e04101a85657e9850ab26eb6e65d509599f5c2",
+      "c_source": "inputs/2d47fed4aea89f6972abb670b0e04101a85657e9850ab26eb6e65d509599f5c2.c",
+      "configuration": "rectangular",
+      "id": "advect3d--rectangular",
+      "kernel": "advect3d",
+      "loop_input": "inputs/8a9fd8943738f21015e4d3a9038ffcd6c2931607ea1a48992cbe5ccdf99eca4a.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/advect3d.loop",
+      "source_sha256": "8a9fd8943738f21015e4d3a9038ffcd6c2931607ea1a48992cbe5ccdf99eca4a"
+    },
+    {
+      "c_sha256": "6ab44e56bab4fe7770f61dc52b8a4b1c4855c7c33ec9e1d76288aefeda82c648",
+      "c_source": "inputs/6ab44e56bab4fe7770f61dc52b8a4b1c4855c7c33ec9e1d76288aefeda82c648.c",
+      "configuration": "rectangular",
+      "id": "corcol--rectangular",
+      "kernel": "corcol",
+      "loop_input": "inputs/4b787a359a21f7916c872281938357ca515c9cc07a81a5de52704abd79ff41f7.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/corcol.loop",
+      "source_sha256": "4b787a359a21f7916c872281938357ca515c9cc07a81a5de52704abd79ff41f7"
+    },
+    {
+      "c_sha256": "9990294292eae50055866e1247aae243f659b1d56eb4470aecdaee0ba1de88a1",
+      "c_source": "inputs/9990294292eae50055866e1247aae243f659b1d56eb4470aecdaee0ba1de88a1.c",
+      "configuration": "rectangular",
+      "id": "corcol3--rectangular",
+      "kernel": "corcol3",
+      "loop_input": "inputs/cbacfe2fda0c5db5aea7a6a4e4352cc50534f50f4dac1e0f72ba0804004a93d0.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/corcol3.loop",
+      "source_sha256": "cbacfe2fda0c5db5aea7a6a4e4352cc50534f50f4dac1e0f72ba0804004a93d0"
+    },
+    {
+      "c_sha256": "af7ead6aa1510c7d42fe6ae9191538feaca42c2cc92acd458a67012dadbc5652",
+      "c_source": "inputs/af7ead6aa1510c7d42fe6ae9191538feaca42c2cc92acd458a67012dadbc5652.c",
+      "configuration": "rectangular",
+      "id": "costfunc--rectangular",
+      "kernel": "costfunc",
+      "loop_input": "inputs/26fa6a32dcf91e46b9828d5a4c78d02470484c326cf2f0abda15a23395720ef5.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/costfunc.loop",
+      "source_sha256": "26fa6a32dcf91e46b9828d5a4c78d02470484c326cf2f0abda15a23395720ef5"
+    },
+    {
+      "c_sha256": "071c62342f8a564e1fcf0185336654c6bcfa9f3467608c14a2761af6f7800da7",
+      "c_source": "inputs/071c62342f8a564e1fcf0185336654c6bcfa9f3467608c14a2761af6f7800da7.c",
+      "configuration": "rectangular",
+      "id": "covcol--rectangular",
+      "kernel": "covcol",
+      "loop_input": "inputs/ebeec6089a40af6e1a627f6f5efdfcb4ce95eaef8f29acbd630eb79e30953c36.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/covcol.loop",
+      "source_sha256": "ebeec6089a40af6e1a627f6f5efdfcb4ce95eaef8f29acbd630eb79e30953c36"
+    },
+    {
+      "c_sha256": "2a364dfe7c3a8c5ccae1fc5bb581be3a5b2b710f3df5a2fe8d8248d1e7449d04",
+      "c_source": "inputs/2a364dfe7c3a8c5ccae1fc5bb581be3a5b2b710f3df5a2fe8d8248d1e7449d04.c",
+      "configuration": "rectangular",
+      "id": "dct--rectangular",
+      "kernel": "dct",
+      "loop_input": "inputs/5980555ea87d7136b61bc35cd2fceba8bc4ea7eee60445ae7938721df30bc703.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/dct.loop",
+      "source_sha256": "5980555ea87d7136b61bc35cd2fceba8bc4ea7eee60445ae7938721df30bc703"
+    },
+    {
+      "c_sha256": "cd0cb088ed5c35377e41e31d5aa654b2aa2b57f1592081d3d936db7ed25d0228",
+      "c_source": "inputs/cd0cb088ed5c35377e41e31d5aa654b2aa2b57f1592081d3d936db7ed25d0228.c",
+      "configuration": "rectangular",
+      "id": "doitgen--rectangular",
+      "kernel": "doitgen",
+      "loop_input": "inputs/5d94a58865e35d8a0b6b014be5c8041a605195cbbbe0820c745d128ffcfe576b.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/doitgen.loop",
+      "source_sha256": "5d94a58865e35d8a0b6b014be5c8041a605195cbbbe0820c745d128ffcfe576b"
+    },
+    {
+      "c_sha256": "1631d0aef3a13e4890b9e1866fe4f3c29870554768e3841b5c16a89f8ffca244",
+      "c_source": "inputs/1631d0aef3a13e4890b9e1866fe4f3c29870554768e3841b5c16a89f8ffca244.c",
+      "configuration": "rectangular",
+      "id": "dsyr2k--rectangular",
+      "kernel": "dsyr2k",
+      "loop_input": "inputs/c8b8ba709bbcb9331c8f2cce37051f30c1bc63409a3d3e607278c75988ff0c1c.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/dsyr2k.loop",
+      "source_sha256": "c8b8ba709bbcb9331c8f2cce37051f30c1bc63409a3d3e607278c75988ff0c1c"
+    },
+    {
+      "c_sha256": "a0dd4c8509717bcd29929cb6a35728b7af63fe4cd79560d3688e2ac1b0de3df8",
+      "c_source": "inputs/a0dd4c8509717bcd29929cb6a35728b7af63fe4cd79560d3688e2ac1b0de3df8.c",
+      "configuration": "rectangular",
+      "id": "dsyrk--rectangular",
+      "kernel": "dsyrk",
+      "loop_input": "inputs/af0284a72af3ab90aa504d72279f5497cc736d9b7371cf6410c08dab8846ef05.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/dsyrk.loop",
+      "source_sha256": "af0284a72af3ab90aa504d72279f5497cc736d9b7371cf6410c08dab8846ef05"
+    },
+    {
+      "c_sha256": "a7b6d9b2fed93e527f9b4990b9dfd8c5b774f95a7882f36fbe4e280745e682a2",
+      "c_source": "inputs/a7b6d9b2fed93e527f9b4990b9dfd8c5b774f95a7882f36fbe4e280745e682a2.c",
+      "configuration": "rectangular",
+      "id": "fdtd-1d--rectangular",
+      "kernel": "fdtd-1d",
+      "loop_input": "inputs/8932b5ea5da73c53711caac83ef501b8a7756953bf5d85a4ce2021dbe9cf071b.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/fdtd-1d.loop",
+      "source_sha256": "8932b5ea5da73c53711caac83ef501b8a7756953bf5d85a4ce2021dbe9cf071b"
+    },
+    {
+      "c_sha256": "f5e065415ab22c2cdd9587a17ad43627b621ea7eb0dd6992fb5cc1a96a7bd9a1",
+      "c_source": "inputs/f5e065415ab22c2cdd9587a17ad43627b621ea7eb0dd6992fb5cc1a96a7bd9a1.c",
+      "configuration": "rectangular",
+      "id": "fdtd-2d--rectangular",
+      "kernel": "fdtd-2d",
+      "loop_input": "inputs/dea409ccf11daa1a6fec7926ad4ced904e75effabb8e6757bc2df814def2c87c.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/fdtd-2d.loop",
+      "source_sha256": "dea409ccf11daa1a6fec7926ad4ced904e75effabb8e6757bc2df814def2c87c"
+    },
+    {
+      "c_sha256": "308b135482a8621cc2c49eea7510d6ef7489c0753f6f808d0a4e383b22d4e727",
+      "c_source": "inputs/308b135482a8621cc2c49eea7510d6ef7489c0753f6f808d0a4e383b22d4e727.c",
+      "configuration": "rectangular",
+      "id": "floyd--rectangular",
+      "kernel": "floyd",
+      "loop_input": "inputs/88f775f012dd77478eece9ec4da32c9810eb65b577c9a4a1ef69dc32069c227e.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/floyd.loop",
+      "source_sha256": "88f775f012dd77478eece9ec4da32c9810eb65b577c9a4a1ef69dc32069c227e"
+    },
+    {
+      "c_sha256": "acbb0beed4d0fe41e3bac374ff62559eab4f1ab54c15bf65b385e5bef1362d3f",
+      "c_source": "inputs/acbb0beed4d0fe41e3bac374ff62559eab4f1ab54c15bf65b385e5bef1362d3f.c",
+      "configuration": "rectangular",
+      "id": "fusion1--rectangular",
+      "kernel": "fusion1",
+      "loop_input": "inputs/4fff6ef61284fe2ed7e7dbd1ecfb1ee97b62cb694adf95f95e99af588855fdef.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/fusion1.loop",
+      "source_sha256": "4fff6ef61284fe2ed7e7dbd1ecfb1ee97b62cb694adf95f95e99af588855fdef"
+    },
+    {
+      "c_sha256": "f943b9fbd956d63c85b74902df8367020a10ee9858d8b9048a0a30813eef9d2d",
+      "c_source": "inputs/f943b9fbd956d63c85b74902df8367020a10ee9858d8b9048a0a30813eef9d2d.c",
+      "configuration": "rectangular",
+      "id": "fusion10--rectangular",
+      "kernel": "fusion10",
+      "loop_input": "inputs/4d279850265ef5bf7daca0de0e861f79fa9c4fcb7d0279e82107906a9c00ef12.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/fusion10.loop",
+      "source_sha256": "4d279850265ef5bf7daca0de0e861f79fa9c4fcb7d0279e82107906a9c00ef12"
+    },
+    {
+      "c_sha256": "e99852175cb4378ec93524448c8c9e64329ac20c0e3a93ec291470cff9f3c9ed",
+      "c_source": "inputs/e99852175cb4378ec93524448c8c9e64329ac20c0e3a93ec291470cff9f3c9ed.c",
+      "configuration": "rectangular",
+      "id": "fusion2--rectangular",
+      "kernel": "fusion2",
+      "loop_input": "inputs/9383b4e70de695b4c1e0c84f8807099743d80fdf31f08bfa63389e65c9a021f2.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/fusion2.loop",
+      "source_sha256": "9383b4e70de695b4c1e0c84f8807099743d80fdf31f08bfa63389e65c9a021f2"
+    },
+    {
+      "c_sha256": "f7f3469e34dd9fe0639843a26886a1cccf3b91b4c0813250a3ba85a351e5115c",
+      "c_source": "inputs/f7f3469e34dd9fe0639843a26886a1cccf3b91b4c0813250a3ba85a351e5115c.c",
+      "configuration": "rectangular",
+      "id": "fusion3--rectangular",
+      "kernel": "fusion3",
+      "loop_input": "inputs/d2942c8ea126ba18d2214f25163581cd8a43f6d0b28a7dd668118f8be93a5d71.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/fusion3.loop",
+      "source_sha256": "d2942c8ea126ba18d2214f25163581cd8a43f6d0b28a7dd668118f8be93a5d71"
+    },
+    {
+      "c_sha256": "011597c1bb1c5d7bf6686f83c3403ed06ebed238128ab44878f479a81203dc6f",
+      "c_source": "inputs/011597c1bb1c5d7bf6686f83c3403ed06ebed238128ab44878f479a81203dc6f.c",
+      "configuration": "rectangular",
+      "id": "fusion4--rectangular",
+      "kernel": "fusion4",
+      "loop_input": "inputs/7afa8e71a480f090117a00d17e1c8d866650b646aea3bf72dea6de43552b8fd1.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/fusion4.loop",
+      "source_sha256": "7afa8e71a480f090117a00d17e1c8d866650b646aea3bf72dea6de43552b8fd1"
+    },
+    {
+      "c_sha256": "15dd31bff3a18ac922202b7d6cc12d5ca61b5a0224f9f88f39eee40bf2924a62",
+      "c_source": "inputs/15dd31bff3a18ac922202b7d6cc12d5ca61b5a0224f9f88f39eee40bf2924a62.c",
+      "configuration": "rectangular",
+      "id": "fusion5--rectangular",
+      "kernel": "fusion5",
+      "loop_input": "inputs/b229b09e0581e02027d42a182dccad4e07d01b7fcc9a3d2fb7c60dfd7e5a9bdb.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/fusion5.loop",
+      "source_sha256": "b229b09e0581e02027d42a182dccad4e07d01b7fcc9a3d2fb7c60dfd7e5a9bdb"
+    },
+    {
+      "c_sha256": "4f8d99e8b9f03ba1f97d2702236d66817cce39aac495f8b383fd87b682fff194",
+      "c_source": "inputs/4f8d99e8b9f03ba1f97d2702236d66817cce39aac495f8b383fd87b682fff194.c",
+      "configuration": "rectangular",
+      "id": "fusion6--rectangular",
+      "kernel": "fusion6",
+      "loop_input": "inputs/942afaee8d5b3123117de65f4eb360046bf920336d0328692e79d9bde7ef53c0.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/fusion6.loop",
+      "source_sha256": "942afaee8d5b3123117de65f4eb360046bf920336d0328692e79d9bde7ef53c0"
+    },
+    {
+      "c_sha256": "d5f17f6cd1275af73cd286c6ab53ce12b5327b03265f7e1fe7227952c13a8f58",
+      "c_source": "inputs/d5f17f6cd1275af73cd286c6ab53ce12b5327b03265f7e1fe7227952c13a8f58.c",
+      "configuration": "rectangular",
+      "id": "fusion7--rectangular",
+      "kernel": "fusion7",
+      "loop_input": "inputs/a69813818b2d4c0c82758e2a7d307a5a32babceadce87b1441b28e4e68acc990.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/fusion7.loop",
+      "source_sha256": "a69813818b2d4c0c82758e2a7d307a5a32babceadce87b1441b28e4e68acc990"
+    },
+    {
+      "c_sha256": "9d11b0b2b2b44fec991b81f1603e7baba427c378f379d4bd4f94194620798612",
+      "c_source": "inputs/9d11b0b2b2b44fec991b81f1603e7baba427c378f379d4bd4f94194620798612.c",
+      "configuration": "rectangular",
+      "id": "fusion8--rectangular",
+      "kernel": "fusion8",
+      "loop_input": "inputs/0a6bc47086d55eca965626e53633c8b3756f392364dc6a2574527d9cb9eb0333.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/fusion8.loop",
+      "source_sha256": "0a6bc47086d55eca965626e53633c8b3756f392364dc6a2574527d9cb9eb0333"
+    },
+    {
+      "c_sha256": "0c0eead2d3537639c3480ad1c0ce51a42c86085fa628991d8048b678a82a7785",
+      "c_source": "inputs/0c0eead2d3537639c3480ad1c0ce51a42c86085fa628991d8048b678a82a7785.c",
+      "configuration": "rectangular",
+      "id": "fusion9--rectangular",
+      "kernel": "fusion9",
+      "loop_input": "inputs/3a8be3fbef349c4c09de3fd561bcf7a6fe5875222f55ac0c9955638401231aff.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/fusion9.loop",
+      "source_sha256": "3a8be3fbef349c4c09de3fd561bcf7a6fe5875222f55ac0c9955638401231aff"
+    },
+    {
+      "c_sha256": "b11187b8af075dc99ef0e63b04df8a9b3fe0f320590cbe0adc680a0e8a52b150",
+      "c_source": "inputs/b11187b8af075dc99ef0e63b04df8a9b3fe0f320590cbe0adc680a0e8a52b150.c",
+      "configuration": "rectangular",
+      "id": "gemver--rectangular",
+      "kernel": "gemver",
+      "loop_input": "inputs/681d936842db008f1bfe2ec012e1781cf0a814bc007dbdf1024ba0e61581c0d1.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/gemver.loop",
+      "source_sha256": "681d936842db008f1bfe2ec012e1781cf0a814bc007dbdf1024ba0e61581c0d1"
+    },
+    {
+      "c_sha256": "05e9d9d4a599e55deb91d6671178afdd3c7ba13a490718f28d4719fec92dccf9",
+      "c_source": "inputs/05e9d9d4a599e55deb91d6671178afdd3c7ba13a490718f28d4719fec92dccf9.c",
+      "configuration": "rectangular",
+      "id": "intratileopt1--rectangular",
+      "kernel": "intratileopt1",
+      "loop_input": "inputs/9a98d391dc3a610605055a07e42979c2682b972d6e507749d42f623d05205d03.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/intratileopt1.loop",
+      "source_sha256": "9a98d391dc3a610605055a07e42979c2682b972d6e507749d42f623d05205d03"
+    },
+    {
+      "c_sha256": "7674a93aa6a8ccf45a0331997dca948c4ffb424f02115c77111cc8af68b81e74",
+      "c_source": "inputs/7674a93aa6a8ccf45a0331997dca948c4ffb424f02115c77111cc8af68b81e74.c",
+      "configuration": "rectangular",
+      "id": "intratileopt2--rectangular",
+      "kernel": "intratileopt2",
+      "loop_input": "inputs/8cc8a07eb9e4547bcddced9bf8bac7d3e8ef56c4621f39e00a11835a1d9c2f0f.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/intratileopt2.loop",
+      "source_sha256": "8cc8a07eb9e4547bcddced9bf8bac7d3e8ef56c4621f39e00a11835a1d9c2f0f"
+    },
+    {
+      "c_sha256": "1503fbd0c4b1299871c764cee1962339fd3ec1d7fba557e43d39b0ed23ba30b0",
+      "c_source": "inputs/1503fbd0c4b1299871c764cee1962339fd3ec1d7fba557e43d39b0ed23ba30b0.c",
+      "configuration": "rectangular",
+      "id": "intratileopt3--rectangular",
+      "kernel": "intratileopt3",
+      "loop_input": "inputs/7fbb9e32938e19d4affc8e341204400058ff9e07880d232df119366f3a32218b.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/intratileopt3.loop",
+      "source_sha256": "7fbb9e32938e19d4affc8e341204400058ff9e07880d232df119366f3a32218b"
+    },
+    {
+      "c_sha256": "3073b33e0208adbd4999e98e415d7a804bcc14a77638651ef5842c62ff697daa",
+      "c_source": "inputs/3073b33e0208adbd4999e98e415d7a804bcc14a77638651ef5842c62ff697daa.c",
+      "configuration": "rectangular",
+      "id": "intratileopt4--rectangular",
+      "kernel": "intratileopt4",
+      "loop_input": "inputs/aac62d46a3584c45a6cc5ea6726e05eeb3cc5bac25ea86feb0e32ff352f12092.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/intratileopt4.loop",
+      "source_sha256": "aac62d46a3584c45a6cc5ea6726e05eeb3cc5bac25ea86feb0e32ff352f12092"
+    },
+    {
+      "c_sha256": "42046be532b850d6c01c1ebca5f3a24e8897c46f217394bf4e934327ea20f264",
+      "c_source": "inputs/42046be532b850d6c01c1ebca5f3a24e8897c46f217394bf4e934327ea20f264.c",
+      "configuration": "rectangular",
+      "id": "jacobi-1d-imper--rectangular",
+      "kernel": "jacobi-1d-imper",
+      "loop_input": "inputs/adf84eb6f810a3fbe13d4c721e90ae6d2ca34478fc6622ce8b372bce6edfcfd4.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/jacobi-1d-imper.loop",
+      "source_sha256": "adf84eb6f810a3fbe13d4c721e90ae6d2ca34478fc6622ce8b372bce6edfcfd4"
+    },
+    {
+      "c_sha256": "87a23c18f92e17bca1568807ffadf3f879aece8cff6219f88a847b84aeec299c",
+      "c_source": "inputs/87a23c18f92e17bca1568807ffadf3f879aece8cff6219f88a847b84aeec299c.c",
+      "configuration": "rectangular",
+      "id": "jacobi-2d-imper--rectangular",
+      "kernel": "jacobi-2d-imper",
+      "loop_input": "inputs/78d3d74d1a4f0103b05f931316477bd6a3f4f114c753caa1885049258a74279f.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/jacobi-2d-imper.loop",
+      "source_sha256": "78d3d74d1a4f0103b05f931316477bd6a3f4f114c753caa1885049258a74279f"
+    },
+    {
+      "c_sha256": "0c480397814eb9bb0350136afefac42158d1716ad1bbd5cb36bac36813c94180",
+      "c_source": "inputs/0c480397814eb9bb0350136afefac42158d1716ad1bbd5cb36bac36813c94180.c",
+      "configuration": "rectangular",
+      "id": "lu--rectangular",
+      "kernel": "lu",
+      "loop_input": "inputs/04978c46446eb3a4cb68d3bf619b64dc00679168e221ba7ec4c313cf0e20a1fc.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/lu.loop",
+      "source_sha256": "04978c46446eb3a4cb68d3bf619b64dc00679168e221ba7ec4c313cf0e20a1fc"
+    },
+    {
+      "c_sha256": "08163f98d7dbac4c5fa0d820b43f9fa8080f35c2f0d8f0cdccc54cc08ed91608",
+      "c_source": "inputs/08163f98d7dbac4c5fa0d820b43f9fa8080f35c2f0d8f0cdccc54cc08ed91608.c",
+      "configuration": "rectangular",
+      "id": "matmul-init--rectangular",
+      "kernel": "matmul-init",
+      "loop_input": "inputs/75681ba416424fccdb232bb6706d9bf23cade1ad81eaee3ca634ec1ad70baee2.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/matmul-init.loop",
+      "source_sha256": "75681ba416424fccdb232bb6706d9bf23cade1ad81eaee3ca634ec1ad70baee2"
+    },
+    {
+      "c_sha256": "e26fbe8306a7e5ba84dc27e6fa2150dc18cef4106651eba30d5d0a26b61396c2",
+      "c_source": "inputs/e26fbe8306a7e5ba84dc27e6fa2150dc18cef4106651eba30d5d0a26b61396c2.c",
+      "configuration": "rectangular",
+      "id": "matmul-seq--rectangular",
+      "kernel": "matmul-seq",
+      "loop_input": "inputs/d9e7656daa58360c287b644e2f60d7e4c7d6e403db9ffe33a92404c3bb358b6f.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/matmul-seq.loop",
+      "source_sha256": "d9e7656daa58360c287b644e2f60d7e4c7d6e403db9ffe33a92404c3bb358b6f"
+    },
+    {
+      "c_sha256": "eec5258ed543b713defeb7dc63ded694ffdee6b88e40ea2b35ee00e7da710410",
+      "c_source": "inputs/eec5258ed543b713defeb7dc63ded694ffdee6b88e40ea2b35ee00e7da710410.c",
+      "configuration": "rectangular",
+      "id": "matmul-seq3--rectangular",
+      "kernel": "matmul-seq3",
+      "loop_input": "inputs/49d296d68367516481a5c3f7c738f44a0d55b3d93beccfe1e5690e2b4b13ca26.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/matmul-seq3.loop",
+      "source_sha256": "49d296d68367516481a5c3f7c738f44a0d55b3d93beccfe1e5690e2b4b13ca26"
+    },
+    {
+      "c_sha256": "ea1059ba47a8db2d50a4d082f67168ace1f1a5b0cb398717f8ead920700b999b",
+      "c_source": "inputs/ea1059ba47a8db2d50a4d082f67168ace1f1a5b0cb398717f8ead920700b999b.c",
+      "configuration": "rectangular",
+      "id": "matmul--rectangular",
+      "kernel": "matmul",
+      "loop_input": "inputs/14feaaed94cdd77df9a2476bd7672a58d4b27507f9ccac503414cc9860a7ce19.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/matmul.loop",
+      "source_sha256": "14feaaed94cdd77df9a2476bd7672a58d4b27507f9ccac503414cc9860a7ce19"
+    },
+    {
+      "c_sha256": "8c7f50b8bf32781a83a4fbe452c38af406b1515cc9d1f1d09621d813b6802c62",
+      "c_source": "inputs/8c7f50b8bf32781a83a4fbe452c38af406b1515cc9d1f1d09621d813b6802c62.c",
+      "configuration": "rectangular",
+      "id": "multi-loop-param--rectangular",
+      "kernel": "multi-loop-param",
+      "loop_input": "inputs/158093a68e92030f31129027b9715360cb630d9dfe17a4f8ce1e7d27c2f2c143.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/multi-loop-param.loop",
+      "source_sha256": "158093a68e92030f31129027b9715360cb630d9dfe17a4f8ce1e7d27c2f2c143"
+    },
+    {
+      "c_sha256": "40f521bcc6cd48a176b9747db491d962ac4235cb9f899816e6994fe8320ce144",
+      "c_source": "inputs/40f521bcc6cd48a176b9747db491d962ac4235cb9f899816e6994fe8320ce144.c",
+      "configuration": "rectangular",
+      "id": "multi-stmt-stencil-seq--rectangular",
+      "kernel": "multi-stmt-stencil-seq",
+      "loop_input": "inputs/616cfba74093c44e61bcb8884e676e26dff9dbf1fe03e19053d1817a5ba49368.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/multi-stmt-stencil-seq.loop",
+      "source_sha256": "616cfba74093c44e61bcb8884e676e26dff9dbf1fe03e19053d1817a5ba49368"
+    },
+    {
+      "c_sha256": "c74fc2421d68ae0c1c8992fee31761d1a7404914f757f2b2d00b6228489d4d44",
+      "c_source": "inputs/c74fc2421d68ae0c1c8992fee31761d1a7404914f757f2b2d00b6228489d4d44.c",
+      "configuration": "rectangular",
+      "id": "mvt--rectangular",
+      "kernel": "mvt",
+      "loop_input": "inputs/0551a92ba36e848693ed1b7c68713bc8ef6e2b3f381ce95b3fb4d443bb6751f9.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/mvt.loop",
+      "source_sha256": "0551a92ba36e848693ed1b7c68713bc8ef6e2b3f381ce95b3fb4d443bb6751f9"
+    },
+    {
+      "c_sha256": "03f911720f54d9340d7a6c19caecc8dd73091ecd4538b69da256f5db2267b904",
+      "c_source": "inputs/03f911720f54d9340d7a6c19caecc8dd73091ecd4538b69da256f5db2267b904.c",
+      "configuration": "rectangular",
+      "id": "mxv-seq--rectangular",
+      "kernel": "mxv-seq",
+      "loop_input": "inputs/093e31c5f630c37ea2d3292bae971082792b9a036f9e82e436fc50ce1478a64b.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/mxv-seq.loop",
+      "source_sha256": "093e31c5f630c37ea2d3292bae971082792b9a036f9e82e436fc50ce1478a64b"
+    },
+    {
+      "c_sha256": "0861ac50c793bd980e5ae27f5da7fc1cddc14022fa2a585d3f39c21fa95989fa",
+      "c_source": "inputs/0861ac50c793bd980e5ae27f5da7fc1cddc14022fa2a585d3f39c21fa95989fa.c",
+      "configuration": "rectangular",
+      "id": "mxv-seq3--rectangular",
+      "kernel": "mxv-seq3",
+      "loop_input": "inputs/6bd8467d6991bcc33568e5b3c95311e3dbbe222704539b05682caf712f5d19bd.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/mxv-seq3.loop",
+      "source_sha256": "6bd8467d6991bcc33568e5b3c95311e3dbbe222704539b05682caf712f5d19bd"
+    },
+    {
+      "c_sha256": "0a9539ced376e375b5eea1e89a754af54640d92c12a8ad402bd3dcc0e1aab17b",
+      "c_source": "inputs/0a9539ced376e375b5eea1e89a754af54640d92c12a8ad402bd3dcc0e1aab17b.c",
+      "configuration": "rectangular",
+      "id": "mxv--rectangular",
+      "kernel": "mxv",
+      "loop_input": "inputs/df8b025bb303be7b6068a18e50471c0c32aa2cfa98a5e36d92e27dc9622b97d6.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/mxv.loop",
+      "source_sha256": "df8b025bb303be7b6068a18e50471c0c32aa2cfa98a5e36d92e27dc9622b97d6"
+    },
+    {
+      "c_sha256": "82b24d4ca11f0b4f44b5791f1ebbc6c267501ff246b7e54a4efb03af536bca71",
+      "c_source": "inputs/82b24d4ca11f0b4f44b5791f1ebbc6c267501ff246b7e54a4efb03af536bca71.c",
+      "configuration": "rectangular",
+      "id": "negparam--rectangular",
+      "kernel": "negparam",
+      "loop_input": "inputs/6891c8cad0458e1583f2dbcf458ee22c718e4869d132425197bd3f2221c8b542.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/negparam.loop",
+      "source_sha256": "6891c8cad0458e1583f2dbcf458ee22c718e4869d132425197bd3f2221c8b542"
+    },
+    {
+      "c_sha256": "49041018f42e53c9e37b0a666aad5a451ec9c0aead989cba8e1bf16431bb5c55",
+      "c_source": "inputs/49041018f42e53c9e37b0a666aad5a451ec9c0aead989cba8e1bf16431bb5c55.c",
+      "configuration": "rectangular",
+      "id": "nodep--rectangular",
+      "kernel": "nodep",
+      "loop_input": "inputs/4a254bae57e1e00d21f5fd367449b630cc9d63ef1b84bccaba41c780590229be.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/nodep.loop",
+      "source_sha256": "4a254bae57e1e00d21f5fd367449b630cc9d63ef1b84bccaba41c780590229be"
+    },
+    {
+      "c_sha256": "9ec0a664cbce9accf081773f5c57adb38bb1957c0a9e76e34b3e8b188a994a7d",
+      "c_source": "inputs/9ec0a664cbce9accf081773f5c57adb38bb1957c0a9e76e34b3e8b188a994a7d.c",
+      "configuration": "rectangular",
+      "id": "noloop--rectangular",
+      "kernel": "noloop",
+      "loop_input": "inputs/5c8fd5d3d349186b86fd73abc904242f813af925a1e1fb2835e13642029840f9.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [],
+      "scalar_no_loop_exception": true,
+      "source_relative": "tests/polopt-generated/inputs/noloop.loop",
+      "source_sha256": "5c8fd5d3d349186b86fd73abc904242f813af925a1e1fb2835e13642029840f9"
+    },
+    {
+      "c_sha256": "eeddf3a42730c795872fa8edd2b6ddc54ffbd2ee882edc2939f4539f71cab302",
+      "c_source": "inputs/eeddf3a42730c795872fa8edd2b6ddc54ffbd2ee882edc2939f4539f71cab302.c",
+      "configuration": "rectangular",
+      "id": "pca--rectangular",
+      "kernel": "pca",
+      "loop_input": "inputs/6d7765852febcc0e1b93b59ac86625a9fa0d19a8e48de264675a1657102b29f7.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/pca.loop",
+      "source_sha256": "6d7765852febcc0e1b93b59ac86625a9fa0d19a8e48de264675a1657102b29f7"
+    },
+    {
+      "c_sha256": "4257e29f478709d53bc4ad7b84feba9b2e8a01a789b2ef98e558042fc65f147a",
+      "c_source": "inputs/4257e29f478709d53bc4ad7b84feba9b2e8a01a789b2ef98e558042fc65f147a.c",
+      "configuration": "rectangular",
+      "id": "polynomial--rectangular",
+      "kernel": "polynomial",
+      "loop_input": "inputs/bbd63d18151ab3892796ce246533708e57707e1d8a3a0e332976258de1b3054d.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/polynomial.loop",
+      "source_sha256": "bbd63d18151ab3892796ce246533708e57707e1d8a3a0e332976258de1b3054d"
+    },
+    {
+      "c_sha256": "cfbbb533f42f918f321ff6efe8da75c4bbad881c6273f4a902b6c3df87a033a7",
+      "c_source": "inputs/cfbbb533f42f918f321ff6efe8da75c4bbad881c6273f4a902b6c3df87a033a7.c",
+      "configuration": "rectangular",
+      "id": "seidel--rectangular",
+      "kernel": "seidel",
+      "loop_input": "inputs/6f11b36b1f9d5babad5c06e92bbb835e34b8bb43a9756f28e6bbec150894a4ef.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/seidel.loop",
+      "source_sha256": "6f11b36b1f9d5babad5c06e92bbb835e34b8bb43a9756f28e6bbec150894a4ef"
+    },
+    {
+      "c_sha256": "320eeb2e23bfa5a1566e49ab8a6cca06ba3dcde5c92bdd3f2ef96af0681c536b",
+      "c_source": "inputs/320eeb2e23bfa5a1566e49ab8a6cca06ba3dcde5c92bdd3f2ef96af0681c536b.c",
+      "configuration": "rectangular",
+      "id": "seq--rectangular",
+      "kernel": "seq",
+      "loop_input": "inputs/7fbd87314d338c9da9aa0adebae5beb1b97f3e595c76bc614387a04d69f67b25.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/seq.loop",
+      "source_sha256": "7fbd87314d338c9da9aa0adebae5beb1b97f3e595c76bc614387a04d69f67b25"
+    },
+    {
+      "c_sha256": "52c3433569726194228190b2f950c23fcba19fb16c401513a5d0353feecea9a7",
+      "c_source": "inputs/52c3433569726194228190b2f950c23fcba19fb16c401513a5d0353feecea9a7.c",
+      "configuration": "rectangular",
+      "id": "shift--rectangular",
+      "kernel": "shift",
+      "loop_input": "inputs/22b99574a2f138a6d1c49f5c383cccea164db2c9943be6245bf85e140f58915e.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/shift.loop",
+      "source_sha256": "22b99574a2f138a6d1c49f5c383cccea164db2c9943be6245bf85e140f58915e"
+    },
+    {
+      "c_sha256": "c858a68fbb0fb295569360ec8228280d5f3e8b8deb0b1e93640e9b9ae373c428",
+      "c_source": "inputs/c858a68fbb0fb295569360ec8228280d5f3e8b8deb0b1e93640e9b9ae373c428.c",
+      "configuration": "rectangular",
+      "id": "spatial--rectangular",
+      "kernel": "spatial",
+      "loop_input": "inputs/d9a79d14531ece3a2be85c3314e28febddc070c62c5d607b820893064ccb0765.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/spatial.loop",
+      "source_sha256": "d9a79d14531ece3a2be85c3314e28febddc070c62c5d607b820893064ccb0765"
+    },
+    {
+      "c_sha256": "fbe0d940be054d410679189e10c4cf5f87e3a6ad81451f0489d8d33437300157",
+      "c_source": "inputs/fbe0d940be054d410679189e10c4cf5f87e3a6ad81451f0489d8d33437300157.c",
+      "configuration": "rectangular",
+      "id": "ssymm--rectangular",
+      "kernel": "ssymm",
+      "loop_input": "inputs/28af1743de545e77328f386cdc3774e47fde418267813187c8a83bf262a37976.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/ssymm.loop",
+      "source_sha256": "28af1743de545e77328f386cdc3774e47fde418267813187c8a83bf262a37976"
+    },
+    {
+      "c_sha256": "5e5f936b7716e672a6799249847b667f1638bd9aa0db9ae6b84d70a2303811e8",
+      "c_source": "inputs/5e5f936b7716e672a6799249847b667f1638bd9aa0db9ae6b84d70a2303811e8.c",
+      "configuration": "rectangular",
+      "id": "strmm--rectangular",
+      "kernel": "strmm",
+      "loop_input": "inputs/77874bbfa1fe43b0007f627fd35213f76f6944d8f1e31d721a9ec7fcc70d3da5.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/strmm.loop",
+      "source_sha256": "77874bbfa1fe43b0007f627fd35213f76f6944d8f1e31d721a9ec7fcc70d3da5"
+    },
+    {
+      "c_sha256": "8be68027563905a4e253dfd3864619b659e8874f67362facee0a7a9e99e69405",
+      "c_source": "inputs/8be68027563905a4e253dfd3864619b659e8874f67362facee0a7a9e99e69405.c",
+      "configuration": "rectangular",
+      "id": "strsm--rectangular",
+      "kernel": "strsm",
+      "loop_input": "inputs/b99652e745d43c4ffbadf50d123a45fd175b45a950249370c1f3e44355c4a258.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/strsm.loop",
+      "source_sha256": "b99652e745d43c4ffbadf50d123a45fd175b45a950249370c1f3e44355c4a258"
+    },
+    {
+      "c_sha256": "795bcd7cb476bb1e2e39ad58e2f59db4be1482c7172a7710cfbfd8e26cbbb1ac",
+      "c_source": "inputs/795bcd7cb476bb1e2e39ad58e2f59db4be1482c7172a7710cfbfd8e26cbbb1ac.c",
+      "configuration": "rectangular",
+      "id": "tce--rectangular",
+      "kernel": "tce",
+      "loop_input": "inputs/368f4dbcf7e8fca50340fd83f1f7b13b4840eca1b1ef619b3d29630a8fed263f.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/tce.loop",
+      "source_sha256": "368f4dbcf7e8fca50340fd83f1f7b13b4840eca1b1ef619b3d29630a8fed263f"
+    },
+    {
+      "c_sha256": "389f4e6c277a52c35ffe2a533565f6bfbcc1203be058755280fbc3df9da0713f",
+      "c_source": "inputs/389f4e6c277a52c35ffe2a533565f6bfbcc1203be058755280fbc3df9da0713f.c",
+      "configuration": "rectangular",
+      "id": "tmm--rectangular",
+      "kernel": "tmm",
+      "loop_input": "inputs/64730a03be392f55d36eeb7974d449d77108959830563c5df45f05f3bf63ad6e.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/tmm.loop",
+      "source_sha256": "64730a03be392f55d36eeb7974d449d77108959830563c5df45f05f3bf63ad6e"
+    },
+    {
+      "c_sha256": "8ecf0df25964f5f09760ac78e09b2a4e0e195bca1cd257612e96e08080bdcfe5",
+      "c_source": "inputs/8ecf0df25964f5f09760ac78e09b2a4e0e195bca1cd257612e96e08080bdcfe5.c",
+      "configuration": "rectangular",
+      "id": "tricky1--rectangular",
+      "kernel": "tricky1",
+      "loop_input": "inputs/78dc3b0073cf143958cc69d238443ee30e5d7297c41d164528b055122bff9c0c.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/tricky1.loop",
+      "source_sha256": "78dc3b0073cf143958cc69d238443ee30e5d7297c41d164528b055122bff9c0c"
+    },
+    {
+      "c_sha256": "73aee98f6a29bb76ef24a84bc9ad71ce3eb27d10c9097a8017950b55e409b53d",
+      "c_source": "inputs/73aee98f6a29bb76ef24a84bc9ad71ce3eb27d10c9097a8017950b55e409b53d.c",
+      "configuration": "rectangular",
+      "id": "tricky2--rectangular",
+      "kernel": "tricky2",
+      "loop_input": "inputs/90309132d9f66ff2b3b3275344154e9011be2c881ed76904df816fb47d071333.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/tricky2.loop",
+      "source_sha256": "90309132d9f66ff2b3b3275344154e9011be2c881ed76904df816fb47d071333"
+    },
+    {
+      "c_sha256": "97bcb3fd497eaae71f800d3dd1619f7f6c05178b3a6ba8da931bf577792de53f",
+      "c_source": "inputs/97bcb3fd497eaae71f800d3dd1619f7f6c05178b3a6ba8da931bf577792de53f.c",
+      "configuration": "rectangular",
+      "id": "tricky3--rectangular",
+      "kernel": "tricky3",
+      "loop_input": "inputs/30c1a3a0115383e1a83c2d19c3c0c6a85bbe0d8b1f25c7b5504a36097eaa0e83.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/tricky3.loop",
+      "source_sha256": "30c1a3a0115383e1a83c2d19c3c0c6a85bbe0d8b1f25c7b5504a36097eaa0e83"
+    },
+    {
+      "c_sha256": "84674112bab67f8619c6d89714f0fc8e36e825694333727b9938736a8c3d6e88",
+      "c_source": "inputs/84674112bab67f8619c6d89714f0fc8e36e825694333727b9938736a8c3d6e88.c",
+      "configuration": "rectangular",
+      "id": "tricky4--rectangular",
+      "kernel": "tricky4",
+      "loop_input": "inputs/0c4c54611be09f2b89edb4608f5881aaa4c7008073ca41b1f932c603006798e7.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/tricky4.loop",
+      "source_sha256": "0c4c54611be09f2b89edb4608f5881aaa4c7008073ca41b1f932c603006798e7"
+    },
+    {
+      "c_sha256": "76b42680b617fe4d35ae9682ed32fd42efb27134e426f0ae2e5a7a46908fa0a0",
+      "c_source": "inputs/76b42680b617fe4d35ae9682ed32fd42efb27134e426f0ae2e5a7a46908fa0a0.c",
+      "configuration": "rectangular",
+      "id": "trisolv--rectangular",
+      "kernel": "trisolv",
+      "loop_input": "inputs/36bb572105135280d0cd01baef4d10fea2ca57b244f914c8bb0492425b8f3a85.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/trisolv.loop",
+      "source_sha256": "36bb572105135280d0cd01baef4d10fea2ca57b244f914c8bb0492425b8f3a85"
+    },
+    {
+      "c_sha256": "ff64ee0a7b23879a3d670e6ea4436a9a4dcf4af53a691a8e5b13713450b58851",
+      "c_source": "inputs/ff64ee0a7b23879a3d670e6ea4436a9a4dcf4af53a691a8e5b13713450b58851.c",
+      "configuration": "rectangular",
+      "id": "wavefront--rectangular",
+      "kernel": "wavefront",
+      "loop_input": "inputs/4ed76f4afc05a66c89aa58d4cab6c39d03fe2b6009422eada9129708ea3dbea3.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--nodiamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--parallel"
+      ],
+      "scalar_no_loop_exception": false,
+      "source_relative": "tests/polopt-generated/inputs/wavefront.loop",
+      "source_sha256": "4ed76f4afc05a66c89aa58d4cab6c39d03fe2b6009422eada9129708ea3dbea3"
+    }
+  ]
+}

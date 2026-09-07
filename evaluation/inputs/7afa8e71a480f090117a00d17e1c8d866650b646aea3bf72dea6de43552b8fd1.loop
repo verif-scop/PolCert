@@ -1,0 +1,10 @@
+for x in range(0, 10000) {
+  for y in range(0, 10000) {
+    B[x][y] = (x + y);
+  }
+}
+for x in range(0, 10000) {
+  for y in range(0, 10000) {
+    C[x][y] = (B[(x - 1)][(y - 1)] + B[x][(y - 1)]);
+  }
+}

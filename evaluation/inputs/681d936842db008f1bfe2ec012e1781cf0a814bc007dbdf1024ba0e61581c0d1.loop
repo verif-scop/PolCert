@@ -1,0 +1,20 @@
+context(N);
+
+for i in range(0, N) {
+  for j in range(0, N) {
+    B[i][j] = ((A[i][j] + (u1[i] * v1[j])) + (u2[i] * v2[j]));
+  }
+}
+for i in range(0, N) {
+  for j in range(0, N) {
+    x[i] = (x[i] + ((beta * B[j][i]) * y[j]));
+  }
+}
+for i in range(0, N) {
+  x[i] = (x[i] + z[i]);
+}
+for i in range(0, N) {
+  for j in range(0, N) {
+    w[i] = (w[i] + ((alpha * B[i][j]) * x[j]));
+  }
+}

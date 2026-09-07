@@ -1,1 +1,4 @@
 tests/polopt-generated/cases export-ignore
+# Experiment manifests identify inputs and subordinate manifests by byte hash.
+evaluation/inputs/** -text
+evaluation/manifests/** -text

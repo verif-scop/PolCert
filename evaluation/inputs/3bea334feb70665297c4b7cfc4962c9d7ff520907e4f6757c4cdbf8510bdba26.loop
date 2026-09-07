@@ -1,0 +1,9 @@
+context(B, T, N);
+
+for t in range(5, (T - 1)) {
+  for i in range(5, (N - 5)) {
+    for p in range(0, B) {
+      A[p][(t + 1)][i] = (0.125 * (A[p][t][(i - 1)] + A[p][(t - 2)][(i + 1)]));
+    }
+  }
+}

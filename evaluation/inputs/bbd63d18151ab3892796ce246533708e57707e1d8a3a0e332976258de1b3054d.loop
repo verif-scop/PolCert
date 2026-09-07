@@ -1,0 +1,10 @@
+context(n);
+
+for i in range(0, (2 * n)) {
+  c[i] = 0;
+}
+for i in range(0, n) {
+  for j in range(0, n) {
+    c[(i + j)] = (c[(i + j)] + (a[i] * b[j]));
+  }
+}

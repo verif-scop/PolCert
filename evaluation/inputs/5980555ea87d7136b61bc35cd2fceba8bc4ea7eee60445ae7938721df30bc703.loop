@@ -1,0 +1,19 @@
+context(M);
+
+for i in range(0, M) {
+  for j in range(0, M) {
+    temp2d[i][j] = 0.0;
+    for k in range(0, M) {
+      temp2d[i][j] = (temp2d[i][j] + (block[i][k] * cos1[j][k]));
+    }
+  }
+}
+for i in range(0, M) {
+  for j in range(0, M) {
+    sum2[i][j] = 0.0;
+    for k in range(0, M) {
+      sum2[i][j] = (sum2[i][j] + (cos1[i][k] * temp2d[k][j]));
+    }
+    block[i][j] = sum2[i][j];
+  }
+}

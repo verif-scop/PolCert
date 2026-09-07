@@ -1,0 +1,16 @@
+context(T, N);
+
+for t in range(0, T) {
+  for i1 in range(0, N) {
+    for i2 in range(1, N) {
+      X[i1][i2] = (X[i1][i2] - ((X[i1][(i2 - 1)] * A[i1][i2]) / B[i1][(i2 - 1)]));
+      B[i1][i2] = (B[i1][i2] - ((A[i1][i2] * A[i1][i2]) / B[i1][(i2 - 1)]));
+    }
+  }
+  for i1 in range(1, N) {
+    for i2 in range(0, N) {
+      X[i1][i2] = (X[i1][i2] - ((X[(i1 - 1)][i2] * A[i1][i2]) / B[(i1 - 1)][i2]));
+      B[i1][i2] = (B[i1][i2] - ((A[i1][i2] * A[i1][i2]) / B[(i1 - 1)][i2]));
+    }
+  }
+}

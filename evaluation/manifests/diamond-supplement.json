@@ -1,0 +1,94 @@
+{
+  "cases": [
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "diamond",
+      "id": "diamond-tile-example--diamond",
+      "kernel": "diamond-tile-example",
+      "loop_input": "inputs/081b464c167bd60f5e3af584b42c72acab861b91c01e1dbb8f0f117ed5d6246e.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--diamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--diamond-tile",
+        "--noparallel"
+      ],
+      "source_relative": "diamond-tile-example.loop",
+      "source_sha256": "081b464c167bd60f5e3af584b42c72acab861b91c01e1dbb8f0f117ed5d6246e"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "diamond",
+      "id": "heat-3d-imperfect--diamond",
+      "kernel": "heat-3d-imperfect",
+      "loop_input": "inputs/d40e2538edcf9d7ecf571833a82698492070357ac4823f9ef35ef1878792ab70.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--diamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--diamond-tile",
+        "--noparallel"
+      ],
+      "source_relative": "heat-3d-imperfect.loop",
+      "source_sha256": "d40e2538edcf9d7ecf571833a82698492070357ac4823f9ef35ef1878792ab70"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "diamond",
+      "id": "jacobi-2d--diamond",
+      "kernel": "jacobi-2d",
+      "loop_input": "inputs/d93ce3647463961bec6d9fbb29a889b18fccec80511fa41158081552eaf9dfb3.loop",
+      "pluto_args": [
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--diamond-tile",
+        "--noparallel"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--diamond-tile",
+        "--noparallel"
+      ],
+      "source_relative": "jacobi-2d.loop",
+      "source_sha256": "d93ce3647463961bec6d9fbb29a889b18fccec80511fa41158081552eaf9dfb3"
+    }
+  ],
+  "cohort": "diamond-supplement",
+  "comparison": "independent Pluto baseline versus final PolCert output",
+  "schema_version": 1
+}

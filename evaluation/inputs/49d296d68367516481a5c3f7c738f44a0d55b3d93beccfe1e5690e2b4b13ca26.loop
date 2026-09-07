@@ -1,0 +1,23 @@
+context(N);
+
+for i in range(0, N) {
+  for j in range(0, N) {
+    for k in range(0, N) {
+      C[i][j] = (C[i][j] + (A[i][k] * B[k][j]));
+    }
+  }
+}
+for i in range(0, N) {
+  for j in range(0, N) {
+    for k in range(0, N) {
+      F[i][j] = (F[i][j] + (D[i][k] * E[k][j]));
+    }
+  }
+}
+for i in range(0, N) {
+  for j in range(0, N) {
+    for k in range(0, N) {
+      G[i][j] = (G[i][j] + (C[i][k] * F[k][j]));
+    }
+  }
+}

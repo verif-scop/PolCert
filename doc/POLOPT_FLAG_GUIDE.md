@@ -1,8 +1,7 @@
 # `polopt` Driver and Flag Guide
 
-This guide describes the artifact-facing `polopt` command. Its intended reader
-is someone running the compiler or reviewing how command-line choices reach the
-verified pipeline.
+This guide explains how `polopt` options select a verified compilation route.
+See [POLOPT.md](../POLOPT.md) for example commands.
 
 Four files define the driver:
 
@@ -127,7 +126,7 @@ command-line compatibility.
 `--vector` and Pluto-compatible `--prevector` use the same dependence check as
 parallelization, then impose an additional structural condition: the annotated
 loop must be innermost. PolCert currently emits a checked `vector for` marker;
-vector execution is a restricted parallel route rather than a separate SIMD
+the formal vector semantics is sequential rather than a machine SIMD
 instruction semantics. `--vector-current d` selects an explicit coordinate.
 
 Parallel and vector selection occurs after scheduling and tiling validation.
@@ -210,8 +209,8 @@ oracle-only tuning flags, and compatibility notes.
 
 Oracle tuning flags may change the candidate that Pluto proposes. They never
 bypass affine, tiling, parallel, vector, or code-generation checks. See
-[pluto-polopt-compatibility.md](pluto-polopt-compatibility.md) for the complete
-compatibility table and pinned-producer details.
+[PLUTO_INTERFACE.md](PLUTO_INTERFACE.md) for phase exports, hint handling,
+and pinned-producer updates.
 
 ## Standalone Validators
 

@@ -1,0 +1,46 @@
+context(N);
+
+for a in range(0, N) {
+  for q in range(0, N) {
+    for r in range(0, N) {
+      for s in range(0, N) {
+        for p in range(0, N) {
+          T1[a][q][r][s] = (T1[a][q][r][s] + (A[p][q][r][s] * C4[p][a]));
+        }
+      }
+    }
+  }
+}
+for a in range(0, N) {
+  for b in range(0, N) {
+    for r in range(0, N) {
+      for s in range(0, N) {
+        for q in range(0, N) {
+          T2[a][b][r][s] = (T2[a][b][r][s] + (T1[a][q][r][s] * C3[q][b]));
+        }
+      }
+    }
+  }
+}
+for a in range(0, N) {
+  for b in range(0, N) {
+    for c in range(0, N) {
+      for s in range(0, N) {
+        for r in range(0, N) {
+          T3[a][b][c][s] = (T3[a][b][c][s] + (T2[a][b][r][s] * C2[r][c]));
+        }
+      }
+    }
+  }
+}
+for a in range(0, N) {
+  for b in range(0, N) {
+    for c in range(0, N) {
+      for d in range(0, N) {
+        for s in range(0, N) {
+          B[a][b][c][d] = (B[a][b][c][d] + (T3[a][b][c][s] * C1[s][d]));
+        }
+      }
+    }
+  }
+}

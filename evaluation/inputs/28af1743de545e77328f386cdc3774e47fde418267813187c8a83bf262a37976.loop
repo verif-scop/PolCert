@@ -1,0 +1,11 @@
+context(NMAX);
+
+for i in range(0, NMAX) {
+  for j in range(0, NMAX) {
+    for k in range(0, (j - 1)) {
+      c[i][k] = (c[i][k] + (a[j][k] * b[i][j]));
+      c[i][j] = (c[i][j] + (a[j][j] * b[i][j]));
+    }
+    c[i][j] = (c[i][j] + (a[j][j] * b[i][j]));
+  }
+}

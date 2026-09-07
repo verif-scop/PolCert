@@ -1,253 +1,70 @@
 # PolCert
 
-PolCert provides two user-facing tools:
+PolCert is a verified polyhedral optimizer for loop fragments. It combines
+verified extraction and code generation with verified validators for affine
+scheduling, index-set splitting, tiling, and parallelization. Pluto supplies
+optimization proposals; accepted results satisfy semantic refinement in the
+formal loop language.
 
-- [`polcert`](./POLCERT.md): validate a Pluto/OpenScop scheduling result.
-  Also supports ISS bridge / debug-dump validation modes.
-- [`polopt`](./POLOPT.md): run a verified polyhedral optimization pipeline on a structured loop fragment.
+The implementation and proofs are written in Rocq (Coq). Extraction produces
+two command-line tools:
 
-If you care about the optimizer, start with [`POLOPT.md`](./POLOPT.md).
-If you already have OpenScop files and only want validation, start with [`POLCERT.md`](./POLCERT.md).
-For a concise note on the current verified pipeline family, see
-[`doc/VERIFIED_PIPELINE.md`](./doc/VERIFIED_PIPELINE.md). For the current
-feature matrix, including ISS and parallel status, see
-[`doc/FEATURE_STATUS.md`](./doc/FEATURE_STATUS.md). For the user-facing flag
-model and why some combinations are rejected, see
-[`doc/POLOPT_FLAG_GUIDE.md`](./doc/POLOPT_FLAG_GUIDE.md).
+- [`polopt`](POLOPT.md) optimizes a structured `.loop` program.
+- [`polcert`](POLCERT.md) checks polyhedral transformation results supplied as
+  OpenScop files.
 
-## Environment and setup
+## Getting started
 
-The standard environment for this repository is defined by [Dockerfile](./Dockerfile).
-If you want the supported setup, use Docker or a container built from that file.
-If you prefer to configure the environment manually, treat `Dockerfile` as the source of truth and mirror its dependencies.
-Detailed instructions are in [ENVIRONMENT.md](./ENVIRONMENT.md).
-
-## Quick start
-
-Inside the project container, build with:
+Build the development environment and open a shell:
 
 ```sh
-make clean
-opam exec -- make depend
-opam exec -- make proof
-opam exec -- make -s check-admitted
-opam exec -- make extraction
-opam exec -- make polopt
-opam exec -- make polcert.ini
-opam exec -- make polcert
-make test
+docker build --target development -t polcert-dev .
+docker run --rm -it -v "$PWD":/polcert polcert-dev
 ```
 
-This produces:
-
-- `./polcert <before.scop> <after.scop>`
-- `./polopt <file.loop>`
-
-For the full local regression flow, also run:
+Inside the container:
 
 ```sh
-opam exec -- make test-iss-pluto-suite
-opam exec -- make test-iss-pluto-live-suite
-opam exec -- make test-parallel-current-suite
-opam exec -- make test-vector-current-suite
-opam exec -- make test-second-level-tile-suite
-opam exec -- make test-polopt-loop-suite
-opam exec -- make test-diamond-tiling-suite
-opam exec -- make test-end-to-end-c-correctness
-opam exec -- make test-extracted-zero-fallback
+eval "$(opam env --switch=polcert)"
+./configure x86_64-linux
+make depend
+make -j2 proof
+make -s check-admitted
+make extraction
+make polcert.ini
+make polcert
+make polopt
+./polopt syntax/examples/matadd.loop
 ```
 
-If you only want to refresh the generated strict-suite corpus for downstream
-whole-C harnesses, without running the strict checker gate, use:
+[ENVIRONMENT.md](ENVIRONMENT.md) describes the toolchain and clean builds.
+The Docker image builds the fixed Pluto revision pinned in
+[`tools/ci/pluto-baseline.env`](tools/ci/pluto-baseline.env). A separate
+historical Pluto is used only by explicit bug-reproduction tests.
 
-```sh
-opam exec -- make materialize-polopt-loop-suite
-```
+## Documentation
 
-The heavier generated end-to-end perf campaign is intentionally **not** part of
-default CI. Run it locally with:
+| Topic | Guide |
+| --- | --- |
+| Optimizer commands and options | [polopt](POLOPT.md) |
+| Standalone validation | [polcert](POLCERT.md) |
+| Input language | [Syntax](syntax/README.md) |
+| Driver dispatch | [Flag guide](doc/POLOPT_FLAG_GUIDE.md) |
+| Semantics and proof boundaries | [Verified pipeline](doc/VERIFIED_PIPELINE.md) |
+| Proof structure and entry points | [Proof reading guide](doc/PROOF_READING_GUIDE.md) |
+| Pluto exports and hint handling | [Pluto interface](doc/PLUTO_INTERFACE.md) |
+| Regression tests and CI | [Testing](doc/TESTING.md) |
+| Optimization retention and timing experiments | [Evaluation](doc/EVALUATION.md) |
 
-```sh
-opam exec -- make test-end-to-end-generated-perf-refresh
-```
+## Scope
 
-## Two usage stories
+The generic formalization is parameterized by the instruction language and its
+semantics. The executable frontend uses `SInstr`, a model for structured loop
+fragments, rather than a full C compiler. Parsing, printing, and Pluto's search
+are outside the verified core. Machine-integer overflow, realistic
+floating-point behavior, and storage-changing transformations require further
+semantic integration.
 
-### 1. I already have Pluto `before.scop` / `after.scop`
-
-Use [`polcert`](./POLCERT.md).
-It checks whether the schedule change preserves the polyhedral dependence semantics.
-
-### 2. I have a loop nest and want the optimizer to do the full pipeline
-
-Use [`polopt`](./POLOPT.md).
-By default it runs the checked affine+tiling route through the unified
-`Loop -> ParallelLoop` compiler wrapper. A successful tiling boundary reports
-`permutable-band`; a candidate for which the direct semantic band checker
-cannot establish its property is reported as `rejected`. It also exposes:
-
-- an optional checked ISS path via `--iss`
-- checked explicit schedule-coordinate parallel paths via the legacy-named
-  `--parallel-current`
-- checked Pluto-hinted parallel paths via `--parallel`, `--parallel-strict`,
-  and `--parallel --multipar`
-- checked explicit schedule-coordinate vector annotation via the legacy-named
-  `--vector-current`
-- checked Pluto-hinted vector annotation via `--vector` / `--prevector`
-- checked tiling-family selectors such as `--second-level-tile`,
-  `--diamond-tile`, and `--full-diamond-tile`
-- the deprecated ordinary-tiling compatibility alias
-  `--legacy-generic-tiling`
-- CLI-side profiling / inspection flags such as `--profile-stages`,
-  `--extract-only`, and the standalone validation actions documented in
-  [`POLOPT.md`](./POLOPT.md) and
-  [`doc/POLOPT_FLAG_GUIDE.md`](./doc/POLOPT_FLAG_GUIDE.md)
-
-The direct checker is a semantic analogue of Pluto's fully permutable-band
-condition for the layouts it recognizes. It checks that no conflicting,
-source-ordered pair with the same prefix before the band decreases in a checked
-band component, using the certified polyhedral emptiness kernel. It does not
-call the whole affine-schedule validator or certify Pluto's band-search
-algorithm.
-Ordinary rectangular, diamond, full-diamond, and recognized grouped or
-interleaved second-level layouts can take this route. Program-wide semantic
-schedule reconstruction covers identity and mixed-depth layouts, while a
-phase-aware direct bridge covers the recognized mixed second-level shape.
-Every accepting branch proves the corresponding reordering property; there is
-no tiling-validation fallback.
-
-Vector annotations are restricted to certifiable innermost loops. `--multipar`
-passes every dimension in the finite candidate list constructed for that route
-to the checked multi-current validator; no two-element truncation remains.
-Parallel target semantics admits arbitrary order-preserving interleavings.  The
-checked code-generation proof maps each actual generated trace back to source
-polyhedral instances and uses the schedule-coordinate certificate to establish
-the commutativity needed to serialize that trace.  Cleaned output is returned
-only when every proof-relevant cleanup stage passes the executable trace-safety
-gate; otherwise the same route returns its checked standard-raw form.
-
-## Status
-
-- The verified optimization core lives in [driver/PolOpt.v](./driver/PolOpt.v).
-- The main theorem-facing wrapper is
-  `VerifiedParallelCompilerConfig.compile`.
-- The wrapper theorem is `VerifiedParallelCompilerConfig.compile_correct`.
-- Sequential routes still have route-local theorems such as `Opt_correct` and
-  `Opt_with_iss_correct`, then lift into `ParallelLoop.t` through the wrapper.
-- Explicit and Pluto-hinted parallel routes, including `--multipar`, dispatch
-  through checked one- or multi-current configs in
-  [driver/VerifiedParallelCompilerConfig.v](./driver/VerifiedParallelCompilerConfig.v).
-- `polopt` now supports:
-  - the default checked affine+tiling route
-  - the optional checked ISS+affine+tiling route (`--iss`)
-  - checked explicit-dimension parallel routes (`--parallel-current`)
-  - checked Pluto-hinted parallel routes (`--parallel`, `--parallel-strict`,
-    `--parallel --multipar`)
-  - checked explicit-dimension vector routes (`--vector-current`)
-  - checked Pluto-hinted vector annotation (`--vector`, `--prevector`)
-- `polcert` now supports:
-  - direct affine validation
-  - phase-aligned tiling validation with explicit `permutable-band` and
-    `rejected` outcomes
-  - ISS bridge / debug-dump validation modes
-- The strict proved-path `polopt` regression suite is manifest-gated in CI and
-  currently succeeds on all generated benchmark inputs:
-  - total inputs: `62`
-  - succeeded: `62`
-  - changed: `59`
-  - unchanged: `3`
-  - nontrivially changed: `59`
-  - automatically detected tiled outputs: `46`
-
-## CI
-
-GitHub Actions currently has two Docker-based workflows:
-
-- `ci`
-  - clean build and regression flow on `main` / `extractor` pushes, pull
-    requests, and manual dispatch
-- `full-tiling-suite`
-  - manually dispatched stricter `polopt` loop-suite workflow
-
-The CI image build is driven by
-[tools/ci/run_ci_build.sh](./tools/ci/run_ci_build.sh), then
-[tools/ci/run_ci_shards.sh](./tools/ci/run_ci_shards.sh) runs isolated test
-shards. Together they execute:
-
-- the full Coq proof build
-- `check-admitted`
-- extraction
-- `polcert` / `polopt` builds
-- `make test`
-- representative failure-exit checks for the legacy binaries
-- the extracted zero-fallback test
-- `make test-iss-pluto-suite`
-- `make test-iss-pluto-live-suite`
-- `make test-parallel-current-suite`
-- `make test-vector-current-suite`
-- `make test-second-level-tile-suite`
-- `make test-diamond-tiling-suite`
-- the strict `polopt` benchmark suite
-- executable baseline-versus-optimized checks for every generated corpus case
-- handwritten executable checks for tiling, ISS, strides, unroll-jam,
-  constant unrolling, parallel constant unrolling, and vector/parallel matmul
-
-Performance searches and repeated timing campaigns remain outside default CI;
-the executable CI checks use one repeat and make no speedup claim.
-
-## Documentation map
-
-- [`ENVIRONMENT.md`](./ENVIRONMENT.md): Docker setup, environment notes, and how to mirror the Dockerfile manually.
-- [`POLCERT.md`](./POLCERT.md): validator-only executable, user workflow, and examples.
-- [`POLOPT.md`](./POLOPT.md): optimizer pipeline, examples, proof boundary, benchmark behavior, and testing workflow.
-- [`doc/VERIFIED_PIPELINE.md`](./doc/VERIFIED_PIPELINE.md): concise explanation of the default and optional verified pipelines, rejection behavior, and the main normalization stages.
-- [`doc/FEATURE_STATUS.md`](./doc/FEATURE_STATUS.md): current user-facing mode matrix, including ISS and parallel status.
-- [`doc/POLOPT_FLAG_GUIDE.md`](./doc/POLOPT_FLAG_GUIDE.md): route-family flag model, legal combinations, and why rejected combinations are rejected.
-- [`doc/TILING_VALIDATION_DIRECT_STATUS.md`](./doc/TILING_VALIDATION_DIRECT_STATUS.md):
-  direct-band and rejection meanings, recognition boundary, and regression
-  accounting.
-- [`doc/PERMUTABLE_BAND_THEORY_EXPLORATION.md`](./doc/PERMUTABLE_BAND_THEORY_EXPLORATION.md):
-  relation to Pluto's fully permutable-band definition and the direct checker's
-  soundness boundary.
-- [`doc/ARTIFACT_STRENGTHENING_PLAN.md`](./doc/ARTIFACT_STRENGTHENING_PLAN.md): next-step roadmap for whole-C benchmarking, `advect3d` codegen performance, Pluto bug studies, and diamond tiling.
-- [`syntax/README.md`](./syntax/README.md): textual `.loop` syntax reference and authoring notes.
-- [`tests/polopt-generated/README.md`](./tests/polopt-generated/README.md): generated strict-suite inputs, outputs, and how to inspect changes.
-- [`tests/end-to-end-c/README.md`](./tests/end-to-end-c/README.md): handwritten whole-C harness cases and smoke/perf commands.
-- [`tests/end-to-end-generated/README.md`](./tests/end-to-end-generated/README.md): generated whole-C perf harness, best-pipeline search, and one-command perf refresh.
-- [`tests/end-to-end-generated/BEST_PIPELINES.md`](./tests/end-to-end-generated/BEST_PIPELINES.md): 62-case best-pipeline table with flags, speedups, and per-case explanations.
-- [`doc/`](./doc): additional design notes and analysis.
-
-## Project structure
-
-Main mechanized development is in:
-
-- [`src`](./src): extractor, validator stack, polyhedral semantics, strengthening, point-witness layer, prepare-codegen bridge
-- [`polygen`](./polygen): verified code generation and verified cleanup passes
-- [`driver`](./driver): top-level optimizer definitions and wrappers
-- [`syntax`](./syntax): loop frontend used by `polopt`
-- [`tests`](./tests): Pluto suite, generated `polopt` suite, scripts
-
-## Paper
-
-The paper of this mechanization is published at Springer:
-<https://link.springer.com/chapter/10.1007/978-3-031-64626-3_17>
-
-<details>
-<summary>BibTeX</summary>
-
-```bibtex
-@inproceedings{li2024verified,
-  title={Verified Validation for Affine Scheduling in Polyhedral Compilation},
-  author={Li, Xuyang and Liang, Hongjin and Feng, Xinyu},
-  booktitle={Theoretical Aspects of Software Engineering},
-  pages={287--305},
-  year={2024},
-  publisher={Springer}
-}
-```
-
-</details>
-
-## License
-
-See [LICENSE](./LICENSE).
+CI builds all proofs, checks for open proofs, rebuilds the extracted tools, and
+runs correctness regressions. Full evaluation and performance measurements are
+manual tasks; they do not run on every push or pull request.

@@ -1,114 +1,60 @@
-# Environment setup
+# Development environment
 
-The recommended environment for this repository is the one described by [Dockerfile](./Dockerfile).
-That file is also what GitHub CI uses, so if you want the same behavior locally, start there.
+The [Dockerfile](Dockerfile) defines the reference build environment. It pins
+OCaml 4.13.1, Coq 8.13.2, and the OCaml libraries, and rebuilds both Pluto
+revisions listed in [tools/ci/pluto-baseline.env](tools/ci/pluto-baseline.env).
+The historical compiler is isolated at `/opt/polcert/pluto-buggy`; ordinary
+optimization uses `/pluto`.
 
-## Recommended: use Docker
-
-Build the image:
-
-```sh
-docker build -t polcert-dev .
-```
-
-Run an interactive shell in the repository:
+## Interactive development
 
 ```sh
-docker run --rm -it   -v "$PWD":/polcert   -w /polcert   polcert-dev bash
+docker build --target development -t polcert-dev .
+docker run --rm -it -v "$PWD":/polcert polcert-dev
 ```
 
-Inside that shell, build with the standard sequence:
+The bind mount makes edits and build outputs visible in the host checkout.
+After mounting a fresh checkout, configure it before building:
 
 ```sh
-make clean
-opam exec -- make depend
-opam exec -- make proof
-opam exec -- make -s check-admitted
-opam exec -- make extraction
-opam exec -- make polopt
-opam exec -- make polcert.ini
-opam exec -- make polcert
-make test
+eval "$(opam env --switch=polcert)"
+./configure x86_64-linux
+make depend
+make -j2 proof
+make -s check-admitted
+make extraction
+make polcert.ini
+make polcert
+make polopt
 ```
 
-## Alternative: configure manually
+For a clean rebuild, run `make clean` before `make depend`. Large proof modules
+use several GiB of memory; start with two proof jobs. The CI scripts choose
+proof and OCaml build parallelism separately according to available memory.
 
-Manual setup is possible, but the repository does not treat handwritten setup instructions as the source of truth.
-If you go this route, mirror the toolchain and dependencies from [Dockerfile](./Dockerfile).
+## CI-equivalent validation
 
-In practice, that means:
-
-- use the same base OS assumptions as the Docker image
-- install the same OCaml / opam / Coq / Menhir / build dependencies
-- install the same Pluto / OpenScop-related tools expected by the tests
-- build and run the project with the same command sequence used in Docker and CI
-
-If a manual environment behaves differently from Docker, Docker should be treated as the reference.
-
-## Reproducible release artifact
-
-The `artifact` Docker target compiles PolCert inside the image and requires
-source provenance at build time. Build it from a clean, tagged checkout:
+Build the source and run the isolated regression shards:
 
 ```sh
-COMMIT=$(git rev-parse HEAD)
-RELEASE_TAG=$(git describe --tags --exact-match "$COMMIT")
-SOURCE_ARCHIVE=/tmp/polcert-"$COMMIT".tar
-git archive --format=tar --output="$SOURCE_ARCHIVE" "$COMMIT"
-SOURCE_SHA256=$(sha256sum "$SOURCE_ARCHIVE" | cut -d ' ' -f 1)
-IMAGE=polcert-artifact:"$RELEASE_TAG"
-
-docker build --target artifact \
-  --build-arg POLCERT_GIT_COMMIT="$COMMIT" \
-  --build-arg POLCERT_RELEASE_TAG="$RELEASE_TAG" \
-  --build-arg POLCERT_SOURCE_ARCHIVE_SHA256="$SOURCE_SHA256" \
-  -t "$IMAGE" - < "$SOURCE_ARCHIVE"
+docker build --target ci -t polcert-ci .
+bash tools/ci/run_ci_shards.sh polcert-ci
 ```
 
-Run the release-image claim and evidence suite without mounting the source
-tree:
+The `ci` target runs the baseline checks, a clean proof build, the open-proof
+gate, extraction, and executable builds. The shard runner then tests those
+executables in separate containers. Logs identify each check and its exit
+status. See [Testing](doc/TESTING.md) for smaller test selections.
 
-```sh
-IMAGE_DIGEST=$(docker image inspect "$IMAGE" --format '{{.Id}}')
-test -n "$IMAGE_DIGEST"
+## Native setup
 
-docker run --name polcert-artifact-check \
-  -e POLCERT_IMAGE_DIGEST="$IMAGE_DIGEST" \
-  --entrypoint bash "$IMAGE" -lc \
-  'eval "$(opam env --switch=polcert)" &&
-   python3 tools/artifact/run_artifact_check.py --mode full \
-     --output-root /tmp/polcert-artifact-check'
+Install the system and opam dependencies listed in the Dockerfile, including
+GLPK, GMP, Eigen, and the pinned Coq/OCaml versions. Build the pinned fixed
+[Pluto fork](https://github.com/verif-scop/pluto), with its submodules initialized
+and GLPK enabled. Set `POLCERT_PLUTO` and `POLCERT_POLYCC` when those tools are
+not installed at the container paths. Historical bug tests additionally need
+the pinned `buggy` checkout and `POLCERT_BUGGY_ROOT`.
 
-docker cp \
-  polcert-artifact-check:/tmp/polcert-artifact-check \
-  ./polcert-artifact-check
-```
-
-The same tagged archive supplies both the recorded source hash and the Docker
-build context, so dirty or untracked worktree files cannot enter the release
-image. The runner checks the image's `BUILD_PROVENANCE.json` against the
-runtime PolCert and Pluto revisions. Release-mode checks also require the
-externally observed image ID (or, after publication, its registry digest),
-which is recorded in `artifact-results.json`.
-
-This runner is not a substitute for the complete CI matrix. A release requires
-both a passing `artifact-check-full` run from the tagged image and all seven CI
-shards passing for the exact tagged commit. Retain the entire artifact output
-directory, including its raw per-check logs, together with the CI run URL and
-downloaded logs. The CI matrix covers the legacy/failure gates, live ISS,
-generated and handwritten C execution, checked parallel/second-level/intratile
-routes, and the Pluto bug witnesses that are not all repeated by the artifact
-runner.
-
-## CI relationship
-
-GitHub Actions builds the Dockerfile's `ci` target, which runs
-[tools/ci/run_ci_build.sh](./tools/ci/run_ci_build.sh), and then executes
-isolated containers through
-[tools/ci/run_ci_shards.sh](./tools/ci/run_ci_shards.sh). The Docker
-environment and this two-phase schedule are the canonical environment used for
-regression and proof validation; `run_ci.sh` is the sequential local equivalent.
-
-The release source archive excludes `tests/polopt-generated/cases`: those are
-runtime outputs regenerated from the tracked inputs and manifests by the
-strict generated suite. They are not frozen source evidence.
+Use the same configure and build commands as above. A successful native build
+does not establish that it used the pinned CI dependencies; retain the
+toolchain and compiler revisions with any reported measurements.

@@ -1,0 +1,8 @@
+context(N);
+
+for i in range(0, N) {
+  y[i] = 0;
+  for j in range(0, N) {
+    y[i] = (y[i] + (a[i][j] * x[j]));
+  }
+}

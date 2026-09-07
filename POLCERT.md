@@ -1,192 +1,60 @@
 # polcert
 
-`polcert` is the validator-only executable.
-It reads polyhedral models, converts them to the internal representation, and
-runs the verified validator stack.
+`polcert` checks externally supplied polyhedral transformations without
+running loop extraction or code generation. It accepts OpenScop models and
+uses the same verified affine and tiling validators as `polopt`.
 
-This tool does **not** run extraction or code generation.
-It is the direct CLI for the PolCert validation story, which now includes:
-
-- the original affine validation route
-- the phase-aligned checked tiling route
-- ISS structural validation through Pluto bridge / debug-dump inputs
-
-## When to use it
-
-Use `polcert` when you already have transformation results and want to validate
-them without running the optimizer frontend.
-
-There are five common validation modes:
-
-1. direct affine validation of a single `before.scop -> after.scop`
-2. phase-aligned validation of
-   - `before -> mid` using the affine validator
-   - `mid -> after` using the checked tiling validator
-3. tiling-only validation of `mid.scop -> after.scop`
-4. four-stage validation of `before -> mid -> posttile -> after`, including
-   the final affine phase used by diamond pipelines
-5. ISS structural validation through:
-   - `--iss-bridge`
-   - `--iss-debug-dumps`
-
-Tiling modes accept `--second-level-tile` when the OpenScop pair contains a
-nested tiling transformation. Parallel and vector code generation remain on
-the `polopt` side because they consume the validated schedule rather than add
-another OpenScop validation phase.
-
-## CLI shapes
-
-OpenScop modes:
+## Affine scheduling
 
 ```sh
 ./polcert before.scop after.scop
-./polcert --kind tiling mid.scop after.scop
-./polcert before.scop mid.scop after.scop
-./polcert before.scop mid.scop posttile.scop after.scop
-./polcert --second-level-tile --kind tiling mid.scop after.scop
 ```
 
-ISS modes:
+The models must describe the supported common instructions, domains, and
+accesses. The validator checks whether the changed schedule preserves the
+required dependences. This is not a validator for arbitrary C programs.
+
+## Tiling and subsequent scheduling
+
+```sh
+./polcert --kind tiling mid.scop posttile.scop
+./polcert before.scop mid.scop posttile.scop
+./polcert before.scop mid.scop posttile.scop after.scop
+./polcert --second-level-tile --kind tiling mid.scop posttile.scop
+```
+
+The three-file form checks affine scheduling followed by tiling. The four-file
+form also checks the final affine transformation, as used by diamond tiling
+and intra-tile scheduling. Intermediate files describe actual stage results;
+their names alone do not establish that they form a valid pipeline.
+
+A successful tiling check reports `permutable-band`. Unsupported layouts and
+failed band conditions are rejected; solver alarms propagate as failures.
+The tiling dispatcher does not fall back to general affine validation.
+
+The [Pluto interface](doc/PLUTO_INTERFACE.md) describes how to obtain the
+corresponding `.beforescheduling.scop`, `.midtransform.scop`,
+`.posttile.scop`, and `.afterscheduling.scop` files.
+
+## Index-set splitting
 
 ```sh
 ./polcert --iss-bridge bridge.txt
 ./polcert --iss-debug-dumps before.txt after.txt
 ```
 
-## Typical user workflow: C fragment -> Pluto -> polcert
+These modes check the imported ISS structure. For an end-to-end ISS
+compilation with semantic refinement, use `polopt --iss`; a standalone bridge
+check is not itself a loop-to-loop compilation theorem.
 
-Write a C loop fragment surrounded by `#pragma scop`.
-For example:
+## Results and scope
 
-```c
-#pragma scop
-for (j1 = 1; j1 <= M; j1++) {
-  for (j2 = j1; j2 <= M; j2++) {
-    for (i = 1; i <= N; i++) {
-      symmat[j1][j2] = symmat[j1][j2] + data[i][j1] * data[i][j2];
-    }
-    symmat[j2][j1] = symmat[j1][j2];
-  }
-}
-#pragma endscop
-```
+Inspect the exit status as well as the validation message. A command may
+reject a proposal or fail to construct a supported checking problem; neither
+outcome certifies that proposal. Regression tests require the expected stage
+and acceptance or rejection, not merely the presence of an output file.
 
-Run Pluto with the repository's phase-isolated affine-scheduling flags. As in
-Pluto itself, RAR relations are disabled unless `--rar` is supplied explicitly:
-
-```sh
-pluto --dumpscop --nointratileopt --nodiamond-tile --noprevector \
-      --smartfuse --nounrolljam --noparallel --notile test.c
-```
-
-This produces:
-
-```text
-test.beforescheduling.scop
-test.afterscheduling.scop
-```
-
-Then validate:
-
-```sh
-./polcert test.beforescheduling.scop test.afterscheduling.scop
-```
-
-Typical output:
-
-```text
-[EQ] The two polyhedral models ... are equivalent.
-```
-
-For the phase-aligned tiling route, the common workflow is instead:
-
-1. run Pluto phase 1 to obtain `mid.scop`
-2. run Pluto phase 2 tiling to obtain `after.scop`
-3. validate either:
-   - only `mid -> after` with `--kind tiling`
-   - or the full `before, mid, after` phase-aligned route
-
-For a diamond pipeline with a final affine phase, pass all four artifacts. The
-validator checks `before -> mid` as affine scheduling, `mid -> posttile` as
-tiling, and `posttile -> after` as affine scheduling.
-
-ISS is different:
-
-- it is not currently validated through OpenScop
-- it uses a Pluto-derived bridge / dump interface instead
-- this matches the fact that Pluto ISS is implemented over Pluto's internal
-  program representation rather than the old OpenScop-only path
-
-## What it validates
-
-For the affine route, `polcert` checks schedule-preserving
-refinement/equivalence between two polyhedral models that share the same
-instruction/access structure and differ only by scheduling.
-
-For every tiling route, including second-level tiling, the dispatcher runs a
-single direct-only validator. It first checks the source/witness relation, then
-tries proved structural bridges for common-band layouts, program-wide semantic
-schedule reconstruction, and the recognized phase-separated mixed
-second-level layout. Every accepting branch directly checks a semantic
-permutable-band property and proves that property sufficient for the
-corresponding tiling reordering. If no branch establishes the property, the
-candidate is rejected; the dispatcher does not call the legacy, canonical, or
-general tiling validators. The CLI therefore reports exactly one route:
-`permutable-band` or `rejected`. Rejection and solver alarms remain distinct
-outcomes.
-
-For the ISS route, it checks a structural split relation centered on Pluto ISS
-bridge / dump inputs rather than OpenScop.
-
-The top-level validation entrypoints are built from:
-
-- [driver/TPolValidator.v](./driver/TPolValidator.v)
-- [src/Validator.v](./src/Validator.v)
-- [src/TilingValidator.v](./src/TilingValidator.v)
-- [src/PolyLang.v](./src/PolyLang.v)
-- [src/ISSValidator.v](./src/ISSValidator.v)
-- [src/ISSValidatorCorrect.v](./src/ISSValidatorCorrect.v)
-
-## Result meanings
-
-- `EQ`: the two models are mutually equivalent
-- `LT` / `GT`: one model refines the other in only one direction
-- `NE`: the validator cannot prove a refinement relation
-
-For ISS CLI modes, success/failure is reported directly as bridge/dump
-validation output rather than `EQ/LT/GT/NE`.
-
-Successful tiling modes also report the adopted validation route. This output
-is part of the artifact tests; successful cases must report
-`permutable-band`, never an alternate acceptance route.
-
-## Proof boundary
-
-The verified part covers:
-
-- the validator algorithms themselves
-- the polyhedral semantics they reason about
-- the soundness theorems relating successful validation to semantic
-  refinement/equivalence
-- the checked tiling validator route
-- the checked ISS structural validator route
-
-It does **not** prove correctness of:
-
-- OpenScop textual parsing / printing implementation details
-- Pluto itself
-- witness inference heuristics
-- any frontend from source code to OpenScop
-
-It also does not currently expose a user-facing parallel validation mode; the
-parallel story currently lives on the `polopt` side.
-
-## Notes
-
-- `polcert` still serves as the direct validator for OpenScop affine / tiling
-  models.
-- It now also exposes ISS structural validation modes, but those use Pluto
-  bridge / debug-dump inputs rather than OpenScop.
-- For a concise overview of how the affine, tiling, and ISS validation routes
-  fit together, see [doc/VERIFIED_PIPELINE.md](./doc/VERIFIED_PIPELINE.md) and
-  [doc/FEATURE_STATUS.md](./doc/FEATURE_STATUS.md).
+Parsing and OpenScop import are engineering interfaces around the extracted
+validators. The formalization is parameterized by the instruction semantics;
+the executable instantiation and its limitations are described in
+[Verified pipeline](doc/VERIFIED_PIPELINE.md).

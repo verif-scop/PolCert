@@ -29,30 +29,32 @@ ci_run_timed route-telemetry \
 ci_run_timed open-proof-gate-unit \
   python3 /polcert/tools/ci/test_check_open_proofs.py
 ci_run_timed proof-report-unit \
-  python3 /polcert/tools/artifact/test_proof_report.py
-ci_run_timed artifact-runner-unit \
-  python3 /polcert/tools/artifact/test_artifact_runner_timeout.py
+  python3 /polcert/tools/regression/test_proof_report.py
+ci_run_timed regression-runner-unit \
+  python3 /polcert/tools/regression/test_runner_timeout.py
 ci_run_timed tiling-route-summary-unit \
-  python3 /polcert/tools/artifact/test_tiling_route_summary.py
+  python3 /polcert/tools/regression/test_tiling_route_summary.py
 ci_run_timed release-provenance-unit \
-  python3 /polcert/tools/artifact/test_release_provenance.py
+  python3 /polcert/tools/regression/test_release_provenance.py
 ci_run_timed unrolljam-route-unit \
-  python3 /polcert/tools/artifact/test_unrolljam_route_guard.py
+  python3 /polcert/tools/regression/test_unrolljam_route_guard.py
 ci_run_timed flag-manifest-unit \
   python3 /polcert/tools/polopt_flag_suites/test_manifest_runner.py
 ci_run_timed strict-effect-unit \
   python3 /polcert/tests/polopt-generated/tools/test_check_polopt_cases.py
 ci_run_timed generated-harness-unit \
   python3 /polcert/tools/end_to_end_c/test_generated_harness.py
+ci_run_timed evaluation-inputs-unit \
+  python3 /polcert/evaluation/bin/test_evaluation.py
 ci_run_timed legacy-failure-gate-unit \
   bash /polcert/tools/ci/check_legacy_failure_exit.sh --self-test
 ci_run_timed python-syntax \
   python3 -m py_compile \
     /polcert/tools/ci/check_open_proofs.py \
-    /polcert/tools/artifact/proof_report.py \
-    /polcert/tools/artifact/compare_rar_policy.py \
-    /polcert/tools/artifact/run_artifact_check.py \
-    /polcert/tools/artifact/test_tiling_route_summary.py \
+    /polcert/tools/regression/proof_report.py \
+    /polcert/tools/regression/compare_rar_policy.py \
+    /polcert/tools/regression/run_regression_suite.py \
+    /polcert/tools/regression/test_tiling_route_summary.py \
     /polcert/tools/polopt_flag_suites/manifest_runner.py \
     /polcert/tools/polopt_flag_suites/run_pluto_compat_suite.py \
     /polcert/tests/polopt-generated/tools/check_polopt_cases.py \
@@ -85,7 +87,7 @@ ci_run_timed proof opam exec --switch=polcert -- make -j"$proof_jobs" proof
 ci_run_timed extraction \
   opam exec --switch=polcert -- make -j"$proof_jobs" extraction
 ci_run_timed proof-report \
-  python3 /polcert/tools/artifact/proof_report.py \
+  python3 /polcert/tools/regression/proof_report.py \
     --json-out /tmp/polcert-proof-report.json \
     --markdown-out /tmp/polcert-proof-report.md
 ci_run_timed polcert-ini opam exec --switch=polcert -- make polcert.ini

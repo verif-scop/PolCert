@@ -39,12 +39,12 @@ def locate_buggy_pluto_and_polycc() -> tuple[Path, Path]:
     if not pluto.is_file():
         raise AssertionError(
             "cannot locate the pinned buggy Pluto binary; "
-            "set POLCERT_BUGGY_PLUTO or use the artifact image"
+            "set POLCERT_BUGGY_PLUTO or use the development image"
         )
     if not polycc.is_file():
         raise AssertionError(
             "cannot locate the pinned buggy polycc binary; "
-            "set POLCERT_BUGGY_POLYCC or use the artifact image"
+            "set POLCERT_BUGGY_POLYCC or use the development image"
         )
     root = pluto.parent.parent
     head = subprocess.run(

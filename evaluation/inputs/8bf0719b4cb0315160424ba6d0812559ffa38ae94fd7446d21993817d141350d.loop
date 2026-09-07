@@ -1,0 +1,5 @@
+context(N);
+
+for i in range(0, N) {
+  A[i] = (2 * A[(N - 1 - i)]);
+}

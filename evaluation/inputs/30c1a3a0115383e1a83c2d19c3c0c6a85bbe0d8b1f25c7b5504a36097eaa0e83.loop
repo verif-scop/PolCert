@@ -1,0 +1,12 @@
+context(pointc, clusterc, dims);
+
+for p in range(0, pointc) {
+  dist_min = 0;
+  for k in range(0, clusterc) {
+    dist = 0;
+    kmin = 0;
+  }
+  for d in range(0, dims) {
+    clusterv = 0;
+  }
+}

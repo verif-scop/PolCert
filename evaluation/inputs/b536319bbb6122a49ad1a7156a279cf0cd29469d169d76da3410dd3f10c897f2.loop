@@ -1,0 +1,7 @@
+for i in range(0, 4) {
+  for j in range(0, 4) {
+    for k in range(0, 4) {
+      A[((16 * i) + ((4 * j) + k))] = (A[((16 * i) + ((4 * j) + k))] + 1);
+    }
+  }
+}

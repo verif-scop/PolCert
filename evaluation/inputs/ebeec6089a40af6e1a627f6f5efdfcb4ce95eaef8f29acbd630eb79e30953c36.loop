@@ -1,0 +1,10 @@
+context(M, N);
+
+for j1 in range(1, (M + 1)) {
+  for j2 in range(j1, (M + 1)) {
+    for i in range(1, (N + 1)) {
+      symmat[j1][j2] = (symmat[j1][j2] + (data[i][j1] * data[i][j2]));
+    }
+    symmat[j2][j1] = symmat[j1][j2];
+  }
+}

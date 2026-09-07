@@ -1,0 +1,5 @@
+__pycache__/
+!inputs/**/*.scop
+!inputs/**/*.c
+!inputs/**/*.loop
+!manifests/*.json

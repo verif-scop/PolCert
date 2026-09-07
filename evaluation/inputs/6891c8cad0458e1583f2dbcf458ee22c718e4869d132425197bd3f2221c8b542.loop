@@ -1,0 +1,12 @@
+context(n);
+
+for i in range((4 - n), ((n + 2) + 1)) {
+  for j in range((4 - n), ((n + 2) + 1)) {
+    a[i][j] = (a[(i - 1)][j] + 2);
+  }
+}
+for i in range((4 - n), ((n + 2) + 1)) {
+  for j in range((4 - n), ((n + 2) + 1)) {
+    a[i][j] = (a[i][j] + 1);
+  }
+}

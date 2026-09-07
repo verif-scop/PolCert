@@ -3,280 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PolCert proof reader</title>
+  <title>PolCert proof documentation</title>
   <style>
-    :root {
-      color-scheme: light;
-      --ink: #1d252c;
-      --muted: #59636d;
-      --line: #cbd2d8;
-      --soft: #f3f5f6;
-      --accent: #0b5a75;
-      --warning: #fff4d6;
-      --warning-line: #b77b00;
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      color: var(--ink);
-      background: white;
-      font: 16px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-    main { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 36px 0 64px; }
-    h1, h2, h3 { line-height: 1.2; letter-spacing: 0; }
-    h1 { margin: 0 0 8px; font-size: 2rem; }
-    h2 { margin-top: 36px; padding-bottom: 8px; border-bottom: 1px solid var(--line); font-size: 1.35rem; }
-    h3 { margin: 22px 0 6px; font-size: 1.05rem; }
-    p { max-width: 86ch; }
-    a { color: var(--accent); }
-    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .92em; }
-    .meta { color: var(--muted); margin-top: 0; }
-    .notice { border-left: 4px solid var(--warning-line); background: var(--warning); padding: 14px 18px; max-width: 100ch; }
-    .links { display: flex; flex-wrap: wrap; gap: 10px 18px; padding: 12px 0; }
-    .links a { font-weight: 650; }
-    table { width: 100%; border-collapse: collapse; margin: 16px 0 28px; font-size: .95rem; }
-    th, td { text-align: left; vertical-align: top; padding: 10px 12px; border: 1px solid var(--line); }
-    th { background: var(--soft); }
-    ol, ul { max-width: 95ch; }
-    li { margin: 5px 0; }
-    @media (max-width: 760px) {
-      main { width: min(100% - 24px, 1180px); padding-top: 24px; }
-      table, thead, tbody, tr, th, td { display: block; }
-      thead { display: none; }
-      tr { margin-bottom: 14px; border: 1px solid var(--line); }
-      td { border: 0; border-bottom: 1px solid var(--line); }
-      td:last-child { border-bottom: 0; }
-    }
+    body { max-width: 64rem; margin: 3rem auto; padding: 0 1rem; font: 1rem/1.6 system-ui, sans-serif; }
+    code { font-size: .95em; }
+    li { margin: .4rem 0; }
   </style>
 </head>
 <body>
-<main>
-  <h1>PolCert proof reader</h1>
-  <p class="meta">Paper-oriented entry points into the Rocq development on <code>artifact/verified-compilation-v9-candidate</code>.</p>
-  <nav class="links" aria-label="Generated documentation indexes">
-    <a href="toc.html">Module contents</a>
-    <a href="declarations.html">Declaration index</a>
-    <a href="../PROOF_READING_GUIDE.md">Detailed reading guide</a>
-    <a href="../proof-audits/README.md" title="Historical snapshots; use the current proof reader for theorem claims">Archived proof audits</a>
-  </nav>
-
-  <div class="notice">
-    <strong>Version boundary.</strong> The CPP 2027 paper freezes artifact commit
-    <code>0661fe0a</code>. This HTML describes the later proof-readability branch.
-    The paper's annotation section uses the frozen restricted
-    <code>interleave_safe</code> semantics and calls <code>d</code> a current
-    coordinate. The current branch uses raw order-preserving
-    <code>interleave_family</code> semantics and validates a canonical padded
-    schedule coordinate; checked codegen constructs an ordered proof companion
-    for the actual generated trace. Read the frozen row below for the paper's
-    exact theorem and the current row for the strengthened endpoint.
-  </div>
-
-  <h2>Which <code>compile</code> endpoint?</h2>
-  <p>The repeated names encode three independent choices. A module beginning
-     with <code>S</code> is the concrete, extraction-facing implementation;
-     the theorem for it lives in <code>ExtractedPipelineCorrect</code>.
-     <code>VerifiedCompilerConfig</code> is the sequential
-     <code>Loop -&gt; Loop</code> dispatcher, while
-     <code>VerifiedParallelCompilerConfig</code> is the unified
-     <code>Loop -&gt; ParallelLoop</code> dispatcher. Finally,
-     <code>compile_verified</code> starts after the outer configuration check;
-     <code>compile</code> accepts <code>raw_config</code> and performs that check.
-     Route-specific program validators still run in both cases.</p>
-
-  <table>
-    <thead><tr><th>Correctness theorem</th><th>Specified executable</th><th>Target and role</th></tr></thead>
-    <tbody>
-      <tr>
-        <td><a href="polcert.driver.VerifiedCompilerConfig.html#VerifiedCompilerConfig.compile_verified_correct"><code>VerifiedCompilerConfig.compile_verified_correct</code></a></td>
-        <td><a href="polcert.driver.VerifiedCompilerConfig.html#VerifiedCompilerConfig.compile_verified"><code>VerifiedCompilerConfig.compile_verified</code></a></td>
-        <td>Generic 14-route sequential dispatcher after config checking; target uses <code>Loop.semantics</code>.</td>
-      </tr>
-      <tr>
-        <td><a href="polcert.driver.VerifiedCompilerConfig.html#VerifiedCompilerConfig.compile_correct"><code>VerifiedCompilerConfig.compile_correct</code></a></td>
-        <td><a href="polcert.driver.VerifiedCompilerConfig.html#VerifiedCompilerConfig.compile"><code>VerifiedCompilerConfig.compile</code></a></td>
-        <td>Generic sequential dispatcher from <code>raw_config</code>.</td>
-      </tr>
-      <tr>
-        <td><a href="polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_verified_correct"><code>VerifiedParallelCompilerConfig.compile_verified_correct</code></a></td>
-        <td><a href="polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_verified"><code>VerifiedParallelCompilerConfig.compile_verified</code></a></td>
-        <td>Generic 31-constructor unified dispatcher after config checking; target uses <code>ParallelLoop.semantics</code>.</td>
-      </tr>
-      <tr>
-        <td><a href="polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_correct"><code>VerifiedParallelCompilerConfig.compile_correct</code></a></td>
-        <td><a href="polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile"><code>VerifiedParallelCompilerConfig.compile</code></a></td>
-        <td><strong>Paper-facing generic endpoint</strong> from <code>raw_config</code>.</td>
-      </tr>
-      <tr>
-        <td><a href="polcert.driver.ExtractedPipelineCorrect.html#extracted_sequential_compile_verified_correct"><code>extracted_sequential_compile_verified_correct</code></a></td>
-        <td><a href="polcert.syntax.SVerifiedCompilerConfig.html#compile_verified"><code>SVerifiedCompilerConfig.compile_verified</code></a></td>
-        <td>Concrete extracted sequential dispatcher after config checking.</td>
-      </tr>
-      <tr>
-        <td><a href="polcert.driver.ExtractedPipelineCorrect.html#extracted_sequential_compile_correct"><code>extracted_sequential_compile_correct</code></a></td>
-        <td><a href="polcert.syntax.SVerifiedCompilerConfig.html#compile"><code>SVerifiedCompilerConfig.compile</code></a></td>
-        <td>Concrete extracted sequential dispatcher from <code>raw_config</code>.</td>
-      </tr>
-      <tr>
-        <td><a href="polcert.driver.ExtractedPipelineCorrect.html#extracted_parallel_compile_verified_correct"><code>extracted_parallel_compile_verified_correct</code></a></td>
-        <td><a href="polcert.syntax.SVerifiedParallelCompilerConfig.html#compile_verified"><code>SVerifiedParallelCompilerConfig.compile_verified</code></a></td>
-        <td>Concrete extracted unified dispatcher after config checking.</td>
-      </tr>
-      <tr>
-        <td><a href="polcert.driver.ExtractedPipelineCorrect.html#extracted_parallel_compile_correct"><code>extracted_parallel_compile_correct</code></a></td>
-        <td><a href="polcert.syntax.SVerifiedParallelCompilerConfig.html#compile"><code>SVerifiedParallelCompilerConfig.compile</code></a></td>
-        <td><strong>Closest theorem to the extracted CLI pipeline.</strong></td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h3>Reading the 31 unified constructors</h3>
-  <table>
-    <thead><tr><th>Constructor family</th><th>Payload</th><th>Meaning</th></tr></thead>
-    <tbody>
-      <tr><td><code>VSeq</code></td><td>one of 14 sequential configs</td><td>Run the Loop-to-Loop dispatcher, then checked-lift it into <code>ParallelLoop</code>.</td></tr>
-      <tr><td><code>VParallelCurrent*</code></td><td>one coordinate <code>d</code></td><td>Produce one certified <code>ParMode</code> loop.</td></tr>
-      <tr><td><code>VVectorCurrent*</code></td><td>one coordinate <code>d</code></td><td>Produce one checked innermost <code>VecMode</code> loop; its formal semantics is sequential.</td></tr>
-      <tr><td><code>VParallelCurrentMany*</code></td><td>coordinate list <code>dims</code></td><td>Certify and annotate every accepted coordinate.</td></tr>
-    </tbody>
-  </table>
-  <p>Within the last three families, <code>Identity</code>,
-     <code>IdentityTiled</code>, <code>Affine</code>, <code>Default</code>, and
-     <code>Diamond</code> choose the preprocessing route; <code>ISS</code>
-     selects its ISS-aware variant. <code>Current</code> is a legacy API word:
-     the payload is now a canonical padded schedule coordinate.</p>
-
-  <h2>Reading budget</h2>
-  <p>Counts below are nonempty source lines between <code>Proof.</code> and
-     <code>Qed.</code>. They follow one ordinary tiling route and omit the
-     concrete extraction mirror, so a semantic argument is not counted twice.</p>
-  <table>
-    <thead><tr><th>Area</th><th>Core proof bodies</th><th>Lines</th></tr></thead>
-    <tbody>
-      <tr><td>Extraction</td><td>Main mutual reconstruction and public endpoint</td><td>700</td></tr>
-      <tr><td>ISS</td><td>Partition obligations, injectivity, flatten bridge, semantic/checker endpoints</td><td>376</td></tr>
-      <tr><td>Affine scheduling</td><td>Collision, pair checker, pointwise/list lift, semantic endpoint</td><td>410</td></tr>
-      <tr><td>Tiling representation</td><td>Permutation reconstruction, poly semantic core, instance endpoint</td><td>332</td></tr>
-      <tr><td>Ordinary tiling band</td><td>Component checker, reversal bridge, semantic kernel, checked/runtime endpoints</td><td>1,246</td></tr>
-      <tr><td>Parallel annotation/codegen</td><td>Serialization, checker, raw origin, actual ordering, cleanup and checked endpoint</td><td>725</td></tr>
-      <tr><td>Preparation and drivers</td><td>Prepared codegen, composition helpers, one route, generic final dispatch</td><td>105</td></tr>
-      <tr><th colspan="2">One complete ordinary route</th><th>3,894</th></tr>
-    </tbody>
-  </table>
-  <p>The main individual bodies are the ordinary tiling reversal bridge
-     (1,019), extractor mutual reconstruction (674), ISS point injectivity
-     (198), actual-trace ordering mutual proof (151), root origin (137), and
-     generated ordered semantics (122). By contrast, the generic 31-case
-     <code>compile_verified_correct</code> is 40 lines and its concrete extracted
-     bridge is 100 lines: both are coverage plumbing. A paper-first pass is
-     about 2,850 mathematical-core lines. Reading all major specialized tiling
-     bridges raises the estimate from about 3,900 to about 7,600 proof lines.</p>
-
-  <h2>First complete pass</h2>
-  <ol>
-    <li><a href="polcert.src.ExtractorCorrect.html#ExtractorCorrect.extractor_correct"><code>ExtractorCorrect.extractor_correct</code></a>: reconstruct source loop execution.</li>
-    <li><a href="polcert.src.ISSValidatorCorrect.html#ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct"><code>ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct</code></a>: compose partition checking with child-to-parent semantics.</li>
-    <li><a href="polcert.src.AffineValidator.html#AffineValidator.validate_correct"><code>AffineValidator.validate_correct</code></a>: fixed-instance schedule validation.</li>
-    <li><a href="polcert.src.TilingBandScheduleValidator.html#TilingBandScheduleValidator.semantic_componentwise_permutable_implies_reordering_safe"><code>TilingBandScheduleValidator.semantic_componentwise_permutable_implies_reordering_safe</code></a>: direct permutable-band argument.</li>
-    <li><a href="polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.annotated_codegen_many_raw_semantics_ordered"><code>ParallelCodegenCorrect.annotated_codegen_many_raw_semantics_ordered</code></a>: certificate to actual ordered trace.</li>
-    <li><a href="polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_correct"><code>VerifiedParallelCompilerConfig.compile_correct</code></a>: final route composition.</li>
-  </ol>
-
-  <h2>Paper-to-proof crosswalk</h2>
-  <table>
-    <thead><tr><th>Paper argument</th><th>Start here</th><th>Then inspect</th></tr></thead>
-    <tbody>
-      <tr>
-        <td>Refinement contract and legal occurrence order</td>
-        <td><a href="polcert.src.PolyLang.html"><code>PolyLang</code></a></td>
-        <td><a href="polcert.polygen.InstanceListSema.html"><code>InstanceListSema.Permutable</code></a>, <a href="polcert.src.CState.html"><code>CState.eq</code></a>, and stable-list semantic transport</td>
-      </tr>
-      <tr>
-        <td>Access-conflict soundness</td>
-        <td><a href="polcert.src.AffineValidator.html"><code>no_write_collision_implies_permutable</code></a></td>
-        <td><a href="polcert.src.CInstr.html"><code>bc_condition_implie_permutbility</code></a> and access-summary soundness</td>
-      </tr>
-      <tr>
-        <td>Verified extraction and source endpoint</td>
-        <td><a href="polcert.src.ExtractorCorrect.html#ExtractorCorrect.extractor_correct"><code>extractor_correct</code></a></td>
-        <td><a href="polcert.src.ExtractorFacts.html">prefix slices and sorted partitions</a>, then the main mutual reconstruction</td>
-      </tr>
-      <tr>
-        <td>Index-set splitting as a partition</td>
-        <td><a href="polcert.src.ISSValidatorCorrect.html#ISSValidatorCorrect.checked_iss_complete_cut_shape_validate_semantics_correct"><code>checked_iss_complete_cut_shape_validate_semantics_correct</code></a></td>
-        <td><a href="polcert.src.ISSRefinement.html">coverage and disjointness</a>; <a href="polcert.src.ISSCutSemantics.html">child-to-parent semantic mapping</a></td>
-      </tr>
-      <tr>
-        <td>Inherited affine rescheduling</td>
-        <td><a href="polcert.src.AffineValidator.html#AffineValidator.validate_correct"><code>validate_correct</code></a></td>
-        <td>pairwise reversal conflicts, permutability, and stable sorting</td>
-      </tr>
-      <tr>
-        <td>Tiling exact realization</td>
-        <td><a href="polcert.src.TilingRelation.html"><code>tiling_retiled_old_to_before_instance_correct_source</code></a></td>
-        <td><a href="polcert.src.TilingWitness.html">quotient existence and uniqueness</a>, point injection/preimage, then <a href="polcert.src.TilingValidator.html"><code>tiling_validate_correct</code></a></td>
-      </tr>
-      <tr>
-        <td>Direct permutable-band checking and layout bridge</td>
-        <td><a href="polcert.src.TilingBandScheduleValidator.html#TilingBandScheduleValidator.semantic_componentwise_permutable_implies_reordering_safe"><code>semantic_componentwise_permutable_implies_reordering_safe</code></a></td>
-        <td><a href="polcert.src.TilingBandDirectRuntime.html">selected direct-runtime endpoint</a>; one ordinary and one second-level reversal bridge</td>
-      </tr>
-      <tr>
-        <td>Accepted ordinary, hierarchical, mixed, scalar, phase, and diamond layouts</td>
-        <td><a href="polcert.src.TilingBandDirectRuntime.html#TilingBandDirectRuntime.checked_tiling_sourceb_complete_direct_band_check"><code>checked_tiling_sourceb_complete_direct_band_check</code></a></td>
-        <td>Follow only the selected specialized branch; this is an expository union, not one generic layout theorem</td>
-      </tr>
-      <tr>
-        <td>Dimension eligibility</td>
-        <td><a href="polcert.src.ParallelValidator.html#ParallelValidator.checked_parallelize_current_pointwise_sound"><code>checked_parallelize_current_pointwise_sound</code></a></td>
-        <td>synthetic old/new schedules and the padded schedule-coordinate slice</td>
-      </tr>
-      <tr>
-        <td>Frozen v8 annotation semantics used by the paper</td>
-        <td><code>git show 0661fe0a:polygen/ParallelLoop.v</code></td>
-        <td><code>PTLoopPar</code> and <code>interleave_safe_refines_concat</code></td>
-      </tr>
-      <tr>
-        <td>Current arbitrary-interleaving theorem</td>
-        <td><a href="polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.annotated_codegen_many_raw_semantics_ordered"><code>annotated_codegen_many_raw_semantics_ordered</code></a></td>
-        <td><a href="polcert.src.RawCodegenOrigin.html#RawCodegenOrigin.complete_generate_many_event_source"><code>complete_generate_many_event_source</code></a>, <a href="polcert.src.ParallelCodegenCorrect.html#ParallelCodegenCorrect.actual_multi_ordered_mutual"><code>actual_multi_ordered_mutual</code></a>, then <a href="polcert.polygen.ParallelLoop.html#ParallelLoop.semantics_refines_erased"><code>semantics_refines_erased</code></a></td>
-      </tr>
-      <tr>
-        <td>Vector annotation with sequential vector semantics</td>
-        <td><a href="polcert.src.ParallelCodegenCorrect.html"><code>checked_vector_annotated_codegen_correct_general</code></a></td>
-        <td><a href="polcert.polygen.ParallelLoop.html"><code>PTLoopVec</code></a> and the innermost-annotation checker; no SIMD runtime theorem is claimed</td>
-      </tr>
-      <tr>
-        <td>Coordinate normalization before code generation</td>
-        <td><a href="polcert.src.PolyLang.html"><code>instance_list_semantics_current_view_iff</code></a></td>
-        <td><code>current_view_pi</code>, flattening equivalence, and the current-view well-formedness bridge</td>
-      </tr>
-      <tr>
-        <td>Inherited verified loop generation</td>
-        <td><a href="polcert.src.PrepareCodegen.html#PrepareCodegen.prepared_codegen_correct_general"><code>prepared_codegen_correct_general</code></a></td>
-        <td>preparation semantics, then the inherited CodeGen, ASTGen, and LoopGen theorems</td>
-      </tr>
-      <tr>
-        <td>Complete loop-to-loop theorem</td>
-        <td><a href="polcert.driver.VerifiedParallelCompilerConfig.html#VerifiedParallelCompilerConfig.compile_correct"><code>compile_correct</code></a></td>
-        <td><a href="polcert.driver.ParallelPolOptCorrect.html">route theorem</a>, frontend lifting, and explicit <code>State.eq_trans</code> composition</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h2>Deep-reading tracks</h2>
-  <h3>Extraction</h3>
-  <p><a href="polcert.src.ExtractorFrontend.html">Frontend</a> owns the executable translation,
-     <a href="polcert.src.ExtractorFacts.html">Facts</a> owns slices and partitions, and
-     <a href="polcert.src.ExtractorCorrect.html">Correct</a> owns semantic reconstruction. The facade is intentionally omitted.</p>
-  <h3>Tiling</h3>
-  <p>Read <a href="polcert.src.TilingRelation.html">representation correspondence</a> before
-     <a href="polcert.src.TilingBandScheduleValidator.html">the band validator</a>. In the latter,
-     skip the explicitly marked legacy affine-reduction subsection on a first pass.</p>
-  <h3>Parallel code generation</h3>
-  <p><a href="polcert.src.ParallelCodegenCore.html">Core</a> defines tag/erase and source-origin primitives;
-     <a href="polcert.src.ParallelCodegenCompatibility.html">Compatibility</a> contains legacy wrappers plus the live slice/origin support interface;
-     <a href="polcert.src.ParallelCodegenCorrect.html">Correct</a> consumes certificates along the actual trace and proves the checked endpoints.</p>
-</main>
+  <h1>PolCert proof documentation</h1>
+  <p>Start with the <a href="../PROOF_READING_GUIDE.md">proof reading guide</a>
+  or browse the <a href="declarations.html">declaration index</a>.</p>
+  <h2>Component entry points</h2>
+  <ul>
+    <li><a href="polcert.src.PolyLang.html">Polyhedral programs and semantics</a></li>
+    <li><a href="polcert.src.ExtractorCorrect.html">Loop extraction</a></li>
+    <li><a href="polcert.src.AffineValidator.html">Affine validation</a></li>
+    <li><a href="polcert.src.ISSValidatorCorrect.html">Index-set splitting</a></li>
+    <li><a href="polcert.src.TilingBandDirectRuntime.html">Direct tiling validation</a></li>
+    <li><a href="polcert.src.ParallelValidator.html">Parallel independence checks</a></li>
+    <li><a href="polcert.src.ParallelCodegenCorrect.html">Annotated code generation</a></li>
+    <li><a href="polcert.driver.VerifiedParallelCompilerConfig.html">Generic compiler composition</a></li>
+    <li><a href="polcert.driver.ExtractedPipelineCorrect.html">Concrete extracted endpoints</a></li>
+  </ul>
+  <p>The main contract is semantic refinement for successful compilation in
+  the formal loop language. Parsing, printing, and optimizer search are
+  outside the verified core. See the <a href="../VERIFIED_PIPELINE.md">pipeline guide</a>
+  for the semantic boundary.</p>
 </body>
 </html>

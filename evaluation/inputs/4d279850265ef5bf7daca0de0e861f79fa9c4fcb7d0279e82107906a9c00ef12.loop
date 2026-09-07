@@ -1,0 +1,10 @@
+for x in range(0, 2) {
+  for z in range(0, 2) {
+    A[((2 * x) + z)] = 1;
+  }
+}
+for x in range(0, 2) {
+  for z in range(0, 2) {
+    B[((2 * x) + z)] = A[((2 * x) + z)];
+  }
+}

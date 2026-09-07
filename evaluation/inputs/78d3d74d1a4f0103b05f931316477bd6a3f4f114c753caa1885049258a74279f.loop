@@ -1,0 +1,14 @@
+context(T, N);
+
+for t in range(0, T) {
+  for i in range(2, (N - 1)) {
+    for j in range(2, (N - 1)) {
+      b[i][j] = (0.2 * ((((a[i][j] + a[i][(j - 1)]) + a[i][(1 + j)]) + a[(1 + i)][j]) + a[(i - 1)][j]));
+    }
+  }
+  for i in range(2, (N - 1)) {
+    for j in range(2, (N - 1)) {
+      a[i][j] = b[i][j];
+    }
+  }
+}

@@ -1,0 +1,472 @@
+{
+  "cases": [
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-native",
+      "id": "reverse--iss-native",
+      "iss_cut_axis": 0,
+      "iss_rank": 1,
+      "kernel": "reverse",
+      "loop_input": "inputs/8bf0719b4cb0315160424ba6d0812559ffa38ae94fd7446d21993817d141350d.loop",
+      "pluto_args": [
+        "--iss",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile"
+      ],
+      "polopt_args": [
+        "--iss"
+      ],
+      "source_relative": "tests/end-to-end-c/cases/reverse_iss/reverse_iss.loop",
+      "source_sha256": "8bf0719b4cb0315160424ba6d0812559ffa38ae94fd7446d21993817d141350d"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-affine",
+      "id": "reverse--iss-affine",
+      "iss_cut_axis": 0,
+      "iss_rank": 1,
+      "kernel": "reverse",
+      "loop_input": "inputs/8bf0719b4cb0315160424ba6d0812559ffa38ae94fd7446d21993817d141350d.loop",
+      "pluto_args": [
+        "--smartfuse",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--notile"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--notile"
+      ],
+      "source_relative": "tests/end-to-end-c/cases/reverse_iss/reverse_iss.loop",
+      "source_sha256": "8bf0719b4cb0315160424ba6d0812559ffa38ae94fd7446d21993817d141350d"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-identity-tiled",
+      "id": "reverse--iss-identity-tiled",
+      "iss_cut_axis": 0,
+      "iss_rank": 1,
+      "kernel": "reverse",
+      "loop_input": "inputs/8bf0719b4cb0315160424ba6d0812559ffa38ae94fd7446d21993817d141350d.loop",
+      "pluto_args": [
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--identity",
+        "--tile"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--identity",
+        "--tile"
+      ],
+      "source_relative": "tests/end-to-end-c/cases/reverse_iss/reverse_iss.loop",
+      "source_sha256": "8bf0719b4cb0315160424ba6d0812559ffa38ae94fd7446d21993817d141350d"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-two-level",
+      "id": "reverse--iss-two-level",
+      "iss_cut_axis": 0,
+      "iss_rank": 1,
+      "kernel": "reverse",
+      "loop_input": "inputs/8bf0719b4cb0315160424ba6d0812559ffa38ae94fd7446d21993817d141350d.loop",
+      "pluto_args": [
+        "--smartfuse",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--tile",
+        "--second-level-tile"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--second-level-tile"
+      ],
+      "source_relative": "tests/end-to-end-c/cases/reverse_iss/reverse_iss.loop",
+      "source_sha256": "8bf0719b4cb0315160424ba6d0812559ffa38ae94fd7446d21993817d141350d"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-post-tiling-affine",
+      "id": "reverse--iss-post-tiling-affine",
+      "iss_cut_axis": 0,
+      "iss_rank": 1,
+      "kernel": "reverse",
+      "loop_input": "inputs/8bf0719b4cb0315160424ba6d0812559ffa38ae94fd7446d21993817d141350d.loop",
+      "pluto_args": [
+        "--smartfuse",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--iss",
+        "--tile",
+        "--intratileopt"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--iss",
+        "--tile",
+        "--intratileopt"
+      ],
+      "source_relative": "tests/end-to-end-c/cases/reverse_iss/reverse_iss.loop",
+      "source_sha256": "8bf0719b4cb0315160424ba6d0812559ffa38ae94fd7446d21993817d141350d"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-native",
+      "id": "reverse-rows--iss-native",
+      "iss_cut_axis": 0,
+      "iss_rank": 2,
+      "kernel": "reverse-rows",
+      "loop_input": "inputs/1e43fd2f4952958c61add1063f2e97693a6d456d6e127231e56c28fb1c787398.loop",
+      "pluto_args": [
+        "--iss",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile"
+      ],
+      "polopt_args": [
+        "--iss"
+      ],
+      "source_relative": "tests/iss-native/reverse_rows.loop",
+      "source_sha256": "1e43fd2f4952958c61add1063f2e97693a6d456d6e127231e56c28fb1c787398"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-affine",
+      "id": "reverse-rows--iss-affine",
+      "iss_cut_axis": 0,
+      "iss_rank": 2,
+      "kernel": "reverse-rows",
+      "loop_input": "inputs/1e43fd2f4952958c61add1063f2e97693a6d456d6e127231e56c28fb1c787398.loop",
+      "pluto_args": [
+        "--smartfuse",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--notile"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--notile"
+      ],
+      "source_relative": "tests/iss-native/reverse_rows.loop",
+      "source_sha256": "1e43fd2f4952958c61add1063f2e97693a6d456d6e127231e56c28fb1c787398"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-identity-tiled",
+      "id": "reverse-rows--iss-identity-tiled",
+      "iss_cut_axis": 0,
+      "iss_rank": 2,
+      "kernel": "reverse-rows",
+      "loop_input": "inputs/1e43fd2f4952958c61add1063f2e97693a6d456d6e127231e56c28fb1c787398.loop",
+      "pluto_args": [
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--identity",
+        "--tile"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--identity",
+        "--tile"
+      ],
+      "source_relative": "tests/iss-native/reverse_rows.loop",
+      "source_sha256": "1e43fd2f4952958c61add1063f2e97693a6d456d6e127231e56c28fb1c787398"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-two-level",
+      "id": "reverse-rows--iss-two-level",
+      "iss_cut_axis": 0,
+      "iss_rank": 2,
+      "kernel": "reverse-rows",
+      "loop_input": "inputs/1e43fd2f4952958c61add1063f2e97693a6d456d6e127231e56c28fb1c787398.loop",
+      "pluto_args": [
+        "--smartfuse",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--tile",
+        "--second-level-tile"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--second-level-tile"
+      ],
+      "source_relative": "tests/iss-native/reverse_rows.loop",
+      "source_sha256": "1e43fd2f4952958c61add1063f2e97693a6d456d6e127231e56c28fb1c787398"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-post-tiling-affine",
+      "id": "reverse-rows--iss-post-tiling-affine",
+      "iss_cut_axis": 0,
+      "iss_rank": 2,
+      "kernel": "reverse-rows",
+      "loop_input": "inputs/1e43fd2f4952958c61add1063f2e97693a6d456d6e127231e56c28fb1c787398.loop",
+      "pluto_args": [
+        "--smartfuse",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--iss",
+        "--tile",
+        "--intratileopt"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--iss",
+        "--tile",
+        "--intratileopt"
+      ],
+      "source_relative": "tests/iss-native/reverse_rows.loop",
+      "source_sha256": "1e43fd2f4952958c61add1063f2e97693a6d456d6e127231e56c28fb1c787398"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-native",
+      "id": "reverse-columns--iss-native",
+      "iss_cut_axis": 1,
+      "iss_rank": 2,
+      "kernel": "reverse-columns",
+      "loop_input": "inputs/39b8d7e148e22866417e876f87a320f61e75e51b871b7303bad02a200b90acb7.loop",
+      "pluto_args": [
+        "--iss",
+        "--tile",
+        "--smartfuse",
+        "--nointratileopt",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile"
+      ],
+      "polopt_args": [
+        "--iss"
+      ],
+      "source_relative": "tests/iss-native/reverse_columns.loop",
+      "source_sha256": "39b8d7e148e22866417e876f87a320f61e75e51b871b7303bad02a200b90acb7"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-affine",
+      "id": "reverse-columns--iss-affine",
+      "iss_cut_axis": 1,
+      "iss_rank": 2,
+      "kernel": "reverse-columns",
+      "loop_input": "inputs/39b8d7e148e22866417e876f87a320f61e75e51b871b7303bad02a200b90acb7.loop",
+      "pluto_args": [
+        "--smartfuse",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--notile"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--notile"
+      ],
+      "source_relative": "tests/iss-native/reverse_columns.loop",
+      "source_sha256": "39b8d7e148e22866417e876f87a320f61e75e51b871b7303bad02a200b90acb7"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-identity-tiled",
+      "id": "reverse-columns--iss-identity-tiled",
+      "iss_cut_axis": 1,
+      "iss_rank": 2,
+      "kernel": "reverse-columns",
+      "loop_input": "inputs/39b8d7e148e22866417e876f87a320f61e75e51b871b7303bad02a200b90acb7.loop",
+      "pluto_args": [
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--identity",
+        "--tile"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--identity",
+        "--tile"
+      ],
+      "source_relative": "tests/iss-native/reverse_columns.loop",
+      "source_sha256": "39b8d7e148e22866417e876f87a320f61e75e51b871b7303bad02a200b90acb7"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-two-level",
+      "id": "reverse-columns--iss-two-level",
+      "iss_cut_axis": 1,
+      "iss_rank": 2,
+      "kernel": "reverse-columns",
+      "loop_input": "inputs/39b8d7e148e22866417e876f87a320f61e75e51b871b7303bad02a200b90acb7.loop",
+      "pluto_args": [
+        "--smartfuse",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--tile",
+        "--second-level-tile"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--nointratileopt",
+        "--iss",
+        "--second-level-tile"
+      ],
+      "source_relative": "tests/iss-native/reverse_columns.loop",
+      "source_sha256": "39b8d7e148e22866417e876f87a320f61e75e51b871b7303bad02a200b90acb7"
+    },
+    {
+      "c_source": null,
+      "c_source_note": "Not used by the independent strengthened-SCoP retention baseline.",
+      "configuration": "iss-post-tiling-affine",
+      "id": "reverse-columns--iss-post-tiling-affine",
+      "iss_cut_axis": 1,
+      "iss_rank": 2,
+      "kernel": "reverse-columns",
+      "loop_input": "inputs/39b8d7e148e22866417e876f87a320f61e75e51b871b7303bad02a200b90acb7.loop",
+      "pluto_args": [
+        "--smartfuse",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--iss",
+        "--tile",
+        "--intratileopt"
+      ],
+      "polopt_args": [
+        "--pluto-compat",
+        "--noprevector",
+        "--nounrolljam",
+        "--noparallel",
+        "--nodiamond-tile",
+        "--iss",
+        "--tile",
+        "--intratileopt"
+      ],
+      "source_relative": "tests/iss-native/reverse_columns.loop",
+      "source_sha256": "39b8d7e148e22866417e876f87a320f61e75e51b871b7303bad02a200b90acb7"
+    }
+  ],
+  "cohort": "iss-supplement",
+  "comparison": "independent Pluto baseline versus final PolCert output",
+  "schema_version": 1
+}

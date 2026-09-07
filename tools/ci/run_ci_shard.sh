@@ -41,6 +41,9 @@ case "$shard" in
     ci_run_timed pluto-bug-oracle opam exec --switch=polcert -- make test-pluto-bugs
     ;;
   tiling-core)
+    ci_run_timed integer-normalization opam exec --switch=polcert -- make test-affine-integer-fastpath
+    ci_run_timed parallel-scope opam exec --switch=polcert -- make test-parallel-scope
+    ci_run_timed tiling-body-roundtrip opam exec --switch=polcert -- make test-tiling-body-roundtrip
     ci_run_timed direct-routes opam exec --switch=polcert -- make test-direct-only-tiling-routes
     ci_run_timed non-second-level-routes opam exec --switch=polcert -- make test-non-second-level-tiling-routes
     ci_run_timed parallel-current opam exec --switch=polcert -- make test-parallel-current-suite
