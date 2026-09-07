@@ -55,7 +55,7 @@ def run(args):
     args.output.mkdir(parents=True, exist_ok=True)
     scripts = ['run_fresh_retention_review.py', 'analyze_retention_data.py', 'retention_scop.py',
                'retention_trace.py', 'retention_candidate.py', 'retention_baseline.py', 'retention_identity.py',
-               'review_parallel_recollection.py', 'parallel_membership_observer.py', 'review_parallel_retention.py']
+               'review_parallel_recollection.py', 'parallel_membership_observer.py', 'parallel_trace_helpers.py']
     identity = {'measurement_run_sha256': sha(raw_identity), 'plan_sha256': sha(args.plan),
                 'old_trace_reuse': False, 'scripts_sha256': {name: sha(Path(__file__).with_name(name)) for name in scripts}}
     identity_path = args.output / 'review-provenance.json'

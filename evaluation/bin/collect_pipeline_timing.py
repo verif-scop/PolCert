@@ -19,8 +19,7 @@ import shlex
 import statistics
 import tempfile
 
-from collect_monotonic_timing import digest, read_json, run, write_json
-from audit_evaluation_timing import distribution
+from timing_support import digest, distribution, read_json, run, write_json
 
 STAGES = ("pluto", "affine_pre_validation", "affine_post_validation",
           "affine_validation", "tiling_validation", "parallel_validation",
@@ -159,7 +158,7 @@ def summarize(args, cases, fingerprint):
     result = {"fingerprint": fingerprint, "configuration": "native-default-standard-parallel",
               "requested_kernels": len(cases), "completed_kernels": len(rows),
               "pending": pending, "failed": failed, "per_case": rows,
-              "publishable_measurements": len(cases) == len(rows) == 62 and args.repeats == 3 and not failed}
+              "publishable_measurements": bool(cases) and len(cases) == len(rows) and not args.kernel and args.repeats == 3 and not failed}
     if rows:
         result["wall_aggregates"] = {name: distribution(row[name] for row in rows)
                                      for name in ("pluto_wall_seconds", "polcert_wall_seconds", "additional_wall_seconds")}
@@ -210,10 +209,10 @@ def main():
     if flavor not in ("pipeline", "pipeline-vpl"):
         raise SystemExit("Require actual-path pipeline instrumentation.")
     profiler = args.profiler_build.resolve() / ("polopt-profile-" + flavor)
-    cohort = [row for row in manifest["cases"] if row["configuration"] == "rectangular"
-              and row["source_relative"].startswith("tests/polopt-generated/inputs/")]
-    if len(cohort) != 62 or len({row["kernel"] for row in cohort}) != 62:
-        raise SystemExit("Frozen core corpus is not the expected 62 distinct kernels.")
+    cohort = manifest["cases"]
+    if (not cohort or len({row["kernel"] for row in cohort}) != len(cohort)
+            or any(row["configuration"] != "rectangular" for row in cohort)):
+        raise SystemExit("Timing requires distinct kernels with one rectangular configuration each.")
     if digest(polopt) != args.polopt_sha256 or digest(args.pluto) != args.pluto_sha256:
         raise SystemExit("Pinned compiler/optimizer hash mismatch.")
     if build["original_polopt_sha256"] != args.polopt_sha256 or build["instrumented_polopt_sha256"] != digest(profiler):
@@ -223,7 +222,7 @@ def main():
         if args.kernel and old["kernel"] not in args.kernel:
             continue
         case = dict(old)
-        case["loop_input"] = str(root / case["source_relative"])
+        case["loop_input"] = str(Path(case["loop_input"]).resolve())
         case["polopt_args"] = ["--parallel"]
         case["pluto_args"] = [arg for arg in case["pluto_args"] if arg != "--noparallel"] + ["--parallel"]
         if any(arg in case["pluto_args"] for arg in ("--rar", "--innerpar", "--noparallel")):
@@ -252,7 +251,7 @@ def main():
                 "collector_sha256": digest(Path(__file__))}
     identity["collector_dependencies_sha256"] = {
         name: digest(Path(__file__).with_name(name))
-        for name in ("collect_monotonic_timing.py", "audit_evaluation_timing.py", "collect_vpl_profile.py")}
+        for name in ("timing_support.py", "vpl_profile.py")}
     fingerprint = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
     meta_path = args.output / "run-metadata.json"
     if meta_path.exists() and read_json(meta_path)["fingerprint"] != fingerprint:
@@ -264,7 +263,7 @@ def main():
         baseline.write_text(baseline_text)
         baseline.chmod(0o755)
     protocol = {
-        "population": "62 core loop inputs from the frozen retention corpus, with the matching original C inputs for Pluto; four additional retention fixtures are not in this timing cohort.",
+        "population": "Kernels selected from the timing manifest, with matching C inputs for Pluto.",
         "configuration": "Native PolOpt default affine scheduling, smart fusion, rectangular tiling and standard --parallel; no explicit --innerpar, no RAR, intra-tile rescheduling, diamond, vectorization or unroll-and-jam. Baseline requests the same optimizer settings in one polycc invocation.",
         "wall": "Fresh uninstrumented complete process wall time from Python perf_counter, three repetitions per compiler and kernel. Each repetition alternates Pluto then PolCert on each kernel. Input copying is outside the timer; optimizer subprocesses, parsing and output generation are inside.",
         "stage": "One separately instrumented normal invocation per kernel. CLOCK_MONOTONIC starts at driver initialization and ends at exit; no --profile-stages and no extra diagnostic compilation. Explicit audited call sites distinguish pre-tiling and post-tiling affine validation, including original-proposal checks and retries. Outermost classified regions own nested work: affine checks called by tiling/parallel validation are charged only to that enclosing validator. Any standalone affine call lacking a phase label blocks publication.",
@@ -328,7 +327,7 @@ def main():
             row, stdout, stderr = run([str(profiler), *case["polopt_args"], case["loop_input"]], root, profile_env, dest, args.timeout)
             parsed = parse_actual_profile(stderr)
             if flavor == "pipeline-vpl":
-                from collect_vpl_profile import parse as parse_vpl
+                from vpl_profile import parse as parse_vpl
                 detail = parse_vpl(stderr)
                 parsed["vpl_details"] = detail
                 parsed["errors"].extend(detail["errors"])

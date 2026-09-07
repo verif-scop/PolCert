@@ -90,7 +90,7 @@ def main():
     if not args.fresh and (args.reference_root is None or args.reference_review is None):
         parser.error('Supply --fresh or both --reference-root and --reference-review')
     observer = load_module("retention_membership_observer", args.observer)
-    replay = load_module("retention_recollection_contracts", Path(__file__).with_name("review_retention_replay.py"))
+    replay = load_module("retention_recollection_contracts", Path(__file__).with_name("retention_applicability.py"))
     observer.review.HELPERS = observer.review.HELPERS.replace("events>2000000", "events>4000000")
     transpiler = observer.review.rt.load_transpiler(args.source_root)
     prior = {} if args.fresh else {r["id"]: r for r in json.loads(args.reference_review.read_text())["rows"]}
@@ -123,7 +123,7 @@ def main():
                "producer_status": "unknown", "retention_status": "unresolved", "observations": []}
         target = args.output / ident
         target.mkdir(exist_ok=True)
-        straightline = replay.source_without_loop(raw, args.source_root)
+        straightline = replay.source_without_loop(raw, args.source_root, case / 'source.loop')
         if straightline:
             row.update(producer_status="absent", retention_status="not-applicable")
             row["source_applicability"] = straightline

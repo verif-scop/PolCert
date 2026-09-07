@@ -251,7 +251,7 @@ def main():
         return capture_pluto(sys.argv[2:])
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-root", type=Path, required=True)
-    parser.add_argument("--container-source", type=Path, default=Path("/tmp/polcert-eval-current"))
+    parser.add_argument("--container-source", type=Path, help="Path to the source tree inside a container; defaults to --source-root")
     parser.add_argument("--manifest", type=Path, required=True)
     parser.add_argument("--make-manifest", action="store_true")
     parser.add_argument("--output", type=Path)
@@ -266,6 +266,8 @@ def main():
     parser.add_argument("--kernel", action="append")
     parser.add_argument("--rerun", action="store_true")
     args = parser.parse_args()
+    if args.container_source is None:
+        args.container_source = args.source_root
     if args.workers not in (1, 2, 3) or args.minimum_available_gib < 0:
         parser.error('Use 1–3 workers and a nonnegative memory admission threshold')
     if args.independent_baseline and args.rerun:

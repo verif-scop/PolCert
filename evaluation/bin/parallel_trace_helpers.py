@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read archived compiler outputs; collect bounded parallel-region evidence.
+"""Build bounded parallel-region trace observations.
 
 No compiler invocation or source/proof changes. This deliberately does not infer
 retention from a pragma count. It records each nonempty parallel iteration's
@@ -91,52 +91,3 @@ def run(exe, values):
         if len(threads)<2:continue
         groups.append([{'statements':len(items),'sha256':hashlib.sha256(b'\n'.join(items)).hexdigest()} for _,items in sorted(threads.items())])
     return {'complete':p.returncode==0 and p.stdout.rstrip().endswith('COMPLETE'),'returncode':p.returncode,'statements':n,'access_sha256':access.hexdigest(),'nontrivial_nonempty_regions':len(groups),'iteration_groups':groups,'first_conflict':first_conflict,'first_events':first_events}
-
-def main():
-    ap=argparse.ArgumentParser();ap.add_argument('retention',type=Path);ap.add_argument('--source-root',type=Path,required=True);ap.add_argument('--only',nargs='+');args=ap.parse_args()
-    out=args.retention/'parallel-review-raw';out.mkdir(exist_ok=True)
-    trans=rt.load_transpiler(args.source_root)
-    rows=json.loads((args.retention/'retention-rows.json').read_text());results=[]
-    for row in rows:
-        if args.only:
-            if row['id'] not in args.only:continue
-        elif row['configuration']!='parallel' or row['effects']['parallelization']['retention'] not in ('unresolved','sampled-retained'):continue
-        case=args.retention/'cases'/row['id'];target=out/row['id'];target.mkdir(exist_ok=True)
-        old=json.loads((case/'trace-comparison.json').read_text());meta=json.loads((case/'result.json').read_text());stdout=(case/'polcert.stdout.txt').read_text()
-        captures=sorted((case/'pluto').glob('*/output.pluto.c'))
-        if old.get('producer_file'):producer=args.retention/Path(old['producer_file']).relative_to('/tmp/polcert-retention-2026-09-04')
-        else:producer=next((f for f in captures if '#pragma omp parallel'in f.read_text()),None)
-        entry={'id':row['id'],'old':row['effects']['parallelization'],'producer_file':str(producer),'observations':[]}
-        if producer is None:results.append(entry);continue
-        final=stdout.split('== Optimized Loop ==',1)[-1].strip() if '== Optimized Loop =='in stdout else None
-        source=args.source_root/meta['source_relative'];params=rt.params_from_loop(source.read_text());entry['parameters']=params;entry['producer_sha256']=sha(producer);entry['final_sha256']=sha(case/'polcert.stdout.txt')
-        try:
-            build(rt.instrument(producer.read_text(),parameters=params),params,target/'pluto')
-            if final:build(rt.instrument(trans.transpile_loop_text(final),parameters=params),params,target/'polcert')
-        except Exception as ex:entry['error']=str(ex);results.append(entry);continue
-        samples=[s['parameters'] for s in old.get('observations',[]) if s['pluto']['status']=='ok' and s['pluto']['parallel_loops']>0]
-        if row['effects']['parallelization']['retention']=='unresolved':samples=samples[:1]
-        samples=[dict(items) for items in dict.fromkeys(tuple(sorted(s.items())) for s in samples)]
-        if not samples:
-            samples=[{name:37 for name in params}]
-        if row['kernel']=='diamond-example-inner-batch':samples=[{'B':37,'T':7,'N':11},{'B':65,'T':9,'N':13}]
-        if row['kernel']=='jacobi-batch':samples=[{'B':37,'T':3,'N':5},{'B':65,'T':5,'N':7}]
-        if row['kernel'] in ['fusion7','multi-loop-param']:samples=[dict(zip(params,[259]+[3]*(len(params)-1))),{name:37 for name in params}]
-        if row['kernel'] in ['pca','corcol']:samples=[{name:(37 if name.lower()=='m' else 3) for name in params}]
-        if row['kernel']=='adi':samples=[{'T':2,'N':37}]
-        if row['kernel'] in ['fusion3','fusion4','tce']:entry['skip_reason']='Full domain too large; static review required';results.append(entry);continue
-        for sample in samples:
-            obs={'parameters':sample}
-            for name in ['pluto','polcert']:
-                if name=='polcert' and not final:continue
-                try:obs[name]=run(target/name,[sample[v] for v in params])
-                except Exception as ex:obs[name]={'error':str(ex)}
-            if 'polcert'in obs and 'access_sha256'in obs['polcert']:
-                a,b=obs['pluto'],obs['polcert'];obs['complete_access_match']=a['complete'] and b['complete'] and a['access_sha256']==b['access_sha256'];obs['complete_parallel_group_match']=obs['complete_access_match'] and a['iteration_groups']==b['iteration_groups']
-            entry['observations'].append(obs)
-        (target/'evidence.json').write_text(json.dumps(entry,indent=2)+'\n');results.append(entry)
-        print(row['id'],[(x['parameters'],x.get('complete_parallel_group_match'),x.get('pluto',{}).get('nontrivial_nonempty_regions'),bool(x.get('pluto',{}).get('first_conflict'))) for x in entry['observations']],flush=True)
-    filename='bounded-extra-evidence.json' if args.only else 'bounded-evidence.json'
-    (out/filename).write_text(json.dumps({'script_sha256':sha(Path(__file__)),'limit_statements':250000,'results':results},indent=2)+'\n')
-
-if __name__=='__main__':main()

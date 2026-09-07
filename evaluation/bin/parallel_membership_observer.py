@@ -9,7 +9,7 @@ import hashlib
 import json
 import subprocess
 
-import review_parallel_retention as review
+import parallel_trace_helpers as review
 
 
 def digest(records):

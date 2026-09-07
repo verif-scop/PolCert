@@ -5,6 +5,9 @@ from pathlib import Path
 
 from evaluation_io import read_json, sha
 from run_evaluation import input_path, materialize_manifest, select_retention_plan
+from retention_applicability import source_without_loop
+from timing_support import distribution
+from vpl_profile import parse as parse_vpl
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -57,6 +60,27 @@ class ExperimentInputs(unittest.TestCase):
             (root / name).write_text('int main(void) { return 0; }\n')
             with self.assertRaises(ValueError):
                 input_path(root, name)
+
+    def test_captured_source_applicability(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / 'source.loop'
+            source.write_text('x = 1;\n')
+            raw = {'configuration': 'rectangular', 'source_relative': 'missing.loop',
+                   'source_sha256': sha(source)}
+            self.assertIsNotNone(source_without_loop(raw, root, source))
+            source.write_text('for i in range(0, 4) { x[i] = i; }\n')
+            raw['source_sha256'] = sha(source)
+            self.assertIsNone(source_without_loop(raw, root, source))
+
+    def test_timing_helpers(self):
+        values = distribution([1.0, 2.0, 3.0])
+        self.assertEqual(values['mean_seconds'], 2.0)
+        self.assertEqual(values['sum_seconds'], 6.0)
+        self.assertEqual(values['max_seconds'], 3.0)
+        parsed = parse_vpl('[vpl-profile] region tiling_validation|stage_other 1 1.0 1.0')
+        self.assertEqual(parsed['errors'], [])
+        self.assertTrue(parse_vpl('')['errors'])
 
 
 if __name__ == '__main__':
