@@ -52,7 +52,7 @@ A normal schedule, tiling, or parallel optimizer run has this shape:
 Pluto is an oracle: it proposes schedules, phase outputs, and loop annotation
 hints. PolOpt accepts those artifacts only through checked routes.
 
-For a tiling boundary, the extracted dispatcher runs a complete direct semantic
+For a tiling boundary, the extracted dispatcher runs the direct semantic
 permutable-band check. It checks source-ordered WW, WR, and RW conflicts with
 the same prefix before the band for decreases in the selected band components,
 using certified polyhedral emptiness queries. A successful direct check reports
@@ -60,6 +60,10 @@ using certified polyhedral emptiness queries. A successful direct check reports
 outside its recognizers or the property is not established, the candidate is
 reported as `rejected`; the dispatcher does not invoke another tiling
 validator. An impure solver alarm propagates instead of becoming rejection.
+
+VPL solves rational constraints. Verified integer normalization eliminates
+some fractional witnesses, but it is not a complete integer solver; remaining
+spurious conflicts can conservatively reject an optimization.
 
 This check is a semantic analogue of Pluto's fully permutable-band condition
 for recognized layouts. It is not a verification of Pluto's band detector,

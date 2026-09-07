@@ -604,14 +604,9 @@ profile-advect3d-codegen-identity: polopt
 test-clean: 
 	$(MAKE) -f Makefile.test clean
 
-documentation: $(FILES)
-	mkdir -p doc/html
-	rm -f doc/html/*.html
-	./tools/coq2html -d doc/html/ -base polcert -short-names doc/*.glob \
-          $(filter-out doc/coq2html cparser/Parser.v, $^)
-	cp -r doc/html/ /var/www/html
+documentation: proof-documentation
 
-# Paper-oriented Rocq documentation.  Keep this set focused on the semantic
+# Rocq documentation. Keep this set focused on the semantic
 # spine; the generated declaration index links into the supporting modules.
 PROOF_DOC_FILES = \
   src/CState.v src/CInstr.v polygen/InstanceListSema.v src/PolyLang.v \
