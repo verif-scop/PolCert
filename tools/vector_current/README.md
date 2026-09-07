@@ -4,8 +4,8 @@ Vector certificates use canonical schedule coordinates, as parallel certificates
 do. For `positive.loop`, the tiled schedule is
 `[floor(i/32), floor(j/32), i, j]`. The explicit innermost request is therefore
 `--vector-current 3`. Coordinate 2 denotes the outer point loop `i` and must fail
-the innermost gate. The former acceptance of 2 reflected cleanup-time physical
-depth, not this schedule contract.
+the innermost gate. Physical nesting depth after cleanup is not the coordinate
+used by this interface.
 
 The final program has only three nested loops because `0 <= j < 4` makes its
 tile coordinate constant. Tests require a vectorized innermost `j` loop after
@@ -15,7 +15,7 @@ Run the explicit-coordinate checks and real hinted checks from a built tree:
 
 ```sh
 python3 tools/vector_current/run_vector_current_suite.py --polopt ./polopt
-python3 tools/vector_current/run_hinted_vector_suite.py --polopt ./polopt --pluto /path/to/pluto
+python3 tools/vector_current/run_hinted_vector_suite.py --polopt ./polopt --pluto /pluto/tool/pluto
 python3 -m unittest discover -s tools/vector_current -p 'test_*.py'
 make test-parallel-hint-mapping
 ```
@@ -32,3 +32,7 @@ remain unvectorized. Exit code 0 without these effects does not pass the suite.
 The mapping tests separately call `run_pluto_scop_with_vector_hint` with missing,
 malformed, and misleading C sidecars. They cover both a retained scalar schedule
 row and a globally zero row removed by canonicalization.
+
+The command uses the development image's Pluto path; substitute the fixed
+binary path for a native build. Vector annotations retain sequential formal
+semantics, as explained in [Verified Pipeline](../../doc/VERIFIED_PIPELINE.md).

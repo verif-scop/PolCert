@@ -1,7 +1,9 @@
 # Mixed-Depth Tiling Reverses a Dependence
 
-Status: reproduced on the audited official Pluto revision; PolCert rejects the
-candidate.
+The replay uses the historical compiler. The fixed fork constructs consistent
+tile coordinates for the external write. Build pins and the distinction
+between historical and fixed tests are documented in the
+[suite overview](../README.md).
 
 The source writes `x[1][1]` and then copies the complete array. Pluto's affine
 scheduler produces the legal timestamps

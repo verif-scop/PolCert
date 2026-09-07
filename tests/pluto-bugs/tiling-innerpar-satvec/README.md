@@ -1,12 +1,10 @@
 # Inner-Parallel Tiling Metadata Corrupts Dependence Satisfaction
 
-Status: reproduced, minimized, validator-catches.
-
 The two-dimensional recurrence reads both `a[i-1][j]` and `a[i][j-1]`.
 The rectangular tiling transformation is legal, but neither original schedule
 dimension is parallel.
 
-With `--identity --tile --parallel --innerpar`, pinned Pluto leaves the tile
+With `--identity --tile --parallel --innerpar`, historical Pluto leaves the tile
 schedule unchanged in `lib/tile.c:446-456`. It nevertheless moves inner
 dependence-satisfaction bits to the outer tile dimension and clears the inner
 bits at `lib/tile.c:461-478`. Later parallel-loop discovery trusts those bits

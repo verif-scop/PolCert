@@ -1,51 +1,36 @@
-# Proof reading guide
+# Proof Reading Guide
 
 This guide follows the verified compiler from its semantic contract through
 extraction, transformation validation, and code generation. Generate browsable
 Rocq documentation with `make proof-documentation`, then open
 `doc/proof-html/index.html`.
 
-## Which `compile` theorem is which?
+## Choosing a Compiler Theorem
 
-There are not several competing final proofs.  The repeated names arise from
-three independent interface choices:
+Start with `VerifiedParallelCompilerConfig.compile_correct` for the
+compiler with sequential, parallel, and vector output. Its concrete counterpart
+is `ExtractedPipelineCorrect.extracted_parallel_compile_correct`.
 
-1. **Generic or concrete.** `Verified*` modules are functors over `POLIRS` and
-   carry the reusable proofs.  `SVerified*` modules are hand-instantiated
-   executable mirrors with stable extraction names.  Their theorems live in
-   `ExtractedPipelineCorrect.v`, which bridges concrete definitions back to the
-   generic proofs.
-2. **Sequential or unified.** `VerifiedCompilerConfig` returns an ordinary
-   `Loop.t`.  `VerifiedParallelCompilerConfig` returns `ParallelLoop.t` for
-   every route, including sequential routes that it checked-lifts into the
-   annotated target language.
-3. **Verified or raw configuration.** `compile_verified` accepts a
-   `verified_config`, meaning only that the outer configuration passed
-   `check_config`.  The selected optimization route still runs all of its
-   program validators.  `compile` accepts `raw_config` and performs that outer
-   check before calling `compile_verified`.
+The `Verified*` modules are functors over `POLIRS`; `SVerified*` modules
+instantiate the executable definitions. The theorems in
+`driver/ExtractedPipelineCorrect.v` connect these concrete definitions to
+the generic proofs.
 
-The complete endpoint matrix is:
+| Compiler | Generic correctness theorem | Concrete correctness theorem in `ExtractedPipelineCorrect` |
+| --- | --- | --- |
+| Sequential `Loop.t` output | `VerifiedCompilerConfig.compile_correct` | `extracted_sequential_compile_correct` |
+| Annotated `ParallelLoop.t` output | `VerifiedParallelCompilerConfig.compile_correct` | `extracted_parallel_compile_correct` |
 
-| Correctness theorem | Executable it specifies | Target semantics | Use |
-| --- | --- | --- | --- |
-| `VerifiedCompilerConfig.compile_verified_correct` | generic `VerifiedCompilerConfig.compile_verified` | `Loop.semantics` | Generic sequential dispatcher, after config checking |
-| `VerifiedCompilerConfig.compile_correct` | generic `VerifiedCompilerConfig.compile` | `Loop.semantics` | Generic sequential dispatcher from `raw_config` |
-| `VerifiedParallelCompilerConfig.compile_verified_correct` | generic `VerifiedParallelCompilerConfig.compile_verified` | `ParallelLoop.semantics` | Generic unified dispatcher, after config checking |
-| `VerifiedParallelCompilerConfig.compile_correct` | generic `VerifiedParallelCompilerConfig.compile` | `ParallelLoop.semantics` | Main generic theorem from `raw_config` |
-| `ExtractedPipelineCorrect.extracted_sequential_compile_verified_correct` | `SVerifiedCompilerConfig.compile_verified` | concrete `SPolIRs.Loop.semantics` | Extracted sequential dispatcher, after config checking |
-| `ExtractedPipelineCorrect.extracted_sequential_compile_correct` | `SVerifiedCompilerConfig.compile` | concrete `SPolIRs.Loop.semantics` | Extracted sequential dispatcher from `raw_config` |
-| `ExtractedPipelineCorrect.extracted_parallel_compile_verified_correct` | `SVerifiedParallelCompilerConfig.compile_verified` | concrete `ParallelLoop.semantics` | Extracted unified dispatcher, after config checking |
-| `ExtractedPipelineCorrect.extracted_parallel_compile_correct` | `SVerifiedParallelCompilerConfig.compile` | concrete `ParallelLoop.semantics` | Closest theorem to the extracted CLI pipeline |
+Each compiler's `compile` checks a raw configuration and then calls
+`compile_verified`. The corresponding `compile_verified_correct` theorem
+starts from a checked configuration; program validators still run on the
+selected route. `compile_seq_verified_correct` proves the embedding of a
+sequential result into `ParallelLoop.t`, and
+`extracted_parallel_compile_seq_verified_correct` proves its concrete form.
+Additional loop transformations have the composed endpoints listed in
+[Section 8](#8-unrolling-and-jamming).
 
-Two similarly named lemmas are internal glue rather than alternative final
-theorems.  `compile_seq_verified_correct` proves that a generic sequential
-result can be checked-lifted into `ParallelLoop`; the concrete counterpart is
-`extracted_parallel_compile_seq_verified_correct`.  Start with one of the eight
-matrix rows, and open these lift lemmas only when reading its `VSeq` branch.
-
-The constructors of the unified dispatcher are also regular rather than 31
-different proof ideas:
+The unified dispatcher's constructors select these execution families:
 
 | Constructor prefix | Payload | Meaning |
 | --- | --- | --- |
@@ -56,8 +41,8 @@ different proof ideas:
 
 Within the last three families, `Identity`, `IdentityTiled`, `Affine`,
 `Default`, and `Diamond` choose the preprocessing route; an `ISS` suffix chooses
-its ISS-aware variant.  `Current` is a retained API name: on this branch `d`
-denotes the canonical padded schedule coordinate used by raw code generation.
+its ISS-aware variant. `Current` is a retained API name: `d` denotes the
+canonical padded schedule coordinate used by raw code generation.
 
 ## 1. Start from the Contract
 
@@ -96,10 +81,9 @@ Read the final file in this order:
    undo strengthening, invoke `Extractor.extractor_correct`, then compose the
    two `State.eq` facts.
 
-The long constructor lists in this file are coverage plumbing. The semantic
-content resides in the component theorems described below.
+The constructor cases select and compose the component theorems described below.
 
-## 2. The Semantic Spine
+## 2. Semantics and Composition
 
 The proof can be read as one chain:
 
@@ -176,9 +160,7 @@ extractor_correct
 ```
 
 Most list-index and prefix lemmas support one of the two partitioning steps.
-Read them on demand from the main structural proof.  The obsolete non-prefix,
-fuel-bounded, and constructor-specific proof routes were removed; there is now
-one live reconstruction route to `extractor_correct`.
+Read them on demand from the main structural proof.
 
 ## 4. ISS: One Statement to a Domain Partition
 
@@ -461,7 +443,57 @@ validator success yields pointwise certificate soundness and an in-range
 schedule coordinate; single and multi drivers pass those facts to the codegen
 endpoints before composing the route-level `State.eq` results.
 
-## 8. What to Read and What to Skim
+## 8. Unrolling and Jamming
+
+These passes run on generated loop IR. Constant and block unrolling are
+verified transformations; jamming is a checked reordering. Start with
+[`LoopUnroll.v`](../polygen/LoopUnroll.v), then read the local fusion proof
+before the recursive transformation.
+
+`const_unroll` replaces a loop with constant bounds by a sequence of body
+instances, using capture-avoiding iterator substitution. Its theorem,
+`const_unroll_correct`, proves equivalence of sequential loop executions.
+`block_unroll_correct` proves the corresponding result for full blocks and
+remainder iterations. Unlike fusion, these transformations retain the original
+instruction order and need no dependence certificate.
+
+Jamming changes two same-range loops from `body1` followed by `body2` into one
+loop that executes `body1; body2` at each iteration. The relevant proof files are:
+
+| File | Role |
+| --- | --- |
+| `src/LoopJamValidator.v` | Build and check cross-body independence queries within the same enclosing environment |
+| `src/LoopJamBridge.v` | Translate the extracted certificate into the native loop-trace reordering premise |
+| `src/LoopJamContext.v` | Lift accepted local fusions through surrounding syntax and the selected unroll plan |
+| `src/LoopJamLower.v` | Executable block/remainder construction and checked fusion attempts |
+
+`checked_loop_jam_pair_at_depth_pointwise_sound` retains parameter and
+enclosing-iterator prefixes and uses the candidate's actual bounds.
+`LoopJamBridge.checked_pair_refines_sound` supplies the local refinement fact;
+`LoopJamContext.checked_unrolljam_loop_with_plan_refines` composes the accepted
+changes across the selected plan. The policy choosing that plan remains
+untrusted. A failed local fusion can return separate loops, so success is not
+a claim that every selected pair was fused.
+
+The concrete sequential compositions are
+`extracted_sequential_compile_with_postpass_correct` and
+`extracted_sequential_compile_with_unrolljam_correct` in
+[`ExtractedPipelineCorrect.v`](../driver/ExtractedPipelineCorrect.v).
+
+Annotated constant unrolling has a different argument: it expands only
+`SeqMode` loops and preserves existing execution modes and origin metadata.
+`extracted_parallel_compile_with_const_unroll_correct` connects this pass to
+the unified compiler through semantic reflection.
+
+Unroll-and-jam followed by parallelization obtains a new certificate after
+re-extraction. Read `extracted_parallel_after_unrolljam_correct` and its
+multi-coordinate variant, `extracted_parallel_many_after_unrolljam_correct`.
+The current extractor restricts this composition to affine-extractable
+postpass output; it does not transport old certificates through arbitrary jammed
+loop nests. The [C harness](../tests/end-to-end-c/README.md) gives
+executable checks for these distinctions.
+
+## 9. Reading Order
 
 For a first complete pass, read these declarations in order:
 
@@ -489,18 +521,17 @@ Then descend into the component whose premise is least clear. In particular:
 - Skim the many route-specific `Opt_*_correct` wrappers after checking one
   example; they instantiate the same composition argument.
 
-## 9. Maintenance Invariants
+## 10. Maintaining the Proofs
 
-Future proof cleanup should preserve these boundaries:
+When modifying a component or its interface:
 
-1. Boolean checker soundness is separate from semantic correctness.
-2. Tiling shape recognition is separate from the semantic band property.
-3. The direct tiling route may reuse guarded affine collision checks but must
-   not silently invoke the whole affine validator as a fallback.
-4. Representation-changing transformations must prove point correspondence in
-   addition to reordering safety.
-5. Route wrappers should compose named component theorems through `State.eq`;
-   they should not duplicate component arguments.
-6. Refactoring must compare exported module signatures and rebuild downstream
-   dependencies, because Rocq dependency fingerprints change even when theorem
-   statements do not.
+1. Keep Boolean checker soundness separate from semantic correctness.
+2. Keep tiling shape recognition separate from the semantic band property.
+3. Preserve the direct tiling check. It may reuse affine collision queries,
+   but it must reject a failed band check rather than fall back to the general
+   affine validator.
+4. Prove instance correspondence as well as reordering safety when a
+   transformation changes the representation of iteration points.
+5. Compose component theorems through `State.eq` in route wrappers.
+6. Check exported module signatures and rebuild downstream dependencies.
+   Rocq dependency fingerprints can change even when theorem statements do not.

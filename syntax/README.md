@@ -1,32 +1,10 @@
-# Syntax Frontend (`polopt`)
+# Loop Input Language
 
-This directory contains the textual loop-language frontend used by the `polopt` executable.
+The `polopt` frontend reads structured loop fragments. It does not parse a
+complete C translation unit. Run commands from the repository root after
+[building the tools](../ENVIRONMENT.md).
 
-For optimizer flags and examples, start with the [flag guide](../doc/POLOPT_FLAG_GUIDE.md).
-This file focuses on the surface language.
-
-## Purpose
-
-`polopt` is a user-facing entrypoint for the verified optimization core in [driver/PolOpt.v](../driver/PolOpt.v). It is intended to exercise the real proved pipeline on a structured loop fragment:
-
-```text
-.loop text
--> parser / elaborator
--> Loop IR
--> Extractor.extractor
--> StrengthenDomain.strengthen_pprog
--> scheduler' (Pluto + verified validation)
--> PrepareCodegen.prepare_codegen
--> CodeGen.codegen
--> verified cleanup passes
--> Loop IR
-```
-
-The parser/elaborator and pretty-printer are engineering layers. The verified core starts at the `Loop` IR.
-
-## Surface Syntax
-
-Top-level example:
+## A Complete Input
 
 ```text
 context(N, M);
@@ -37,79 +15,68 @@ for i in range(0, N) {
 }
 ```
 
-Supported constructs:
-
-- `context(x, y, ...)` for symbolic parameters
-- `for i in range(lb, ub) { ... }` with half-open bounds `[lb, ub)`
-- `if` guards built from affine `<=` / `==` tests combined with `&&`
-- scalar and array assignments
-- arithmetic using `+`, `-`, `*`, `/` in general RHS expressions
-- pure calls in RHS expressions
-- ternary expressions `cond ? e1 : e2` in RHS expressions
-- float literals in RHS expressions
-
-Still intentionally restricted in affine positions (bounds, guards, indexes):
-
-- `||` and `!` are not accepted in affine guards
-- affine positions currently accept only constants, variables, affine sums, and constant-multiplied subexpressions
-- division is not accepted in affine bounds, guards, or indexes
-- general calls in affine bounds / guards / indexes
-- non-affine ternaries in affine bounds / guards / indexes
-
-## Writing examples
-
-Recommended workflow:
-
-1. start from a small structured nest
-2. keep bounds / guards / indexes affine
-3. put calls and ternaries only in RHS expressions
-4. run `./polopt your-example.loop`
-5. inspect `--extract-only` or `--debug-scheduler` if needed
-
-Good starter examples live in:
-
-- [examples](./examples)
-- [../tests/polopt-generated/inputs](../tests/polopt-generated/inputs)
-
-## Current Status
-
-This frontend now drives the strict proved runtime path:
-
-- `SPolOpt.opt = PolOpt.Opt`
-- no CLI fallback exporter is used
-- the scheduler path is the same path used by the proved optimizer definition
-
-The pretty-printer is now display-oriented only. Semantic cleanup is performed in Coq after code generation. In particular:
-
-- affine expression/test simplification is done in [polygen/LoopCleanup.v](../polygen/LoopCleanup.v)
-- singleton-loop elimination is done in [polygen/LoopSingletonCleanup.v](../polygen/LoopSingletonCleanup.v)
-
-## Example commands
-
-Emit optimized loop:
+`context` declares symbolic integer parameters. Loops use half-open bounds:
+`range(0, N)` visits 0 through `N-1` and is empty when `N <= 0`.
+Assignments name scalars or indexed arrays. The frontend infers the variables
+used by the fragment; C declarations and allocation are not part of this syntax.
 
 ```sh
 ./polopt syntax/examples/matadd.loop
-```
-
-Dump the extracted source OpenScop only:
-
-```sh
 ./polopt --extract-only syntax/examples/matadd.loop
 ```
 
-Debug scheduler stages:
+The first command prints optimized loop text. The second prints an OpenScop
+model containing domains, schedules, and accesses, without optimization.
 
-```sh
-./polopt --debug-scheduler syntax/examples/matadd.loop
+## Expressions, Guards, and Strides
+
+Bounds, guards, and array indices must be affine: constants, variables,
+addition/subtraction, and multiplication by integer constants. For example,
+`2*i + N - 1` is affine; `i*j` is not. Guards support `<=`, `==`, and
+conjunction with `&&`.
+
+An optional third range argument is a nonzero integer constant:
+
+```text
+for i in range(0, N, 2) {
+  A[i] = 0;
+}
 ```
 
-## Benchmark status
+Negative strides are also supported, with an exclusive lower endpoint.
+Elaboration uses the stride-lowering definitions in
+[`SLoopStride.v`](SLoopStride.v). Zero and symbolic strides are rejected.
 
-The generated regression suite is under [../tests/polopt-generated](../tests/polopt-generated).
+Instruction right-hand sides can contain arithmetic, pure calls, conditionals,
+and float literals. Their acceptance does not extend the affine control
+fragment: division, arbitrary calls, disjunction, and negation are unsupported
+in extracted bounds and guards. The concrete instruction model is `SInstr`;
+accepting a float literal does not prove IEEE floating-point behavior.
 
-The CI gate is driven by
-[strict_suite_manifest.json](../tests/polopt-generated/strict_suite_manifest.json).
-Run `make test-polopt-generated` to obtain results for the current compiler and
-manifest. Historical counts of accepted, changed, or tiled outputs do not
-describe a new build until that suite has run.
+## Reading Output
+
+Generated loops may contain division, `min`, `max`, guards, and reconstructed
+indices introduced by tiling and code generation. Parallel and vector outputs
+use `parallel for` and `vector for`. The target language is richer than the
+source language, so generated text may contain forms that the source extractor
+cannot accept.
+
+The CLI prints an `Optimized Loop` heading before the program. Preserve stderr
+when investigating a failure: it records stage checks and producer diagnostics.
+[polopt](../POLOPT.md) explains the options and expected outcomes.
+
+## Implementation and Proof Boundary
+
+[`SLoopParse.ml`](SLoopParse.ml) parses text;
+[`SLoopElab.ml`](SLoopElab.ml) constructs source `Loop.t`.
+Route selection in `SLoopRoute.ml` and dispatch in `SLoopMain.ml` invoke the
+extracted compiler or its proved postpass endpoints. The target is sequential
+loop IR or annotated `ParallelLoop.t`, depending on the route.
+
+Parsing and printing are outside the compiler theorem. Cleanup of loop
+expressions and singleton loops occurs in verified passes before printing.
+The [pipeline guide](../doc/VERIFIED_PIPELINE.md) describes the complete compiler.
+
+Examples are in [examples/](examples) and the
+[generated input corpus](../tests/polopt-generated/inputs). The
+[testing guide](../doc/TESTING.md) covers frontend and executable regressions.

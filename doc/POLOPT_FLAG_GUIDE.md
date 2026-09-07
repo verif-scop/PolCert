@@ -13,14 +13,12 @@ Four files define the driver:
 - [syntax/SLoopMain.ml](../syntax/SLoopMain.ml) maps a normalized optimization
   route to an extracted verified compiler configuration.
 
-The driver never chooses the final compiler by re-reading route-selection
-booleans. It validates the complete flag set once, retains the normalized
-route, configures Pluto from that route, and dispatches on the route's execution
-family.
+The driver validates the flag set, constructs a normalized route, configures
+Pluto, and selects the extracted compiler for that route.
 
 ## Route Model
 
-A normal compilation route has five independent axes.
+A compilation route records the following choices.
 
 | Axis | Choices | Default |
 | --- | --- | --- |
@@ -30,13 +28,9 @@ A normal compilation route has five independent axes.
 | Tile shape and order | rectangular or diamond; fixed or intra-tile optimized | rectangular with fixed intra-tile order |
 | Execution | sequential, Pluto-hinted parallel, explicit-coordinate parallel, Pluto-hinted vector, explicit-coordinate vector | sequential |
 
-Observation flags such as `--dump-input` do not create a sixth route axis.
-Post-codegen transformations begin after a verified producer. `--const-unroll`
-can operate directly on sequential output or on annotated parallel output; in
-the latter case it unfolds only `SeqMode` loops and preserves all existing
-execution annotations. Checked `--unrolljam` begins from sequential `Loop` IR
-and may then be re-extracted and freshly certified for parallel output on the
-currently supported affine subset.
+Observation flags such as `--dump-input` control diagnostics.
+[Postpass Dispatch](#postpass-dispatch) describes transformations applied to
+the generated loops.
 
 ### Schedule
 
@@ -85,9 +79,8 @@ parallel, or vector routes.
 
 ### Intra-Tile Optimization
 
-`--intratileopt` lets Pluto reorder loops inside each tile. This is a supported
-checked route, not a raw oracle flag. It requires a tiling phase and changes the
-validated pipeline from two transformations to three:
+`--intratileopt` lets Pluto reorder loops inside each tile. It requires a tiling
+phase and adds an affine check after tiling:
 
 ```text
 source
@@ -102,15 +95,11 @@ Without `--intratileopt`, the tile-only Pluto recipe passes
 generation. Diamond routes also use the three-stage form because their producer
 has a post-tiling affine schedule.
 
-The extracted configuration names this three-stage theorem
-`RawPostTilingAffine`. The name states the actual proof composition and does not
-imply diamond geometry. The OCaml driver uses the same route for diamond tiling
+The extracted configuration uses `RawPostTilingAffine` for both diamond tiling
 and rectangular intra-tile optimization.
 
-Support is fail-closed. The driver accepts an option combination, invokes the
-external Pluto producer, and compiles only if every phase validator accepts the
-produced candidate. A particular input may still be rejected when Pluto emits a
-candidate outside the proved recognizers.
+Each phase must pass its validator. An accepted option combination can still
+produce a rejected proposal for a particular input.
 
 ### Parallel and Vector Execution
 
@@ -155,6 +144,36 @@ diamond, and ISS producer routes.
 
 These rows describe route selection. Success still depends on the validators
 accepting Pluto's output for the input program.
+
+## Postpass Dispatch
+
+Postpasses run after the selected producer has generated loop IR. Their user
+commands and output examples are in [polopt](../POLOPT.md#constant-unrolling).
+
+| Control | Dispatch and result |
+| --- | --- |
+| Sequential `--const-unroll` | `compile_with_postpass` expands constant-bound loops, then cleans up |
+| Parallel `--const-unroll` | `checked_const_unroll` expands sequential loops while retaining annotations |
+| Sequential `--unrolljam` | `compile_with_unrolljam` applies the selected block/remainder plan and checks local fusions |
+| Hinted `--parallel --unrolljam` | `compile_parallel_after_unrolljam`, or its multi-coordinate form, re-extracts and freshly certifies the transformed loop |
+
+`--unrolljam` enables Pluto-compatible option checking even if the command
+omits `--pluto-compat`. State the unrelated producer defaults explicitly, as
+in the user-guide example. The unroll factor defaults to 8; `--ufactor=N`
+selects the block size.
+
+`POLCERT_UNROLLJAM_POLICY=pluto-profitability` is the default selector.
+`checked-all-depths` exercises candidate positions without the profitability
+filter; for sequential output it also performs constant unrolling first.
+`none` selects no jam positions. The verified pass checks every proposed
+fusion regardless of the selector. A failed fusion can leave separate loops.
+`POLCERT_UNROLLJAM_DEBUG=1` prints candidate-selection diagnostics.
+
+The explicit-coordinate `--parallel-current` dispatch does not invoke the
+unroll-and-jam endpoint. Use the hinted parallel route for that composition;
+acceptance of the option alone does not establish a jam effect. On sequential
+routes, combining `--const-unroll` with `--unrolljam` selects the jam endpoint;
+its policy controls whether full constant unrolling runs first.
 
 ## Rejected Combinations
 
@@ -214,7 +233,7 @@ and pinned-producer updates.
 
 ## Standalone Validators
 
-The following commands validate external artifacts instead of compiling a
+The following commands validate external proposals instead of compiling a
 `.loop` file:
 
 ```text

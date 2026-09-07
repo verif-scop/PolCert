@@ -1,19 +1,17 @@
 # Vanished Outer Parallel Loop
 
-Status: reproduced, minimized, validator-catches.
-
 The outer `i` loop has exactly one iteration and is independent.  The inner
 `j` loop carries the recurrence `a[0][j - 1] -> a[0][j]` and must remain
 sequential.
 
-At the pinned bug-reproduction commit
+In the historical compiler implementation at
 `6f43860b6c4cddeeca09189bf3073f05b78b14a5`,
 the affine schedule is `(0, j)`.  CLooG therefore removes the constant outer
 schedule coordinate.  `tool/ast_transform.c:75-95` then searches inward for a
 loop on which to place the parallel annotation.  Its band-boundary test uses
 `>` where the half-open band boundary requires `>=`, so it crosses a width-one
 parallel band and marks the dependent `j` loop parallel. The ordinary fixed
-Pluto baseline `8c43c21` keeps the search inside the half-open band boundary.
+Pluto baseline keeps the search inside the half-open band boundary.
 
 The raw Pluto command succeeds and produces an OpenMP program:
 

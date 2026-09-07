@@ -1,7 +1,5 @@
 # Reversed Affine Statement Order
 
-Status: reproduced, minimized, validator-catches, control-interface case.
-
 This fixture deliberately supplies an inconsistent `.fst` statement grouping.
 It tests validation of a Pluto control interface; it is not evidence that
 Pluto's automatic affine scheduler independently discovers the illegal order.
@@ -12,11 +10,11 @@ and the producer to group `1`. Pluto installs that order before affine
 scheduling and later marks the dependence satisfied on a positive loop
 coordinate, without rejecting the earlier negative scalar coordinate.
 
-At the pinned bug-reproduction commit
+In the historical compiler implementation at
 `6f43860b6c4cddeeca09189bf3073f05b78b14a5`,
 the generated program runs the complete `b` loop before the `a` loop. The
 original prints `100`; Pluto's output prints `0`. The ordinary fixed Pluto
-baseline `8c43c21` rejects this candidate at its final lexicographic legality
+baseline rejects this candidate at its final lexicographic legality
 gate.
 
 PolCert rejects the same schedule at both useful interfaces:

@@ -1,5 +1,9 @@
 # VPL (Verified Polyhedra Library) version 0.2.1
 
+For the bundled PolCert build, follow [ENVIRONMENT.md](../ENVIRONMENT.md).
+The instructions below are the upstream VPL distribution's documentation;
+they do not specify PolCert's pinned toolchain or dependency installation.
+
 ## GENERAL INFORMATIONS
 
 The VPL is an Ocaml library allowing to compute with convex polyhedra.

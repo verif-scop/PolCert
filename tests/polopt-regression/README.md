@@ -1,47 +1,33 @@
-# polopt regression suite
+# CLI Regression Inputs
 
-This directory contains the benchmark-derived `.loop` inputs used to regression-test the
-final proved `polopt` pipeline, including the verified affine stage and the
-verified tiling stage. A requested tiling that the direct permutable-band
-checker cannot certify is rejected without emitting an optimized program.
+This directory provides inputs for option-dispatch and postpass regressions,
+including constant unrolling, unroll-and-jam, literal strides, and invalid
+controls. It also retains benchmark-derived inputs used by those checks.
 
-For the source-tree entry point and documentation map, see:
+The active runner is the [Pluto compatibility suite](../../doc/POLOPT_FLAG_GUIDE.md):
 
-- `../../README.md`
-
-Tracked content:
-- `inputs/`: generated `.loop` inputs, one file per Pluto benchmark case
-- `tools/`: scripts for materializing and checking per-case outputs
-
-Untracked content:
-- `cases/<name>/`: materialized outputs produced by `polopt` during test runs
-
-Run the full suite locally:
-
-```bash
-opam exec -- make test-polopt-regression
+```sh
+make test-pluto-compat-suite
 ```
 
-That target:
-1. builds the final `polopt`
-2. runs it on all `62` generated inputs
-3. materializes `tests/polopt-regression/cases`
-4. checks:
-   - all `62` cases succeed
-   - at least `50` cases change structurally
-   - representative cases such as `matmul`, `matmul-init`, and `wavefront`
-     show explicit tiled bounds (`max/min`, `/ 32`, extra tiled loops)
+That runner invokes the current compiler and checks each declared acceptance,
+rejection, and output effect. The independent larger default-route corpus is
+[polopt-generated](../polopt-generated/README.md); run it with
+`make test-polopt-loop-suite`.
 
-How to inspect one case:
+For a focused case, use the compatibility runner's `--only` selector. For
+example:
 
-1. read `input.loop`
-2. compare with `optimized.loop`
-3. inspect `diff.patch`
-4. read `status.txt`
+```sh
+python3 tools/polopt_flag_suites/run_pluto_compat_suite.py \
+  --only const-unrolljam-constant-loop,unrolljam-context-bound-escape-rejected
+```
 
-Important proof boundary:
-- The suite runs the final proved optimizer path from `driver/PolOpt.v`.
-- The textual `.loop` parser/elaborator and final pretty-printer are outside
-  the Coq theorem.
-- The affine validator, checked tiling validator, `current_view_pprog`, and
-  verified codegen path are inside the proved runtime pipeline.
+Both checks should pass: one requires complete constant unrolling; the other
+requires rejection of an invalid jam transformation. The runner's exit status
+describes whether these expectations hold, not whether both compiler calls
+succeeded.
+
+The older materialization helpers in `tools/` are not the default corpus
+runner. Use the linked generated suite for maintained materialization and
+whole-C tests.

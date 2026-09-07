@@ -7,8 +7,10 @@ zero-dimensional statement. The affine schedule is legal, but the tiled
 schedule reverses the dependence. Pluto exits successfully and emits C with a
 different result.
 
-I reproduced this on official `bondhugula/pluto` master at
+This historical report records reproduction on `bondhugula/pluto` at
 `dc462163c8b4fc97d378a4d245d1a64741cb4111`.
+The PolCert fixed fork now repairs this case. The report below describes the
+original defect; it is not a claim about the current upstream master.
 
 ## Reproducer
 

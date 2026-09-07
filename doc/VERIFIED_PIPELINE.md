@@ -1,159 +1,138 @@
 # Verified Pipeline
 
-This note records the current theorem-facing `polopt` pipeline. It is a compact
-orientation document; detailed flag coverage lives in
-[POLOPT.md](../POLOPT.md) and the [flag guide](POLOPT_FLAG_GUIDE.md).
+PolCert compiles a structured loop fragment into an optimized loop nest.
+Pluto supplies optimization proposals; PolCert checks them and generates the
+target loops. This guide describes the representations, compilation stages,
+and correctness guarantee. Commands are in [polopt](../POLOPT.md), and theorem
+locations are in the [proof reading guide](PROOF_READING_GUIDE.md).
 
-## Current contract
+## Program Representations
 
-The main compiler wrapper is the extracted Coq compiler:
+The parser elaborates `.loop` text into `Loop.t`, which contains loops,
+conditionals, instruction calls, and sequences. The
+[syntax guide](../syntax/README.md) describes the accepted input language.
 
-```text
-VerifiedParallelCompilerConfig.compile : raw_config -> Loop.t -> imp ParallelLoop.t
-```
+Verified extraction converts the loop into a polyhedral program. Each
+statement has an instruction, an iteration domain, a schedule, and memory-access
+summaries. The domain specifies the integer iteration points at which the
+instruction executes. The schedule assigns timestamps that determine execution
+order, and the access summaries describe the locations read and written.
+Scheduling changes these timestamps; splitting and tiling also change how
+the iteration points are represented.
 
-The main theorem is `VerifiedParallelCompilerConfig.compile_correct`.
-For any accepted `raw_config`, if the compiler returns a `ParallelLoop.t` target,
-every terminating target execution is matched by a source `Loop.t` execution with
-`State.eq` final states. `compile_verified_correct` is the corresponding theorem
-after `check_config` has accepted a verified config.
+## Compilation Stages
 
-For `ParMode`, target semantics admits every interleaving that preserves each
-iteration trace's internal order.  It does not assume that the chosen
-interleaving is safe.  The checker certifies pairwise commutativity at a padded
-schedule coordinate, the code-generation origin proof relates that coordinate
-to the generated loop and its actual trace, and the correctness proof derives
-the ordered proof companion needed to serialize the interleaving.  This chain
-also covers nested and multi-coordinate annotations.
-
-Sequential routes are not outside this theorem. They are lifted into
-`ParallelLoop.t` with all-`SeqMode` annotations. Parallel routes return the same
-target language after running the parallel checker and adding `ParMode`
-annotations.  Metadata-preserving cleanup is proved by reflection to the same
-certified raw program; if a proof-relevant cleanup stage is not trace-safe, the
-checked route returns the standard-raw program instead.
-
-## Executable `polopt` shape
-
-A normal schedule, tiling, or parallel optimizer run has this shape:
+The default path is:
 
 ```text
-.loop text
--> parser / elaborator
--> Loop.t
--> Pluto-compatible flag filtering and route normalization
--> optional Pluto oracle calls for schedules, tiling phases, or annotations
--> checked route construction
--> VerifiedParallelCompilerConfig.compile
--> ParallelLoop.t
--> printer / generated-loop checks
+parse -> extract -> affine scheduling -> tiling -> loop generation -> print
 ```
 
-Pluto is an oracle: it proposes schedules, phase outputs, and loop annotation
-hints. PolOpt accepts those artifacts only through checked routes.
+Pluto proposes the affine and tiling transformations. Their verified validators
+check the proposals before loop generation. The selected options can insert
+index-set splitting, post-tiling scheduling, and parallelization, or omit
+scheduling and tiling.
 
-For a tiling boundary, the extracted dispatcher runs the direct semantic
-permutable-band check. It checks source-ordered WW, WR, and RW conflicts with
-the same prefix before the band for decreases in the selected band components,
-using certified polyhedral emptiness queries. A successful direct check reports
-`permutable-band`. If the direct checker returns `false` because the layout is
-outside its recognizers or the property is not established, the candidate is
-reported as `rejected`; the dispatcher does not invoke another tiling
-validator. An impure solver alarm propagates instead of becoming rejection.
+### Extraction
 
-VPL solves rational constraints. Verified integer normalization eliminates
-some fractional witnesses, but it is not a complete integer solver; remaining
-spurious conflicts can conservatively reject an optimization.
+The verified extractor derives statement domains, schedules, and accesses
+from the source loop. Domain preparation makes enclosing bounds available
+to subsequent checks. The extraction proof relates executions of the source
+loop to executions of the resulting polyhedral program.
 
-This check is a semantic analogue of Pluto's fully permutable-band condition
-for recognized layouts. It is not a verification of Pluto's band detector,
-independent-hyperplane search, or optimization heuristics. The implementation
-reuses the affine validator's certified conflict and emptiness kernels, but it
-does not call the whole affine-schedule validator. Ordinary rectangular,
-diamond, full-diamond, and recognized grouped/interleaved second-level layouts
-can use the direct route. Source-like identity layouts and structurally
-matched mixed-depth layouts use program-wide semantic schedule reconstruction;
-the recognized mixed second-level shape uses a phase-aware direct bridge.
-Layouts outside these proved classes are rejected. Diamond pipelines
-validate their final affine leg
-separately, and that leg is checked by `validate_general`.
+### Index-Set Splitting and Affine Scheduling
 
-The important route families are:
+Index-set splitting divides a statement domain into child domains to allow
+different scheduling choices in different regions. Its validator checks that
+the children form a complete, disjoint partition and preserve the instruction
+and its accesses.
 
-- sequential configs through `RawSeq`, including identity, affine-only, ordinary
-  tiling, ISS, second-level tiling, diamond, and full-diamond compositions
-  supported by the current wrapper;
-- explicit one-current parallel configs such as `RawParallelCurrentDefault d`;
-- Pluto-hinted one-current parallel configs selected by `--parallel`;
-- Pluto-hinted multi-current parallel configs selected by `--parallel --multipar`
-  and represented by the `RawParallelCurrentMany*` constructors.
+Affine scheduling changes execution order while retaining the instruction
+instances. The affine validator checks that instances whose relative order
+may change can commute. Its dependence queries use the statements' domains,
+accesses, and proposed schedules.
 
-Vector routes reuse the doall certificate and checked vector codegen lemmas.
-Constant-bound unrolling is an independent postpass dimension of the extracted
-sequential compiler rather than another copy of every producer constructor.
-`compile_with_postpass_correct` composes each producer theorem with
-`LoopUnroll.const_unroll_correct` and verified cleanup.
+### Tiling
 
-The Pluto-compatible unroll-jam route is part of the sequential endpoint.
-`LoopJamValidator` retains the parameter and enclosing-iterator schedule
-prefix, then checks cross-body independence within each shared outer
-environment over the candidate's actual bounds.
-`LoopJamBridge.checked_pair_refines_sound` converts that certificate to the
-native trace premise, and `LoopJamContext` lifts each accepted pair through the
-recursive lowering. The extracted theorem
-`extracted_sequential_compile_with_unrolljam_correct` composes the selected
-producer, optional constant unrolling, checked block/remainder unroll-jam, and
-cleanup for the complete returned Loop program. The selector remains an
-untrusted profitability policy, but the theorem quantifies over every selector.
+Tiling introduces coordinates for tiles and represents each source instance
+in the tiled program. The validator checks this correspondence and the
+permutability of the selected band of schedule dimensions. For conflicting
+instances with the same enclosing schedule prefix, the band condition prevents
+a dependence from running backwards in any selected dimension.
 
-## Pluto-compatible CLI
+The checks support rectangular, diamond, and two-level layouts and account
+for statements outside the tiled loop. The tiling stage rejects proposals
+that fail its correspondence or band checks.
 
-`./polopt --pluto-compat ... file.loop` accepts Pluto-style flags, rejects
-unsupported combinations with explicit reasons, and dispatches the accepted
-combination to the relevant checked route. The unified wrapper covers ordinary
-tiling, second-level tiling, ISS combinations, diamond and full-diamond routes,
-checked parallelization, and `--multipar` up to the current multi-current
-certificate surface. The extracted sequential postpass endpoint covers both
-constant-bound unrolling and checked unroll-jam. Constant unrolling also has an
-annotated endpoint: it unfolds only `SeqMode` loops in the generated
-`ParallelLoop`, so existing parallel modes and origin tags are unchanged. Its
-semantic-reflection theorem composes directly with the unified parallel
-compiler endpoint. For parallel unroll-jam output,
-`extracted_parallel_after_unrolljam_correct` and its multi-coordinate variant
-compose that endpoint with fresh identity-route extraction and parallel
-validation. Constant-range block unrolling demonstrates the combination.
-Symbolic block/remainder controls may contain `Div`, `Max`, or `Min`, which the
-current SCoP extractor rejects; vector output also remains unsupported. This
-narrow route does not claim certificate transport through arbitrary annotated
-loop nests.
+Intra-tile scheduling and diamond routes have a subsequent affine stage.
+PolCert checks that reordering separately, using the exported tiled program
+as its source. The [Pluto interface](PLUTO_INTERFACE.md) describes these
+intermediate exports.
 
-For `--multipar`, the driver parses Pluto's
-parallel-loop hints, builds a list of candidate padded schedule coordinates, and calls a
-`RawParallelCurrentMany*` config in the verified wrapper. It submits every
-dimension in the finite candidate list constructed for that route. Vector routes are
-innermost-only: hinted mode does not search other dimensions, and explicit
-`--vector-current` rejects a non-innermost selection.
+### Parallelization
 
-## Build and regression checks
+Pluto's hints select iterations for concurrent execution. For a selected
+schedule coordinate, the parallel validator compares instances with the same
+enclosing prefix and different values at that coordinate. Such instances must
+commute. A successful check produces a certificate for annotated code generation.
 
-[Testing](TESTING.md) describes the clean proof build, extraction checks, and
-regression suites. [Evaluation](EVALUATION.md) provides separate manual
-experiments for optimization retention and compilation overhead.
+A hint may apply to only some statements. The driver translates a scoped hint
+into a schedule proposal, which undergoes affine validation before the
+parallel check. The same independence check supports vector annotations,
+with an additional requirement that the generated loop be innermost.
 
-## Boundary
+### Loop Generation
 
-The current theorem family is state-preserving. The unified wrapper covers
-schedule, tiling, ISS, diamond, and second-level routes that preserve the same
-observable storage under `State.eq`. Parallel endpoints cover arbitrary
-order-preserving interleavings justified by the checked schedule-coordinate
-certificate; vector endpoints retain sequential-order vector semantics.
-Unroll/jam uses its own theorem-backed component. The wrapper deliberately does not cover
-storage-changing transformations such as scalar
-privatization, array contraction, layout remapping, or overlapped / reuse-based
-tiling. Those need a separate state relation rather than another flag in the
-current wrapper.
+Verified code generation reconstructs loop bounds, guards, and instruction
+calls from the polyhedral program. Parallel certificates determine which
+generated loops may execute concurrently. Cleanup simplifies the result while
+preserving its semantics and execution annotations. The printer emits the
+resulting loop text.
 
-Untrusted or non-theorem parts remain outside the Coq theorem: Pluto's search
-heuristics, textual parsing and printing, OpenScop engineering, and witness
-inference from external files. Those components are either treated as proposal
-generators or as frontend/backend engineering around the checked core.
+The compiler also provides constant unrolling and checked unroll-and-jam on
+generated loops. If parallelization follows unroll-and-jam, it obtains fresh
+certificates from the transformed loop. Their options and restrictions are
+described in the [user guide](../POLOPT.md#constant-unrolling).
+
+## Correctness and Scope
+
+For successful compilation, every terminating target execution has a matching
+source execution from the same initial state, with final states related by
+`State.eq`. The component proofs compose to establish this semantic refinement
+for the complete loop-to-loop pipeline.
+
+A parallel loop admits interleavings that preserve the instruction order
+within each iteration. Refinement holds for all interleavings allowed by this
+semantics. Vector annotations currently retain sequential formal semantics;
+machine SIMD lowering requires a separate correctness argument.
+
+The formalization takes an instruction language, its state and execution
+semantics, and access information through
+[`INSTR`](../polygen/InstrTy.v). The interface requires sound access summaries
+and a proof that nonconflicting executions commute.
+[`POLIRS`](../polygen/PolIRs.v) constructs the loop and polyhedral
+representations from this interface. A new instruction language can reuse
+the compiler proofs once it establishes the interface laws.
+
+The executable instantiation, [`SInstr`](../syntax/SInstr.v), uses symbolic
+arithmetic values and distinct named memory cells. The current theorem covers
+loop IR to loop IR. Parsing, printing, and the auxiliary C harness lie outside
+it; full C arithmetic, overflow, and aliasing need additional semantic treatment.
+Storage-changing transformations also require additional proofs.
+
+## Acceptance and Rejection
+
+A failed required validation stage stops compilation. Non-strict parallel
+hints may instead leave a sequential result; the
+[user guide](../POLOPT.md#parallel-and-vector-output) describes this behavior.
+
+Acceptance is sound, but some legal proposals can be rejected. VPL checks
+rational polyhedra, so fractional solutions can cause conservative rejection
+of integer-safe transformations. Verified integer normalization removes some
+of these cases. Accepted inputs are also limited by the source syntax and
+recognized tiling layouts.
+
+Code generation can split a parallel group according to statement domains.
+Thus, a certified optimization may differ in its generated loop structure
+from Pluto's output. [Evaluation](EVALUATION.md) describes how the experiments
+compare the retained optimization effects.

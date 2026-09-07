@@ -1,15 +1,24 @@
-# Pluto interface
+# Pluto Interface
 
 PolCert imports transformation proposals from the
 [fixed Pluto fork](https://github.com/verif-scop/pluto). The build pins are in
 [`tools/ci/pluto-baseline.env`](../tools/ci/pluto-baseline.env). The `buggy`
 branch is used only for historical regressions.
 
-## Phase exports
+## Phase Exports
 
 Pluto's `--dumpscop` exports the input, pre-tiling schedule, tiled model, and
 final schedule as `.beforescheduling.scop`, `.midtransform.scop`,
-`.posttile.scop`, and `.afterscheduling.scop`. The tiling boundary must describe
+`.posttile.scop`, and `.afterscheduling.scop`.
+
+| Export | Consumer |
+| --- | --- |
+| Before scheduling | Source side of affine validation |
+| Mid-transform | Target side of affine validation and source side of tiling validation |
+| Post-tile | Target side of tiling validation; source side of any subsequent affine check |
+| After scheduling | Final affine result for code-generation preparation |
+
+The tiling boundary must describe
 a legal intermediate program, including statements outside the tiled nest.
 Diamond and intra-tile scheduling routes then validate the following affine
 transformation separately.
@@ -19,7 +28,7 @@ Dropping constant-zero schedule slots changes coordinate numbering, so hints
 must use the recorded raw-to-canonical coordinate mapping. C nesting depth is
 not a schedule coordinate.
 
-## Parallel and vector hints
+## Parallel and Vector Hints
 
 A Pluto loop directive identifies a scattering coordinate and participating
 statements. A local parallel hint need not apply to every statement at that
@@ -42,7 +51,7 @@ semantic schedule coordinates or statement tie breakers from generated C.
 Evaluation observers may read Pluto's generated C to compare output effects;
 that observation is outside compilation.
 
-## Representation normalization
+## Representation Normalization
 
 The remaining adapters parse relations, map raw coordinates, reconcile tiled
 iterator representations, and normalize equivalent serialized instruction
@@ -59,3 +68,8 @@ Commit and test the repair in Pluto, then update `PLUTO_GIT_COMMIT` in both the
 baseline file and Dockerfile defaults. Rebuild the CI image and run all shards.
 Advance the historical pin only when intentionally changing the regression
 baseline; it is not the previous version of every fixed compiler update.
+
+The fixed fork's `FIXES.md` describes producer repairs; the `buggy` branch's
+README describes the historical behavior. Keep these roles distinct when
+changing tests. A captured historical proposal can remain a useful negative
+fixture after the fixed compiler stops producing it.

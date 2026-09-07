@@ -1,25 +1,19 @@
-# Stage Profiling Helpers
+# Diagnostic Stage Profiling
 
-These scripts provide reproducible `polopt --profile-stages` runs for code
-generation hotspots.
+`run_stage_profile.py` wraps `polopt --profile-stages` for local diagnosis.
+For example, isolate affine-only processing of `advect3d`:
 
-## `advect3d`
-
-To isolate affine-route code generation on `advect3d`:
-
-```bash
-python3 tools/perf/run_stage_profile.py \
-  --polopt ./polopt \
-  --mode affine \
+```sh
+python3 tools/perf/run_stage_profile.py --polopt ./polopt --mode affine \
   tests/polopt-generated/inputs/advect3d.loop
 ```
 
-Convenience Make targets:
+The convenience targets are `make profile-advect3d-codegen` and
+`make profile-advect3d-codegen-identity`. Expect stage timing diagnostics and
+a successfully checked optimized loop. Their purpose is to locate costly
+work, not to impose a machine-independent time limit.
 
-```bash
-opam exec -- make profile-advect3d-codegen
-opam exec -- make profile-advect3d-codegen-identity
-```
-
-`affine` is the default because that is the current hotspot-isolating route:
-it keeps the verified affine pipeline but avoids later tiling noise.
+The underlying diagnostic mode repeats compilation for acceptance checking
+and supports only a subset of sequential routes. Do not treat its process wall
+time as ordinary compilation time. For uninstrumented Pluto/PolCert overhead
+and disjoint stage attribution, use [Evaluation](../../doc/EVALUATION.md).

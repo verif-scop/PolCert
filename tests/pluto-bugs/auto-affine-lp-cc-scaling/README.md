@@ -1,7 +1,5 @@
 # Automatic Affine LP Component Scaling
 
-Status: reproduced, minimized, validator-catches, automatic-scheduler case.
-
 This fixture does not provide `.fst`, `.precut`, `skipdeps.txt`, a schedule, or
 any other control file. Pluto computes the affine schedule itself with its GLPK
 LP scheduler. Parallelization, tiling, vectorization, unroll-jam, intra-tile
@@ -13,7 +11,7 @@ overwrites the component identifier of an already visited vertex. LP schedule
 integerization then scales the two ends of the `S3 -> S1` dependence by
 different factors and produces an illegal affine schedule.
 
-On the pinned Pluto revision, the source prints `802469374803681347`, while
+On the historical Pluto revision, the source prints `802469374803681347`, while
 Pluto's generated program prints `11412027514774867379`. PolCert's standalone
 affine checker rejects the exact before/after OpenScop pair with `overall:
 FAIL`.

@@ -609,6 +609,7 @@ documentation: proof-documentation
 # Rocq documentation. Keep this set focused on the semantic
 # spine; the generated declaration index links into the supporting modules.
 PROOF_DOC_FILES = \
+  polygen/StateTy.v polygen/InstrTy.v polygen/PolIRs.v polygen/Loop.v syntax/SInstr.v \
   src/CState.v src/CInstr.v polygen/InstanceListSema.v src/PolyLang.v \
   src/ExtractorFrontend.v src/ExtractorFacts.v src/ExtractorCorrect.v \
   src/ISSRefinement.v src/ISSBoolChecker.v src/ISSCutSemantics.v src/ISSValidatorCorrect.v \
@@ -618,7 +619,9 @@ PROOF_DOC_FILES = \
   src/TilingBandDirectRuntime.v \
   polygen/ParallelLoop.v src/ParallelValidator.v src/RawCodegenOrigin.v \
   src/ParallelCodegenCore.v src/ParallelCodegenCompatibility.v src/ParallelCodegenCorrect.v \
-  polygen/LoopUnroll.v driver/VerifiedLoopPostpass.v \
+  polygen/CodeGen.v polygen/LoopStride.v polygen/LoopUnroll.v driver/VerifiedLoopPostpass.v \
+  src/LoopJamTrace.v src/LoopJamFusion.v src/LoopJamNative.v src/LoopJamValidator.v \
+  src/LoopJamLower.v src/LoopJamContext.v src/LoopJamBridge.v \
   src/PrepareCodegen.v src/StrengthenDomain.v \
   driver/PolOptCorrect.v driver/PolOptBandTiling.v driver/ParallelPolOptCorrect.v \
   driver/VerifiedCompilerConfig.v driver/VerifiedParallelCompilerConfig.v \

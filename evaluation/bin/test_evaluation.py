@@ -13,6 +13,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ExperimentInputs(unittest.TestCase):
+    def test_profiler_assets(self):
+        # Both default stage profiling and optional VPL detail must be buildable.
+        for name in ('PipelineMeasure.ml', 'VplMeasure.ml', 'monotonic_clock_stubs.c'):
+            with self.subTest(asset=name):
+                self.assertTrue((ROOT / 'assets' / name).is_file())
+
     def test_retention_plan(self):
         with tempfile.TemporaryDirectory() as directory:
             plan_path, plan = select_retention_plan(ROOT, Path(directory))
